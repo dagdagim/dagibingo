@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@bingo/shared": "file:../packages/shared",
     "@hookform/resolvers": "^3.9.0",
     "@tanstack/react-query": "^5.51.23",
     "canvas-confetti": "^1.9.3",
