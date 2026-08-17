@@ -12,17 +12,27 @@ class SocketService {
     }
 
     const token = localStorage.getItem('bingo_access_token');
-    const socketUrl = import.meta.env.VITE_API_URL || undefined;
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || undefined;
 
-    this.socket = io(socketUrl, {
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      auth: {
-        token: token || undefined,
-      },
-    });
+    this.socket = socketUrl
+      ? io(socketUrl, {
+          autoConnect: true,
+          reconnection: true,
+          reconnectionAttempts: 10,
+          reconnectionDelay: 1000,
+          auth: {
+            token: token || undefined,
+          },
+        })
+      : io({
+          autoConnect: true,
+          reconnection: true,
+          reconnectionAttempts: 10,
+          reconnectionDelay: 1000,
+          auth: {
+            token: token || undefined,
+          },
+        });
 
     this.socket.on('connect', () => {
       console.log('⚡ Connected to BINGO Arena Real-Time Socket Gateway');
