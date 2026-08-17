@@ -1,12 +1,13 @@
 services:
-  # Option 1: Unified Full-Stack Web Service (Hosts API, WebSockets & Client SPA on one URL)
   - type: web
     name: dagi-bingo
-    env: node
+    runtime: node
     plan: free
     region: oregon
     buildCommand: npm run render-build
     startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
@@ -15,9 +16,7 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: MONGODB_URI
-        sync: false # Set your MongoDB Atlas connection string in Render Dashboard
-      - key: REDIS_URL
-        sync: false # Optional: Upstash or Render Redis
+        placeholder: "mongodb+srv://<username>:<password>@cluster0.mongodb.net/dagibingo"
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
