@@ -14,7 +14,7 @@ const getInitialTheme = (): ThemeMode => {
   if (saved === 'dark' || saved === 'bright') {
     return saved;
   }
-  return 'dark'; // Default to sleek, premium dark mode
+  return 'bright'; // Default to bright warm mode
 };
 
 const applyThemeToDOM = (theme: ThemeMode) => {
