@@ -1,0 +1,29 @@
+{
+  "name": "bingo-arena-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BINGO ARENA - Enterprise Real-Time Multiplayer Bingo Gaming Platform",
+  "workspaces": [
+    "packages/*",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=@bingo/server\" \"npm run dev --workspace=@bingo/client\"",
+    "dev:server": "npm run dev --workspace=@bingo/server",
+    "dev:client": "npm run dev --workspace=@bingo/client",
+    "build": "npm run build --workspace=@bingo/shared && npm run build --workspace=@bingo/server && npm run build --workspace=@bingo/client",
+    "build:shared": "npm run build --workspace=@bingo/shared",
+    "build:server": "npm run build --workspace=@bingo/server",
+    "build:client": "npm run build --workspace=@bingo/client",
+    "test": "npm run test --workspace=@bingo/server",
+    "seed": "npm run seed --workspace=@bingo/server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

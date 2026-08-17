@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Persistent MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: bingo_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: bingo_arena
+    volumes:
+      - mongo_data:/data/db
+
+  # Redis Cache & Socket.IO State
+  redis:
+    image: redis:7.2-alpine
+    container_name: bingo_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # Authoritative Backend API & Socket Server
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: bingo_api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/bingo_arena
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: production_jwt_secret_bingo_arena_2026_x89a
+      JWT_REFRESH_SECRET: production_jwt_refresh_secret_bingo_arena_2026_z12m
+      GAME_MODE: DEMO
+      CLIENT_URL: http://localhost:80
+    depends_on:
+      - mongodb
+      - redis
+
+  # Production Frontend Client with Nginx Proxy
+  web:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: bingo_web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  mongo_data:
+  redis_data:

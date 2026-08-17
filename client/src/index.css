@@ -1,0 +1,224 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --arena-bg: #090D18;
+  --arena-surface: #101628;
+  --arena-elevated: #162038;
+  --arena-highlight: #1E2B4C;
+  --arena-border: rgba(255, 255, 255, 0.08);
+  --arena-border-bright: rgba(99, 102, 241, 0.25);
+  --arena-text: #F8FAFC;
+  --arena-muted: #94A3B8;
+  --arena-subtle: #64748B;
+  --arena-shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Warm Cream / Ivory / Linen Theme */
+html.bright, html.cream {
+  color-scheme: light;
+  --arena-bg: #FBF8F2;
+  --arena-surface: #FFFDF9;
+  --arena-elevated: #F3ECE0;
+  --arena-highlight: #EAE1D0;
+  --arena-border: rgba(90, 70, 45, 0.12);
+  --arena-border-bright: rgba(180, 130, 70, 0.35);
+  --arena-text: #201A15;
+  --arena-muted: #6C5D4F;
+  --arena-subtle: #8E7E6E;
+  --arena-shadow-card: 0 8px 25px -4px rgba(70, 50, 30, 0.08), 0 0 1px 1px rgba(70, 50, 30, 0.05);
+}
+
+body {
+  margin: 0;
+  background-color: var(--arena-bg);
+  color: var(--arena-text);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 85% 90%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+html.bright body, html.cream body {
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(217, 119, 6, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 85% 90%, rgba(180, 130, 70, 0.04) 0%, transparent 45%);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--arena-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+html.bright ::-webkit-scrollbar-thumb, html.cream ::-webkit-scrollbar-thumb {
+  background: #D8CEBE;
+}
+
+html.bright ::-webkit-scrollbar-thumb:hover, html.cream ::-webkit-scrollbar-thumb:hover {
+  background: #B8AA98;
+}
+
+/* Glassmorphic Panel Styles */
+.glass-panel {
+  background: rgba(16, 22, 40, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 8px 30px 0 rgba(0, 0, 0, 0.35);
+}
+
+html.bright .glass-panel, html.cream .glass-panel {
+  background: rgba(255, 253, 248, 0.92);
+  border: 1px solid rgba(90, 70, 45, 0.1);
+  box-shadow: 0 6px 24px 0 rgba(70, 50, 30, 0.06);
+}
+
+.glass-panel-elevated {
+  background: rgba(22, 32, 56, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 14px 35px -8px rgba(0, 0, 0, 0.5);
+}
+
+html.bright .glass-panel-elevated, html.cream .glass-panel-elevated {
+  background: rgba(255, 254, 250, 0.98);
+  border: 1px solid rgba(180, 130, 70, 0.22);
+  box-shadow: 0 12px 32px -6px rgba(70, 50, 30, 0.1);
+}
+
+/* Interactive Card Hovers */
+.glass-card-interactive {
+  background: rgba(16, 22, 40, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.bright .glass-card-interactive, html.cream .glass-card-interactive {
+  background: rgba(255, 253, 248, 0.9);
+  border: 1px solid rgba(90, 70, 45, 0.1);
+  box-shadow: 0 4px 18px -2px rgba(70, 50, 30, 0.05);
+}
+
+.glass-card-interactive:hover {
+  background: rgba(24, 34, 60, 0.95);
+  border-color: rgba(99, 102, 241, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(99, 102, 241, 0.12);
+}
+
+html.bright .glass-card-interactive:hover, html.cream .glass-card-interactive:hover {
+  background: #FFFFFF;
+  border-color: rgba(217, 119, 6, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -4px rgba(70, 50, 30, 0.12);
+}
+
+/* Vibrant Gradient Accents Optimized for High Contrast */
+.gradient-text-primary {
+  background: linear-gradient(135deg, #6366F1 0%, #818CF8 50%, #A78BFA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-gold {
+  background: linear-gradient(135deg, #D97706 0%, #F59E0B 50%, #B45309 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-accent {
+  background: linear-gradient(135deg, #059669 0%, #10B981 50%, #047857 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-rainbow {
+  background: linear-gradient(135deg, #0284C7 0%, #E11D48 35%, #D97706 70%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 3D Ball Lighting Styles */
+.bingo-sphere {
+  position: relative;
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: 
+    0 10px 20px -3px rgba(0, 0, 0, 0.6),
+    0 0 15px var(--ball-glow, rgba(99, 102, 241, 0.3)),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.5),
+    inset 0 6px 10px rgba(255, 255, 255, 0.4);
+}
+
+.bingo-sphere::after {
+  content: '';
+  position: absolute;
+  top: 6%;
+  left: 14%;
+  width: 38%;
+  height: 25%;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.0) 100%);
+  pointer-events: none;
+}
+
+/* Daubed Stamp Animation */
+.daub-stamp {
+  position: relative;
+  background: radial-gradient(circle at 35% 35%, #6366F1 0%, #4338CA 60%, #312E81 100%);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.5);
+}
+
+.daub-stamp.free-space {
+  background: radial-gradient(circle at 35% 35%, #FACC15 0%, #EAB308 60%, #854D0E 100%);
+  box-shadow: 0 0 16px rgba(234, 179, 8, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+}
+
+/* Animated Grid Background */
+.bg-grid-pattern {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+html.bright .bg-grid-pattern, html.cream .bg-grid-pattern {
+  background-image: 
+    linear-gradient(to right, rgba(90, 70, 45, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(90, 70, 45, 0.05) 1px, transparent 1px);
+}
+
+/* Winning Line Glowing Strike */
+@keyframes winGlow {
+  0%, 100% { box-shadow: 0 0 12px #F59E0B, inset 0 0 8px #F59E0B; }
+  50% { box-shadow: 0 0 24px #FBBF24, inset 0 0 16px #FBBF24; }
+}
+
+.winning-cell {
+  animation: winGlow 1.2s ease-in-out infinite;
+  border-color: #F59E0B !important;
+}
