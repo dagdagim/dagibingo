@@ -197,9 +197,44 @@ export const WalletPage: React.FC = () => {
                       {tx.balanceAfter.toLocaleString()} {tx.currency}
                     </td>
                     <td className="py-3.5">
-                      <Badge variant={getStatusBadgeVariant(tx.status)} size="sm">
-                        {tx.status}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={getStatusBadgeVariant(tx.status)} size="sm">
+                          {tx.status}
+                        </Badge>
+                        {tx.status === 'PENDING' && tx.referenceId && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const res = await api.get<ChapaVerifyResponse>(`/wallet/chapa/verify/${tx.referenceId}`);
+                                if (res.isSuccess) {
+                                  setChapaBanner({
+                                    type: 'success',
+                                    message: `🎉 Deposit of ${res.amount.toLocaleString()} ${res.currency} verified and credited!`,
+                                  });
+                                } else {
+                                  setChapaBanner({
+                                    type: 'error',
+                                    message: res.message || 'Deposit verification is still pending on Chapa.',
+                                  });
+                                }
+                                fetchBalance();
+                                fetchTransactions();
+                              } catch (err) {
+                                setChapaBanner({
+                                  type: 'error',
+                                  message: (err as Error).message || 'Failed to verify transaction.',
+                                });
+                              }
+                            }}
+                            className="px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-[10px] font-bold text-emerald-600 dark:text-emerald-300 transition-all cursor-pointer flex items-center gap-1"
+                            title="Verify and update wallet immediately"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            Verify Now
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 text-arena-muted font-mono text-[11px]">
                       {new Date(tx.createdAt).toLocaleString()}

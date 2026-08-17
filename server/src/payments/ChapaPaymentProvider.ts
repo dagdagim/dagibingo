@@ -137,18 +137,18 @@ export class ChapaPaymentProvider {
       }
 
       const txData = data.data;
-      const isPaid = txData.status === 'success';
+      const isPaid = txData?.status === 'success' || txData?.status === 'completed' || (data.status === 'success' && (txData?.status === 'pending' ? false : true));
 
-      logger.info(`[Chapa] Verified tx_ref: ${txRef} -> status: ${txData.status}, amount: ${txData.amount} ${txData.currency}`);
+      logger.info(`[Chapa] Verified tx_ref: ${txRef} -> status: ${txData?.status || data.status}, isPaid: ${isPaid}, amount: ${txData?.amount} ${txData?.currency}`);
 
       return {
         isSuccess: isPaid,
-        status: isPaid ? 'COMPLETED' : txData.status.toUpperCase(),
-        amount: Number(txData.amount),
-        currency: txData.currency || 'ETB',
-        txRef: txData.tx_ref || txRef,
-        reference: txData.reference,
-        paymentMethod: txData.method,
+        status: isPaid ? 'COMPLETED' : (txData?.status ? txData.status.toUpperCase() : 'PENDING'),
+        amount: Number(txData?.amount || 0),
+        currency: txData?.currency || 'ETB',
+        txRef: txData?.tx_ref || txRef,
+        reference: txData?.reference,
+        paymentMethod: txData?.method || 'Chapa (Telebirr/CBE)',
         raw: data,
       };
     } catch (error) {

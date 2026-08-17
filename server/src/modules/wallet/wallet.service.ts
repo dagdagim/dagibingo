@@ -38,6 +38,9 @@ export class WalletService {
   }
 
   public async getBalance(userId: string): Promise<WalletBalance> {
+    // Auto-reconcile any pending Chapa deposits
+    await this.reconcilePendingChapaDeposits(userId);
+
     const wallet = await this.getOrCreateWallet(userId);
     return {
       availableBalance: wallet.availableBalance,
@@ -48,6 +51,31 @@ export class WalletService {
       isDemo: wallet.isDemo,
       updatedAt: wallet.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * Automatically scans and reconciles pending Chapa transactions for the user
+   */
+  public async reconcilePendingChapaDeposits(userId: string): Promise<void> {
+    try {
+      const pendingTxs = await WalletTransaction.find({
+        userId: new mongoose.Types.ObjectId(userId),
+        status: 'PENDING',
+        referenceId: { $regex: '^DAGI_DEP_' },
+      }).limit(10);
+
+      for (const tx of pendingTxs) {
+        if (tx.referenceId) {
+          try {
+            await this.verifyChapaDeposit(userId, tx.referenceId);
+          } catch (err) {
+            logger.warn(`[Auto-Reconcile] Could not verify ${tx.referenceId}: ${(err as Error).message}`);
+          }
+        }
+      }
+    } catch (err) {
+      logger.error(`[Auto-Reconcile] Error checking pending deposits: ${(err as Error).message}`);
+    }
   }
 
   /**
@@ -142,17 +170,13 @@ export class WalletService {
     const verifyResult = await this.chapaProvider.verifyTransaction(txRef);
 
     if (!verifyResult.isSuccess) {
-      if (tx) {
-        tx.status = 'FAILED';
-        await tx.save();
-      }
       return {
         isSuccess: false,
         status: verifyResult.status,
-        message: 'Payment verification failed or was cancelled by user.',
+        message: 'Payment is pending on Chapa or awaiting completion.',
         txRef,
-        amount: verifyResult.amount,
-        currency: verifyResult.currency,
+        amount: verifyResult.amount || (tx ? tx.amount : 0),
+        currency: verifyResult.currency || 'ETB',
       };
     }
 
