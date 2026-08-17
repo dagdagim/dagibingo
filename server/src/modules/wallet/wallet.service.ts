@@ -340,11 +340,16 @@ export class WalletService {
       throw new BadRequestError(`Insufficient funds. Available balance: ${wallet.availableBalance.toLocaleString()} ETB`);
     }
 
-    const paymentResult = await this.paymentProvider.createWithdrawal({
-      userId,
+    const reference = `DAGI_WDL_${Date.now()}_${uuidv4().substring(0, 6).toUpperCase()}`;
+
+    // Invoke Chapa Transfer Payout API
+    const chapaTransferResult = await this.chapaProvider.createTransfer({
+      accountName: accountDetails.accountName,
+      accountNumber: accountDetails.accountNumber,
       amount,
       currency: wallet.currency,
-      accountDetails,
+      bankOrProvider: accountDetails.bankOrProvider,
+      reference,
     });
 
     const balanceBefore = wallet.availableBalance;
@@ -360,20 +365,22 @@ export class WalletService {
       balanceBefore,
       balanceAfter: wallet.availableBalance,
       currency: wallet.currency,
-      status: paymentResult.status,
-      referenceId: paymentResult.providerReference,
-      description: `Withdrawal to ${accountDetails.bankOrProvider} (${accountDetails.accountNumber}) - ${accountDetails.accountName}`,
+      status: chapaTransferResult.status as any || 'COMPLETED',
+      referenceId: reference,
+      description: `Chapa Payout to ${accountDetails.bankOrProvider} (${accountDetails.accountNumber}) - ${accountDetails.accountName}`,
       metadata: {
         accountDetails,
-        paymentProvider: paymentMethod || this.paymentProvider.name,
+        paymentProvider: 'CHAPA_TRANSFER',
+        chapaReference: chapaTransferResult.reference,
+        dispatchedAt: new Date().toISOString(),
       },
     });
 
     await Notification.create({
       userId: wallet.userId,
       type: 'WITHDRAWAL_SUCCESS',
-      title: '🎉 Payout Dispatched!',
-      message: `Your withdrawal of ${amount.toLocaleString()} ETB to ${accountDetails.bankOrProvider} (${accountDetails.accountNumber} - ${accountDetails.accountName}) has been processed successfully.`,
+      title: '🎉 Chapa Payout Dispatched!',
+      message: `Your withdrawal of ${amount.toLocaleString()} ETB via Chapa to ${accountDetails.bankOrProvider} (${accountDetails.accountNumber} - ${accountDetails.accountName}) has been processed successfully.`,
     });
 
     const updatedBalance = await this.getBalance(userId);

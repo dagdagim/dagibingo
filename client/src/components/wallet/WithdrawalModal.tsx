@@ -86,9 +86,20 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClos
       isOpen={isOpen}
       onClose={onClose}
       title="Withdraw ETB Funds"
-      description="Transfer funds directly to your Telebirr, CBE Birr, or Ethiopian Bank account"
+      description="Instant payouts powered by Chapa Transfers to Telebirr, CBE Birr & Ethiopian Banks"
     >
       <form onSubmit={handleWithdrawal} className="space-y-4 pt-2">
+        {/* Chapa Transfer Banner */}
+        <div className="p-3 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/15 border border-emerald-500/30 flex items-start gap-2.5 shadow-sm">
+          <Sparkles className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+          <div className="text-xs">
+            <strong className="text-arena-text block">Chapa Instant Payouts Active:</strong>
+            <span className="text-arena-muted">
+              Funds are dispatched via <strong>Chapa Transfer API</strong> directly to your selected recipient account.
+            </span>
+          </div>
+        </div>
+
         {/* Available Balance Header */}
         <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-2">
