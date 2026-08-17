@@ -17,7 +17,7 @@ if (fs.existsSync(localEnv)) {
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().default('5000').transform((val) => parseInt(val, 10)),
+  PORT: z.union([z.string(), z.number()]).default('5000').transform((val) => typeof val === 'number' ? val : parseInt(val, 10)),
   HOST: z.string().default('0.0.0.0'),
   MONGODB_URI: z.string().default('mongodb://admin:password123@127.0.0.1:27017/bingo_arena?authSource=admin'),
   REDIS_URL: z.string().default('redis://127.0.0.1:6379'),

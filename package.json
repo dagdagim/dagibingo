@@ -12,12 +12,10 @@
     "dev": "concurrently \"npm run dev --workspace=@bingo/server\" \"npm run dev --workspace=@bingo/client\"",
     "dev:server": "npm run dev --workspace=@bingo/server",
     "dev:client": "npm run dev --workspace=@bingo/client",
-    "build": "npm run build --workspace=@bingo/shared && npm run build --workspace=@bingo/server && npm run build --workspace=@bingo/client && node -e \"const fs=require('fs'); if(fs.existsSync('client/dist')){fs.cpSync('client/dist','build',{recursive:true}); fs.cpSync('client/dist','dist',{recursive:true});}\"",
+    "build": "npm run build --workspace=@bingo/shared && npm run build --workspace=@bingo/server && npm run build --workspace=@bingo/client",
     "build:shared": "npm run build --workspace=@bingo/shared",
     "build:server": "npm run build --workspace=@bingo/server",
     "build:client": "npm run build --workspace=@bingo/client",
-    "render-build": "npm install && npm run build",
-    "start": "node server/dist/server.js",
     "test": "npm run test --workspace=@bingo/server",
     "seed": "npm run seed --workspace=@bingo/server"
   },

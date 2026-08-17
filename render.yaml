@@ -1,31 +1,42 @@
 services:
   - type: web
-    name: dagi-bingo
-    runtime: node
+    name: dagi-bingo-backend
+    env: node
     plan: free
     region: oregon
-    buildCommand: npm run render-build
-    startCommand: npm start
+    buildCommand: npm install && npm run build:shared && npm run build:server
+    startCommand: npm run start --workspace=@bingo/server
     healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: HOST
         value: 0.0.0.0
-      - key: MONGODB_URI
-        value: mongodb+srv://dagimbekele_db_user:xYR4kdAL5LSGyfrA@cluster0.sdxhjj4.mongodb.net/bingo_arena?retryWrites=true&w=majority&appName=Cluster0
+      - key: GAME_MODE
+        value: DEMO
+      - key: LOG_LEVEL
+        value: info
       - key: JWT_SECRET
         generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 2h
       - key: JWT_REFRESH_SECRET
         generateValue: true
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
       - key: CHAPA_PUBLIC_KEY
         value: CHAPUBK_TEST-F8wVF0CiDxcc6xAut5vm1oFKM4VCVCG9
       - key: CHAPA_SECRET_KEY
         value: CHASECK_TEST-EzF8SkHTiEva3p8xXcwKREFNpIHCq5hu
+      - key: CHAPA_WEBHOOK_SECRET
+        value: dagi_bingo_chapa_webhook_secret_2026
       - key: CHAPA_API_URL
         value: https://api.chapa.co/v1
-      - key: GAME_MODE
-        value: DEMO
+      - key: CLIENT_URL
+        sync: false
+        value: https://dagibingo.vercel.app
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false

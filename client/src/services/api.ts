@@ -1,12 +1,6 @@
-const getBaseUrl = (): string => {
-  const envUrl = (import.meta as any).env?.VITE_API_URL;
-  if (envUrl) {
-    return `${envUrl.replace(/\/$/, '')}/api`;
-  }
-  return '/api';
-};
-
-const API_BASE = getBaseUrl();
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+  : '/api';
 
 interface RequestOptions extends RequestInit {
   data?: unknown;
@@ -43,19 +37,10 @@ class ApiClient {
 
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const response = await fetch(`${API_BASE}${cleanEndpoint}`, config);
-
-    let result: any = {};
-    const text = await response.text();
-    if (text && text.trim().length > 0) {
-      try {
-        result = JSON.parse(text);
-      } catch {
-        result = { message: text };
-      }
-    }
+    const result = await response.json();
 
     if (!response.ok) {
-      let errorMessage = result.error?.message || result.message || `Request failed with status ${response.status}`;
+      let errorMessage = result.error?.message || result.message || 'An unexpected error occurred';
       if (result.error?.details && Array.isArray(result.error.details) && result.error.details.length > 0) {
         const first = result.error.details[0];
         if (first && first.message) {

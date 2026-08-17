@@ -63,9 +63,6 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-import path from 'path';
-import fs from 'fs';
-
 // Mount Module Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
@@ -75,24 +72,9 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Serve Frontend Static Build if present (Unified Single-Service Hosting)
-const clientDistPath = path.resolve(process.cwd(), '../client/dist');
-const localClientDistPath = path.resolve(process.cwd(), 'client/dist');
-const resolvedDist = fs.existsSync(clientDistPath) ? clientDistPath : fs.existsSync(localClientDistPath) ? localClientDistPath : null;
-
-if (resolvedDist) {
-  app.use(express.static(resolvedDist));
-  app.get('*', (req, res, next) => {
-    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/socket.io') || req.originalUrl === '/health') {
-      return next();
-    }
-    res.sendFile(path.join(resolvedDist, 'index.html'));
-  });
-}
-
-// Catch all unmatched API routes
-app.use('/api/*', (req, _res, next) => {
-  next(new NotFoundError(`API Endpoint ${req.originalUrl} does not exist`));
+// Catch all unmatched routes
+app.use('*', (req, _res, next) => {
+  next(new NotFoundError(`Endpoint ${req.originalUrl} does not exist`));
 });
 
 // Centralized error handling middleware
