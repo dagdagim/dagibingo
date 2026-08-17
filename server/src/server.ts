@@ -5,12 +5,76 @@ import { env } from './config/environment';
 import { connectDatabase, disconnectDatabase } from './config/database';
 import { getRedisClient } from './config/redis';
 import { setupSocketServer } from './socket/socketManager';
+import { Game } from './models/Game';
 import { logger } from './utils/logger';
+
+const initDefaultRooms = async (): Promise<void> => {
+  try {
+    const existingCount = await Game.countDocuments();
+    if (existingCount === 0) {
+      logger.info('🎰 Initializing default live Bingo rooms...');
+      await Game.create([
+        {
+          code: 'BG-GOLD-01',
+          title: 'Gold Bingo Arena',
+          pattern: 'CLASSIC',
+          category: 'CLASSIC',
+          speed: 'STANDARD',
+          entryFee: 50,
+          prizePool: 2400,
+          status: 'WAITING',
+          maxPlayers: 50,
+          minPlayers: 2,
+        },
+        {
+          code: 'BG-TURBO-02',
+          title: 'Turbo Speed Bingo',
+          pattern: 'SPEED_BINGO',
+          category: 'QUICK',
+          speed: 'TURBO',
+          entryFee: 25,
+          prizePool: 1200,
+          status: 'WAITING',
+          maxPlayers: 30,
+          minPlayers: 2,
+        },
+        {
+          code: 'BG-JACKPOT-03',
+          title: 'Mega Full House Jackpot',
+          pattern: 'FULL_HOUSE',
+          category: 'JACKPOT',
+          speed: 'RELAXED',
+          entryFee: 100,
+          prizePool: 10000,
+          status: 'WAITING',
+          maxPlayers: 100,
+          minPlayers: 2,
+        },
+        {
+          code: 'BG-VIP-04',
+          title: 'Diamond High Roller',
+          pattern: 'FOUR_CORNERS',
+          category: 'HIGH_ROLLER',
+          speed: 'STANDARD',
+          entryFee: 250,
+          prizePool: 25000,
+          status: 'WAITING',
+          maxPlayers: 25,
+          minPlayers: 2,
+        },
+      ]);
+      logger.info('✅ Default live Bingo rooms initialized successfully');
+    }
+  } catch (error) {
+    logger.warn(`Could not auto-seed rooms: ${(error as Error).message}`);
+  }
+};
 
 const startServer = async (): Promise<void> => {
   try {
     // 1. Connect MongoDB
     await connectDatabase();
+    await initDefaultRooms();
 
     // 2. Initialize Redis (with graceful fallback)
     getRedisClient();
