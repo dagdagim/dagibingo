@@ -37,8 +37,8 @@ const seedDatabase = async () => {
     const playerPasswordHash = await bcrypt.hash('Player@123456', 10);
 
     const admin = await User.create({
-      username: 'admin@dagibing.com',
-      email: 'admin@dagibing.com',
+      username: 'admin@dagibingo.com',
+      email: 'admin@dagibingo.com',
       passwordHash: adminPasswordHash,
       firstName: 'Dagim',
       lastName: 'Admin',

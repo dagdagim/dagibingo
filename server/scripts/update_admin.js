@@ -18,8 +18,8 @@ async function updateAdmin() {
     { role: 'ADMIN' },
     {
       $set: {
-        email: 'admin@dagibing.com',
-        username: 'admin@dagibing.com',
+        email: 'admin@dagibingo.com',
+        username: 'admin@dagibingo.com',
         passwordHash: passwordHash,
         firstName: 'Dagim',
         lastName: 'Admin',
@@ -32,7 +32,7 @@ async function updateAdmin() {
   );
 
   console.log('✅ Admin user updated in MongoDB Atlas successfully:', result);
-  const updatedUser = await userColl.findOne({ email: 'admin@dagibing.com' });
+  const updatedUser = await userColl.findOne({ email: 'admin@dagibingo.com' });
   console.log('Current Admin Details in DB:', {
     _id: updatedUser._id,
     email: updatedUser.email,
