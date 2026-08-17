@@ -178,11 +178,16 @@ export class ChapaPaymentProvider {
 
     // Map provider name/slug to Chapa Bank ID or slug
     const bankCodeMap: Record<string, string> = {
+      'chapa': '855',
+      'chapa payout': '855',
+      'chapa direct payout': '855',
+      'chapa instant transfer': '855',
       'telebirr': '855',
+      'telebirr (chapa)': '855',
       'telebirr demo': '855',
       'cbebirr': '128',
       'cbe birr': '128',
-      'cbe birr demo': '128',
+      'cbe birr (chapa)': '128',
       'commercial bank of ethiopia': '946',
       'cbe': '946',
       'cbe_bank': '946',

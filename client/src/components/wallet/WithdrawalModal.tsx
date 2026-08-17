@@ -3,7 +3,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useWalletStore } from '../../stores/walletStore';
-import { ShieldCheck, CheckCircle2, Building2, Smartphone, ArrowDownRight, Wallet, Sparkles } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Building2, Smartphone, ArrowDownRight, Wallet, Sparkles, Zap } from 'lucide-react';
 
 export interface WithdrawalModalProps {
   isOpen: boolean;
@@ -11,11 +11,13 @@ export interface WithdrawalModalProps {
 }
 
 const ETHIOPIAN_PROVIDERS = [
-  { id: 'Telebirr', name: 'Telebirr', type: 'mobile', hint: '09xxxxxxxx phone number' },
-  { id: 'CBE Birr', name: 'CBE Birr', type: 'mobile', hint: '09xxxxxxxx phone number' },
+  { id: 'Chapa Instant Payout', name: '⚡ Chapa Direct Transfer', type: 'chapa', hint: 'Telebirr, CBE Birr, or Account Number' },
+  { id: 'Telebirr', name: 'Telebirr (Chapa)', type: 'mobile', hint: '09xxxxxxxx phone number' },
+  { id: 'CBE Birr', name: 'CBE Birr (Chapa)', type: 'mobile', hint: '09xxxxxxxx phone number' },
   { id: 'Commercial Bank of Ethiopia', name: 'CBE (Bank Account)', type: 'bank', hint: '1000xxxxxxxx account' },
-  { id: 'Bank of Abyssinia', name: 'Bank of Abyssinia', type: 'bank', hint: 'Account number' },
+  { id: 'Bank of Abyssinia', name: 'Bank of Abyssinia (BOA)', type: 'bank', hint: 'Account number' },
   { id: 'Awash Bank', name: 'Awash Bank', type: 'bank', hint: 'Account number' },
+  { id: 'Cooperative Bank of Oromia', name: 'Coop Bank (COOP)', type: 'bank', hint: 'Account number' },
   { id: 'Dashen Bank', name: 'Dashen Bank', type: 'bank', hint: 'Account number' },
   { id: 'Wegagen Bank', name: 'Wegagen Bank', type: 'bank', hint: 'Account number' },
   { id: 'Hibret Bank', name: 'Hibret Bank', type: 'bank', hint: 'Account number' },
@@ -172,7 +174,9 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClos
                     : 'bg-arena-surface border-arena-border text-arena-muted hover:text-arena-text hover:border-arena-primary/30'
                 }`}
               >
-                {provider.type === 'mobile' ? (
+                {provider.type === 'chapa' ? (
+                  <Zap className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                ) : provider.type === 'mobile' ? (
                   <Smartphone className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                 ) : (
                   <Building2 className="w-4 h-4 text-indigo-500 flex-shrink-0" />
