@@ -1,0 +1,32 @@
+services:
+  # Option 1: Unified Full-Stack Web Service (Hosts API, WebSockets & Client SPA on one URL)
+  - type: web
+    name: dagi-bingo
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm run render-build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: MONGODB_URI
+        sync: false # Set your MongoDB Atlas connection string in Render Dashboard
+      - key: REDIS_URL
+        sync: false # Optional: Upstash or Render Redis
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: CHAPA_PUBLIC_KEY
+        value: CHAPUBK_TEST-F8wVF0CiDxcc6xAut5vm1oFKM4VCVCG9
+      - key: CHAPA_SECRET_KEY
+        value: CHASECK_TEST-EzF8SkHTiEva3p8xXcwKREFNpIHCq5hu
+      - key: CHAPA_API_URL
+        value: https://api.chapa.co/v1
+      - key: GAME_MODE
+        value: DEMO

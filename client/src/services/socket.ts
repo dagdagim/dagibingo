@@ -12,12 +12,14 @@ class SocketService {
     }
 
     const token = localStorage.getItem('bingo_access_token');
+    const wsUrl = (import.meta as any).env?.VITE_WS_URL || (import.meta as any).env?.VITE_API_URL || undefined;
 
-    this.socket = io({
+    this.socket = io(wsUrl, {
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      transports: ['websocket', 'polling'],
       auth: {
         token: token || undefined,
       },

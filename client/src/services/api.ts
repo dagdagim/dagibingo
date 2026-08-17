@@ -1,4 +1,12 @@
-const API_BASE = '/api';
+const getBaseUrl = (): string => {
+  const envUrl = (import.meta as any).env?.VITE_API_URL;
+  if (envUrl) {
+    return `${envUrl.replace(/\/$/, '')}/api`;
+  }
+  return '/api';
+};
+
+const API_BASE = getBaseUrl();
 
 interface RequestOptions extends RequestInit {
   data?: unknown;
