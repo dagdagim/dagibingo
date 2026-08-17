@@ -1,14 +1,15 @@
 services:
   # ==============================================================================
-  # DAGI BINGO - Real-Time Authoritative Server Engine on Render
+  # 1. DAGI BINGO - Real-Time Authoritative Server Engine on Render
   # ==============================================================================
   - type: web
     name: dagi-bingo-server
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm install && npm run build:server
-    startCommand: npm run start --workspace=@bingo/server
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: node dist/server.js
     healthCheckPath: /health
     autoDeploy: true
     envVars:
@@ -29,7 +30,7 @@ services:
       - key: JWT_REFRESH_SECRET
         generateValue: true
       - key: CLIENT_URL
-        sync: false # Set your Vercel / Netlify / Live Frontend URL
+        value: https://dagibingo-web.onrender.com
       - key: CHAPA_PUBLIC_KEY
         value: CHAPUBK_TEST-F8wVF0CiDxcc6xAut5vm1oFKM4VCVCG9
       - key: CHAPA_SECRET_KEY
@@ -38,7 +39,7 @@ services:
         value: https://api.chapa.co/v1
 
   # ==============================================================================
-  # DAGI BINGO - Frontend Client Static Site on Render
+  # 2. DAGI BINGO - Frontend Single Page Application on Render
   # ==============================================================================
   - type: static
     name: dagibingo-web
@@ -47,6 +48,7 @@ services:
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: dist
+    autoDeploy: true
     routes:
       - type: rewrite
         source: /*
