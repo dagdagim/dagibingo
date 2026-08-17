@@ -26,21 +26,21 @@ export const WalletCard: React.FC = () => {
                 <Wallet className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-arena-muted uppercase tracking-wider">
-                Virtual Gaming Wallet
+                Multiplayer Gaming Wallet
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-arena-accent/15 border border-arena-accent/30 text-arena-accent text-[10px] font-black uppercase tracking-wider">
-                DEMO SANDBOX
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider">
+                CHAPA PAYOUTS ACTIVE
               </span>
             </div>
 
             <div className="text-3xl md:text-4xl lg:text-5xl font-black font-display text-arena-text tracking-tight">
               {available.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-              <span className="text-xl md:text-2xl font-bold text-arena-primary-light">ETB</span>
+              <span className="text-xl md:text-2xl font-bold text-indigo-500">ETB</span>
             </div>
 
-            <div className="flex items-center gap-2 mt-2 text-xs text-arena-subtle">
-              <ShieldCheck className="w-4 h-4 text-arena-accent" />
-              <span>Virtual Credits (Sandbox Mode) • No real currency involved</span>
+            <div className="flex items-center gap-2 mt-2 text-xs text-arena-muted">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Instant Chapa Deposits & Ethiopian Bank / Mobile Money Withdrawals</span>
             </div>
           </div>
 
@@ -51,7 +51,7 @@ export const WalletCard: React.FC = () => {
               leftIcon={<ArrowUpRight className="w-4 h-4" />}
               onClick={() => setIsWithdrawOpen(true)}
             >
-              Withdraw Demo
+              Withdraw (Chapa)
             </Button>
             <Button
               variant="accent"
@@ -59,7 +59,7 @@ export const WalletCard: React.FC = () => {
               leftIcon={<ArrowDownRight className="w-4 h-4" />}
               onClick={() => setIsDepositOpen(true)}
             >
-              Deposit Demo Credits
+              Deposit with Chapa
             </Button>
           </div>
         </div>
