@@ -43,10 +43,19 @@ class ApiClient {
 
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const response = await fetch(`${API_BASE}${cleanEndpoint}`, config);
-    const result = await response.json();
+
+    let result: any = {};
+    const text = await response.text();
+    if (text && text.trim().length > 0) {
+      try {
+        result = JSON.parse(text);
+      } catch {
+        result = { message: text };
+      }
+    }
 
     if (!response.ok) {
-      let errorMessage = result.error?.message || result.message || 'An unexpected error occurred';
+      let errorMessage = result.error?.message || result.message || `Request failed with status ${response.status}`;
       if (result.error?.details && Array.isArray(result.error.details) && result.error.details.length > 0) {
         const first = result.error.details[0];
         if (first && first.message) {
