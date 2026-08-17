@@ -137,13 +137,19 @@ export class ChapaPaymentProvider {
       }
 
       const txData = data.data;
-      const isPaid = txData?.status === 'success' || txData?.status === 'completed' || (data.status === 'success' && (txData?.status === 'pending' ? false : true));
+      const chapaStatus = (txData?.status || '').toLowerCase();
+      const isPaid = chapaStatus === 'success' || chapaStatus === 'completed';
+      const isFailed = chapaStatus === 'failed' || chapaStatus.includes('cancel');
 
-      logger.info(`[Chapa] Verified tx_ref: ${txRef} -> status: ${txData?.status || data.status}, isPaid: ${isPaid}, amount: ${txData?.amount} ${txData?.currency}`);
+      let resolvedStatus = 'PENDING';
+      if (isPaid) resolvedStatus = 'COMPLETED';
+      else if (isFailed) resolvedStatus = 'FAILED';
+
+      logger.info(`[Chapa] Verified tx_ref: ${txRef} -> chapaStatus: ${chapaStatus}, isPaid: ${isPaid}, resolvedStatus: ${resolvedStatus}, amount: ${txData?.amount} ${txData?.currency}`);
 
       return {
         isSuccess: isPaid,
-        status: isPaid ? 'COMPLETED' : (txData?.status ? txData.status.toUpperCase() : 'PENDING'),
+        status: resolvedStatus,
         amount: Number(txData?.amount || 0),
         currency: txData?.currency || 'ETB',
         txRef: txData?.tx_ref || txRef,

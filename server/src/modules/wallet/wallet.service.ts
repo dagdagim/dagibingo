@@ -362,18 +362,18 @@ export class WalletService {
       currency: wallet.currency,
       status: paymentResult.status,
       referenceId: paymentResult.providerReference,
-      description: `Demo Withdrawal to ${accountDetails.bankOrProvider} (${accountDetails.accountNumber})`,
+      description: `Withdrawal to ${accountDetails.bankOrProvider} (${accountDetails.accountNumber}) - ${accountDetails.accountName}`,
       metadata: {
         accountDetails,
-        paymentProvider: this.paymentProvider.name,
+        paymentProvider: paymentMethod || this.paymentProvider.name,
       },
     });
 
     await Notification.create({
       userId: wallet.userId,
       type: 'WITHDRAWAL_SUCCESS',
-      title: 'Withdrawal Processed',
-      message: `Simulated payout of ${amount.toLocaleString()} ETB Demo to ${accountDetails.accountNumber} has completed.`,
+      title: '🎉 Payout Dispatched!',
+      message: `Your withdrawal of ${amount.toLocaleString()} ETB to ${accountDetails.bankOrProvider} (${accountDetails.accountNumber} - ${accountDetails.accountName}) has been processed successfully.`,
     });
 
     const updatedBalance = await this.getBalance(userId);
