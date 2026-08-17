@@ -28,6 +28,10 @@ const envSchema = z.object({
   CLIENT_URL: z.string().default('http://localhost:5173'),
   GAME_MODE: z.enum(['DEMO', 'REGULATED_REAL_MONEY']).default('DEMO'),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug']).default('debug'),
+  CHAPA_PUBLIC_KEY: z.string().default('CHAPUBK_TEST-F8wVF0CiDxcc6xAut5vm1oFKM4VCVCG9'),
+  CHAPA_SECRET_KEY: z.string().default('CHASECK_TEST-EzF8SkHTiEva3p8xXcwKREFNpIHCq5hu'),
+  CHAPA_WEBHOOK_SECRET: z.string().default('dagi_bingo_chapa_webhook_secret_2026'),
+  CHAPA_API_URL: z.string().default('https://api.chapa.co/v1'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

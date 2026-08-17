@@ -16,5 +16,15 @@ export const withdrawalSchema = z.object({
   }),
 });
 
+export const chapaInitializeSchema = z.object({
+  amount: z.number().min(1, 'Minimum amount is 1 ETB').max(100000, 'Maximum amount is 100,000 ETB'),
+  phone: z.string().optional(),
+  email: z.string().email().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  returnUrl: z.string().url().optional(),
+});
+
 export type DepositInput = z.infer<typeof depositSchema>;
 export type WithdrawalInput = z.infer<typeof withdrawalSchema>;
+export type ChapaInitializeInput = z.infer<typeof chapaInitializeSchema>;

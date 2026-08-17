@@ -1,13 +1,26 @@
 import mongoose from 'mongoose';
 import { Wallet, IWallet } from '../../models/Wallet';
 import { WalletTransaction } from '../../models/WalletTransaction';
+import { User } from '../../models/User';
 import { Notification } from '../../models/Notification';
 import { MockPaymentProvider } from '../../payments/MockPaymentProvider';
+import { ChapaPaymentProvider } from '../../payments/ChapaPaymentProvider';
 import { BadRequestError, NotFoundError } from '../../utils/errors';
-import { DepositInput, WithdrawalInput, WalletBalance, WalletTransactionDTO } from '@bingo/shared';
+import { logger } from '../../utils/logger';
+import {
+  DepositInput,
+  WithdrawalInput,
+  ChapaInitializeInput,
+  WalletBalance,
+  WalletTransactionDTO,
+  ChapaInitializeResponse,
+  ChapaVerifyResponse,
+} from '@bingo/shared';
+import { v4 as uuidv4 } from 'uuid';
 
 export class WalletService {
   private paymentProvider = new MockPaymentProvider();
+  private chapaProvider = new ChapaPaymentProvider();
 
   public async getOrCreateWallet(userId: string): Promise<IWallet> {
     let wallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) });
@@ -35,6 +48,202 @@ export class WalletService {
       isDemo: wallet.isDemo,
       updatedAt: wallet.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * Initializes a Chapa Hosted Checkout Session
+   */
+  public async initializeChapaDeposit(
+    userId: string,
+    input: ChapaInitializeInput
+  ): Promise<ChapaInitializeResponse> {
+    const { amount, phone, email, firstName, lastName, returnUrl } = input;
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new NotFoundError('User account not found');
+    }
+
+    const wallet = await this.getOrCreateWallet(userId);
+    const txRef = `DAGI_DEP_${Date.now()}_${uuidv4().substring(0, 6).toUpperCase()}`;
+
+    // Call Chapa payment provider
+    const chapaResult = await this.chapaProvider.initializeTransaction({
+      amount,
+      currency: wallet.currency,
+      email: email || user.email || 'customer@dagibingo.com',
+      firstName: firstName || user.profile?.firstName || user.username,
+      lastName: lastName || user.profile?.lastName || 'Player',
+      phone: phone || user.phone || '0900000000',
+      txRef,
+      returnUrl,
+      title: 'DAGI BINGO Deposit',
+      description: `Deposit ${amount} ETB to Dagi Bingo Wallet`,
+    });
+
+    // Record PENDING transaction
+    await WalletTransaction.create({
+      userId: user._id,
+      walletId: wallet._id,
+      type: 'DEPOSIT',
+      amount,
+      balanceBefore: wallet.availableBalance,
+      balanceAfter: wallet.availableBalance,
+      currency: wallet.currency,
+      status: 'PENDING',
+      referenceId: txRef,
+      description: `Chapa Deposit (Telebirr/CBE/Card) [Pending]`,
+      metadata: {
+        paymentProvider: 'CHAPA',
+        txRef,
+        checkoutUrl: chapaResult.checkoutUrl,
+        initiatedAt: new Date().toISOString(),
+      },
+    });
+
+    return {
+      checkoutUrl: chapaResult.checkoutUrl,
+      txRef,
+      status: 'PENDING',
+    };
+  }
+
+  /**
+   * Verifies a Chapa Transaction and idempotently credits user's wallet
+   */
+  public async verifyChapaDeposit(
+    userId: string,
+    txRef: string
+  ): Promise<ChapaVerifyResponse> {
+    if (!txRef) {
+      throw new BadRequestError('Transaction reference (tx_ref) is required');
+    }
+
+    const tx = await WalletTransaction.findOne({
+      referenceId: txRef,
+      userId: new mongoose.Types.ObjectId(userId),
+    });
+
+    // If transaction is already completed, return cached success idempotently
+    if (tx && tx.status === 'COMPLETED') {
+      const balance = await this.getBalance(userId);
+      return {
+        isSuccess: true,
+        status: 'COMPLETED',
+        message: 'Payment already verified and credited.',
+        txRef,
+        amount: tx.amount,
+        currency: tx.currency,
+        balance,
+        transaction: this.mapTransactionToDTO(tx),
+      };
+    }
+
+    // Call Chapa API to verify
+    const verifyResult = await this.chapaProvider.verifyTransaction(txRef);
+
+    if (!verifyResult.isSuccess) {
+      if (tx) {
+        tx.status = 'FAILED';
+        await tx.save();
+      }
+      return {
+        isSuccess: false,
+        status: verifyResult.status,
+        message: 'Payment verification failed or was cancelled by user.',
+        txRef,
+        amount: verifyResult.amount,
+        currency: verifyResult.currency,
+      };
+    }
+
+    // Atomic Double-Entry Wallet Credit
+    const wallet = await this.getOrCreateWallet(userId);
+    const amountToCredit = verifyResult.amount || (tx ? tx.amount : 0);
+
+    const balanceBefore = wallet.availableBalance;
+    wallet.availableBalance += amountToCredit;
+    wallet.version += 1;
+    await wallet.save();
+
+    let updatedTx: any;
+    if (tx) {
+      tx.status = 'COMPLETED';
+      tx.balanceAfter = wallet.availableBalance;
+      tx.description = `Chapa Deposit Completed via ${verifyResult.paymentMethod || 'Telebirr/CBE'}`;
+      tx.metadata = {
+        ...tx.metadata,
+        verifiedAt: new Date().toISOString(),
+        chapaReference: verifyResult.reference,
+        paymentMethod: verifyResult.paymentMethod,
+      };
+      updatedTx = await tx.save();
+    } else {
+      updatedTx = await WalletTransaction.create({
+        userId: new mongoose.Types.ObjectId(userId),
+        walletId: wallet._id,
+        type: 'DEPOSIT',
+        amount: amountToCredit,
+        balanceBefore,
+        balanceAfter: wallet.availableBalance,
+        currency: wallet.currency,
+        status: 'COMPLETED',
+        referenceId: txRef,
+        description: `Chapa Deposit Completed via ${verifyResult.paymentMethod || 'Telebirr/CBE'}`,
+        metadata: {
+          paymentProvider: 'CHAPA',
+          txRef,
+          chapaReference: verifyResult.reference,
+          paymentMethod: verifyResult.paymentMethod,
+          verifiedAt: new Date().toISOString(),
+        },
+      });
+    }
+
+    await Notification.create({
+      userId: wallet.userId,
+      type: 'DEPOSIT_SUCCESS',
+      title: '🎉 Chapa Deposit Successful!',
+      message: `Your deposit of ${amountToCredit.toLocaleString()} ETB via Chapa (${verifyResult.paymentMethod || 'Telebirr/CBE'}) has been credited to your wallet.`,
+    });
+
+    const updatedBalance = await this.getBalance(userId);
+
+    logger.info(`[Chapa] Successfully verified and credited ${amountToCredit} ETB for user ${userId} (tx_ref: ${txRef})`);
+
+    return {
+      isSuccess: true,
+      status: 'COMPLETED',
+      message: `Deposit of ${amountToCredit.toLocaleString()} ETB successfully verified and credited!`,
+      txRef,
+      amount: amountToCredit,
+      currency: wallet.currency,
+      balance: updatedBalance,
+      transaction: this.mapTransactionToDTO(updatedTx),
+    };
+  }
+
+  /**
+   * Webhook Handler for Chapa Notifications
+   */
+  public async handleChapaWebhook(payload: any): Promise<void> {
+    const txRef = payload.tx_ref || payload.trx_ref;
+    if (!txRef) {
+      logger.warn('[Chapa Webhook] Received webhook without tx_ref');
+      return;
+    }
+
+    const tx = await WalletTransaction.findOne({ referenceId: txRef });
+    if (!tx) {
+      logger.warn(`[Chapa Webhook] Transaction not found for tx_ref: ${txRef}`);
+      return;
+    }
+
+    if (tx.status === 'COMPLETED') {
+      logger.info(`[Chapa Webhook] Transaction ${txRef} already completed.`);
+      return;
+    }
+
+    await this.verifyChapaDeposit(tx.userId.toString(), txRef);
   }
 
   public async processDemoDeposit(userId: string, input: DepositInput): Promise<{ balance: WalletBalance; transaction: WalletTransactionDTO }> {

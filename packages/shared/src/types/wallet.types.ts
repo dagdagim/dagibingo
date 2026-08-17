@@ -55,3 +55,20 @@ export interface WithdrawalRequest {
     bankOrProvider: string;
   };
 }
+
+export interface ChapaInitializeResponse {
+  checkoutUrl: string;
+  txRef: string;
+  status: string;
+}
+
+export interface ChapaVerifyResponse {
+  isSuccess: boolean;
+  status: string;
+  message: string;
+  txRef: string;
+  amount: number;
+  currency: string;
+  balance?: WalletBalance;
+  transaction?: WalletTransactionDTO;
+}

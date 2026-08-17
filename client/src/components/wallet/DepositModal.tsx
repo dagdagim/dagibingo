@@ -3,7 +3,9 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useWalletStore } from '../../stores/walletStore';
-import { ShieldAlert, CheckCircle2, Sparkles } from 'lucide-react';
+import { api } from '../../services/api';
+import { ShieldAlert, CheckCircle2, Sparkles, CreditCard, ArrowRight, ExternalLink } from 'lucide-react';
+import { ChapaInitializeResponse } from '@bingo/shared';
 
 export interface DepositModalProps {
   isOpen: boolean;
@@ -14,7 +16,8 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
   const { deposit, isProcessing } = useWalletStore();
   const [amount, setAmount] = useState<number>(500);
   const [customAmount, setCustomAmount] = useState<string>('');
-  const [provider, setProvider] = useState<string>('Telebirr Demo');
+  const [provider, setProvider] = useState<string>('CHAPA');
+  const [isChapaLoading, setIsChapaLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -29,13 +32,38 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
     }
 
     setErrorMsg(null);
+
+    // Chapa Real/Test Gateway Flow
+    if (provider === 'CHAPA') {
+      try {
+        setIsChapaLoading(true);
+        const res = await api.post<ChapaInitializeResponse>('/wallet/chapa/initialize', {
+          amount: finalAmount,
+          returnUrl: `${window.location.origin}/wallet?payment_status=success`,
+        });
+
+        if (res?.checkoutUrl) {
+          setSuccessMsg('Redirecting to Chapa payment portal...');
+          window.location.href = res.checkoutUrl;
+          return;
+        } else {
+          throw new Error('Chapa checkout URL was not received');
+        }
+      } catch (err) {
+        setErrorMsg((err as Error).message || 'Failed to initialize Chapa payment');
+        setIsChapaLoading(false);
+      }
+      return;
+    }
+
+    // Instant Sandbox Mock Flow
     try {
       await deposit({
         amount: finalAmount,
         paymentMethod: provider,
         idempotencyKey: `dep_${Date.now()}_${Math.random()}`,
       });
-      setSuccessMsg(`Successfully credited ${finalAmount.toLocaleString()} ETB Demo credits!`);
+      setSuccessMsg(`Successfully credited ${finalAmount.toLocaleString()} ETB to your wallet!`);
       setTimeout(() => {
         setSuccessMsg(null);
         onClose();
@@ -49,21 +77,24 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Deposit Demo Credits"
-      description="Add virtual ETB credits to your test wallet for Bingo gameplay"
+      title="Deposit ETB Credits"
+      description="Select your preferred payment method to add ETB credits to your Dagi Bingo wallet"
     >
       <form onSubmit={handleDeposit} className="space-y-5 pt-2">
-        {/* Sandbox Notice Banner */}
-        <div className="p-3 rounded-xl bg-arena-primary/10 border border-arena-primary/30 flex items-start gap-2.5">
-          <Sparkles className="w-4 h-4 text-arena-primary mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-arena-primary-light">
-            <strong>Sandbox Mode Active:</strong> No real payments or charges occur. These are virtual ETB test credits.
-          </p>
+        {/* Chapa Spotlight Notice Banner */}
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/15 border border-emerald-500/30 flex items-start gap-2.5 shadow-sm">
+          <Sparkles className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+          <div className="text-xs">
+            <strong className="text-arena-text block">Chapa Payment Gateway Active:</strong>
+            <span className="text-arena-muted">
+              Pay securely via <strong>Telebirr, CBE Birr, Awash Bank</strong> or <strong>Debit/Credit Cards</strong>.
+            </span>
+          </div>
         </div>
 
         {/* Amount Presets */}
         <div>
-          <label className="text-xs font-semibold text-arena-muted uppercase tracking-wider block mb-2">
+          <label className="text-xs font-bold text-arena-muted uppercase tracking-wider block mb-2 font-display">
             Select Preset Amount (ETB)
           </label>
           <div className="grid grid-cols-4 gap-2">
@@ -75,10 +106,10 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
                   setAmount(preset);
                   setCustomAmount('');
                 }}
-                className={`py-2.5 rounded-xl font-bold font-mono text-sm border transition-all ${
+                className={`py-2.5 rounded-xl font-bold font-mono text-sm border transition-all cursor-pointer ${
                   amount === preset && !customAmount
-                    ? 'bg-arena-primary border-arena-primary text-white shadow-arena-glow'
-                    : 'bg-arena-elevated border-arena-border text-arena-text hover:border-arena-primary/50'
+                    ? 'bg-indigo-500 border-indigo-500 text-white shadow-arena-glow'
+                    : 'bg-arena-surface border-arena-border text-arena-text hover:border-indigo-500/50'
                 }`}
               >
                 +{preset}
@@ -89,9 +120,9 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
 
         {/* Custom Amount */}
         <Input
-          label="Or Custom Amount"
+          label="Or Custom Amount (ETB)"
           type="number"
-          min="10"
+          min="1"
           placeholder="e.g. 2500"
           value={customAmount}
           onChange={(e) => {
@@ -100,21 +131,49 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
           }}
         />
 
-        {/* Simulated Payment Provider */}
+        {/* Payment Provider Selection */}
         <div>
-          <label className="text-xs font-semibold text-arena-muted uppercase tracking-wider block mb-2">
-            Mock Payment Provider
+          <label className="text-xs font-bold text-arena-muted uppercase tracking-wider block mb-2 font-display">
+            Payment Gateway & Provider
           </label>
-          <div className="grid grid-cols-3 gap-2">
-            {['Telebirr Demo', 'CBE Birr Demo', 'Mock Card'].map((p) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {/* Chapa Primary Option */}
+            <button
+              type="button"
+              onClick={() => setProvider('CHAPA')}
+              className={`p-3 text-left rounded-2xl border transition-all cursor-pointer flex items-center justify-between col-span-1 sm:col-span-2 ${
+                provider === 'CHAPA'
+                  ? 'bg-emerald-500/15 border-emerald-500 text-emerald-600 dark:text-emerald-300 shadow-accent-glow'
+                  : 'bg-arena-surface border-arena-border text-arena-muted hover:border-emerald-500/40 hover:text-arena-text'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-500 font-black text-sm">
+                  ⚡
+                </div>
+                <div>
+                  <div className="text-xs font-black text-arena-text flex items-center gap-1.5">
+                    <span>Chapa Payment Gateway</span>
+                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 text-[9px] font-mono font-bold uppercase">
+                      Recommended
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-arena-muted">Telebirr • CBE Birr • Awash • Cards</div>
+                </div>
+              </div>
+              <CreditCard className="w-4 h-4 text-emerald-500" />
+            </button>
+
+            {/* Instant Demo/Sandbox Fallbacks */}
+            {['Telebirr Demo Sandbox', 'CBE Birr Demo Sandbox'].map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => setProvider(p)}
-                className={`py-2 px-2 text-center rounded-xl text-xs font-semibold border transition-all ${
+                className={`p-2.5 text-center rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                   provider === p
-                    ? 'bg-arena-elevated border-arena-accent text-arena-accent'
-                    : 'bg-arena-surface border-arena-border text-arena-muted hover:text-white'
+                    ? 'bg-indigo-500/15 border-indigo-500 text-indigo-600 dark:text-indigo-300'
+                    : 'bg-arena-surface border-arena-border text-arena-muted hover:text-arena-text'
                 }`}
               >
                 {p}
@@ -123,20 +182,30 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
           </div>
         </div>
 
-        {errorMsg && <p className="text-xs text-arena-danger font-medium">{errorMsg}</p>}
+        {errorMsg && (
+          <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-xs font-semibold">
+            {errorMsg}
+          </div>
+        )}
         {successMsg && (
-          <div className="p-3 rounded-xl bg-arena-accent/15 border border-arena-accent text-arena-accent text-xs font-semibold flex items-center gap-2">
+          <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500 text-emerald-600 dark:text-emerald-300 text-xs font-bold flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4" />
             {successMsg}
           </div>
         )}
 
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-arena-border">
-          <Button variant="outline" size="md" type="button" onClick={onClose}>
+          <Button variant="outline" size="md" type="button" onClick={onClose} disabled={isChapaLoading || isProcessing}>
             Cancel
           </Button>
-          <Button variant="accent" size="md" type="submit" isLoading={isProcessing}>
-            Add Demo Credits
+          <Button
+            variant="accent"
+            size="md"
+            type="submit"
+            isLoading={isChapaLoading || isProcessing}
+            rightIcon={provider === 'CHAPA' ? <ExternalLink className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+          >
+            {provider === 'CHAPA' ? 'Proceed to Chapa Checkout' : 'Add Demo Credits'}
           </Button>
         </div>
       </form>

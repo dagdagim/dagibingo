@@ -1,22 +1,68 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useWalletStore } from '../../stores/walletStore';
 import { WalletCard } from '../../components/wallet/WalletCard';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
 import { DepositModal } from '../../components/wallet/DepositModal';
 import { WithdrawalModal } from '../../components/wallet/WithdrawalModal';
-import { History, ShieldCheck, ArrowDownRight, ArrowUpRight, Filter } from 'lucide-react';
+import { api } from '../../services/api';
+import { History, ShieldCheck, CheckCircle2, AlertCircle, X, Sparkles } from 'lucide-react';
+import { ChapaVerifyResponse } from '@bingo/shared';
 
 export const WalletPage: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { transactions, fetchBalance, fetchTransactions } = useWalletStore();
   const [filterType, setFilterType] = useState<string>('ALL');
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [chapaBanner, setChapaBanner] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchBalance();
     fetchTransactions();
-  }, [fetchBalance, fetchTransactions]);
+
+    // Check if returning from Chapa Payment
+    const searchParams = new URLSearchParams(location.search);
+    const txRef = searchParams.get('tx_ref') || searchParams.get('trx_ref');
+    const paymentStatus = searchParams.get('payment_status') || searchParams.get('status');
+
+    if (txRef) {
+      const verifyChapa = async () => {
+        try {
+          const res = await api.get<ChapaVerifyResponse>(`/wallet/chapa/verify/${txRef}`);
+          if (res.isSuccess) {
+            setChapaBanner({
+              type: 'success',
+              message: `🎉 Payment of ${res.amount.toLocaleString()} ${res.currency} via Chapa successfully verified and added to your wallet!`,
+            });
+            fetchBalance();
+            fetchTransactions();
+          } else {
+            setChapaBanner({
+              type: 'error',
+              message: res.message || 'Payment verification returned unsuccessful status.',
+            });
+          }
+        } catch (err) {
+          setChapaBanner({
+            type: 'error',
+            message: (err as Error).message || 'Failed to verify payment with Chapa.',
+          });
+        } finally {
+          // Clear query params cleanly
+          navigate('/wallet', { replace: true });
+        }
+      };
+
+      verifyChapa();
+    }
+  }, [fetchBalance, fetchTransactions, location.search, navigate]);
 
   const filteredTransactions = transactions.filter((tx) => {
     if (filterType === 'ALL') return true;
@@ -34,6 +80,32 @@ export const WalletPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Chapa Verification Banner */}
+      {chapaBanner && (
+        <div
+          className={`p-4 rounded-2xl border flex items-center justify-between gap-3 shadow-md animate-pop-in ${
+            chapaBanner.type === 'success'
+              ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300'
+              : 'bg-rose-500/15 border-rose-500 text-rose-600 dark:text-rose-300'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 text-xs font-bold">
+            {chapaBanner.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
+            )}
+            <span>{chapaBanner.message}</span>
+          </div>
+          <button
+            onClick={() => setChapaBanner(null)}
+            className="p-1 rounded-lg hover:bg-black/10 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
@@ -41,7 +113,7 @@ export const WalletPage: React.FC = () => {
             FINANCIAL CENTER
           </span>
           <span className="text-arena-border">•</span>
-          <span className="text-xs text-arena-muted">Sandbox Double-Entry Ledger</span>
+          <span className="text-xs text-arena-muted">Chapa & Sandbox Ledger</span>
         </div>
         <h1 className="text-3xl md:text-4xl font-black font-display text-arena-text">Virtual Wallet & Ledger</h1>
       </div>
