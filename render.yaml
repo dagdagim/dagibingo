@@ -40,9 +40,8 @@ services:
   # ==============================================================================
   # DAGI BINGO - Frontend Client Static Site on Render
   # ==============================================================================
-  - type: web
+  - type: static
     name: dagibingo-web
-    runtime: static
     plan: free
     region: oregon
     rootDir: client
