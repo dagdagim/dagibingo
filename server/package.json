@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "render-build": "tsc && npm --prefix ../client run build && node -e \"const fs=require('fs'); if(fs.existsSync('../client/dist')){fs.cpSync('../client/dist','build',{recursive:true});}\"",
+    "render-build": "npm --prefix .. install && npm --prefix .. run build && node -e \"const fs=require('fs'); if(fs.existsSync('../client/dist')){fs.cpSync('../client/dist','build',{recursive:true});}\"",
     "start": "node dist/server.js",
     "seed": "tsx src/seeds/seed.ts",
     "test": "jest --runInBand"
