@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { TicketGrid } from '@bingo/shared';
+import { TicketGrid } from '../shared';
 
 export interface IBingoTicket extends Document {
   _id: mongoose.Types.ObjectId;

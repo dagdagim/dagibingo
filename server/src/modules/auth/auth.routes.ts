@@ -3,7 +3,7 @@ import { AuthController } from './auth.controller';
 import { validateBody } from '../../middleware/validate';
 import { authRateLimiter } from '../../middleware/rateLimiter';
 import { authenticateJwt } from '../../middleware/auth';
-import { loginSchema, registerSchema } from '@bingo/shared';
+import { loginSchema, registerSchema } from '../../shared';
 
 const router = Router();
 

@@ -2,7 +2,7 @@ import { User } from '../../models/User';
 import { KycRecord } from '../../models/KycRecord';
 import { AuditLog } from '../../models/AuditLog';
 import { NotFoundError, BadRequestError } from '../../utils/errors';
-import { UserProfile, ResponsibleGamingLimits } from '@bingo/shared';
+import { UserProfile, ResponsibleGamingLimits } from '../../shared';
 
 export class UsersService {
   public async getProfile(userId: string): Promise<UserProfile> {

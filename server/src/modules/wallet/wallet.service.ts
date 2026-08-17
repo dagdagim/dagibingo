@@ -15,7 +15,7 @@ import {
   WalletTransactionDTO,
   ChapaInitializeResponse,
   ChapaVerifyResponse,
-} from '@bingo/shared';
+} from '../../shared';
 import { v4 as uuidv4 } from 'uuid';
 
 export class WalletService {

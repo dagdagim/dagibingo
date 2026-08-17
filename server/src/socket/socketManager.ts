@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/environment';
 import { GameEngine } from '../game-engine/GameEngine';
 import { logger } from '../utils/logger';
-import { ClientToServerEvents, ServerToClientEvents } from '@bingo/shared';
+import { ClientToServerEvents, ServerToClientEvents } from '../shared';
 
 interface AuthenticatedSocket extends Socket<ClientToServerEvents, ServerToClientEvents> {
   userId?: string;

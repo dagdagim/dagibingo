@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { CalledBall, GameCategory, GamePattern, GameSpeed, GameStatus } from '@bingo/shared';
+import { CalledBall, GameCategory, GamePattern, GameSpeed, GameStatus } from '../shared';
 
 export interface IGame extends Document {
   _id: mongoose.Types.ObjectId;

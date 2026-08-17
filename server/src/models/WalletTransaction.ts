@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { TransactionStatus, TransactionType } from '@bingo/shared';
+import { TransactionStatus, TransactionType } from '../shared';
 
 export interface IWalletTransaction extends Document {
   _id: mongoose.Types.ObjectId;

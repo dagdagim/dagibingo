@@ -14,7 +14,7 @@ import {
   GameRoomDetails,
   GameRoomSummary,
   BingoTicketDTO,
-} from '@bingo/shared';
+} from '../../shared';
 
 export class GamesService {
   public async listGames(category?: GameCategory): Promise<GameRoomSummary[]> {

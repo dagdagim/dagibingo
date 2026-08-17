@@ -1,4 +1,4 @@
-import { GamePattern, TicketGrid } from '@bingo/shared';
+import { GamePattern, TicketGrid } from '../shared';
 
 export interface ValidationResult {
   isValid: boolean;

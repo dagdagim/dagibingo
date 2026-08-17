@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { BINGO_COLUMNS, BingoColumnLetter, BINGO_LETTERS, FREE_SPACE_VALUE, TicketGrid } from '@bingo/shared';
+import { BINGO_COLUMNS, BingoColumnLetter, BINGO_LETTERS, FREE_SPACE_VALUE, TicketGrid } from '../shared';
 
 export class TicketGenerator {
   /**

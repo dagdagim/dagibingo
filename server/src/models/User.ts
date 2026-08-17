@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { UserRole, KycStatus, ResponsibleGamingLimits } from '@bingo/shared';
+import { UserRole, KycStatus, ResponsibleGamingLimits } from '../shared';
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;

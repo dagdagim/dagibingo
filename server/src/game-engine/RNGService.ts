@@ -1,4 +1,4 @@
-import { BINGO_COLUMNS, BingoColumnLetter, CalledBall, TOTAL_BINGO_BALLS } from '@bingo/shared';
+import { BINGO_COLUMNS, BingoColumnLetter, CalledBall, TOTAL_BINGO_BALLS } from '../shared';
 
 export class RNGService {
   /**

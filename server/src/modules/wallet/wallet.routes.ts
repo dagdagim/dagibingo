@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { WalletController } from './wallet.controller';
 import { authenticateJwt } from '../../middleware/auth';
 import { validateBody } from '../../middleware/validate';
-import { depositSchema, withdrawalSchema, chapaInitializeSchema } from '@bingo/shared';
+import { depositSchema, withdrawalSchema, chapaInitializeSchema } from '../../shared';
 
 const router = Router();
 

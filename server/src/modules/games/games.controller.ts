@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { GamesService } from './games.service';
 import { GameEngine } from '../../game-engine/GameEngine';
-import { GameCategory } from '@bingo/shared';
+import { GameCategory } from '../../shared';
 
 const gamesService = new GamesService();
 const gameEngine = GameEngine.getInstance();

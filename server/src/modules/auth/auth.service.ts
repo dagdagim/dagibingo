@@ -6,7 +6,7 @@ import { AuditLog } from '../../models/AuditLog';
 import { Notification } from '../../models/Notification';
 import { env } from '../../config/environment';
 import { BadRequestError, ConflictError, UnauthorizedError } from '../../utils/errors';
-import { RegisterInput, LoginInput, AuthResponse, UserProfile, AuthTokens } from '@bingo/shared';
+import { RegisterInput, LoginInput, AuthResponse, UserProfile, AuthTokens } from '../../shared';
 
 export class AuthService {
   public async register(input: RegisterInput, ip?: string, userAgent?: string): Promise<AuthResponse> {

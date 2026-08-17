@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { KycStatus } from '@bingo/shared';
+import { KycStatus } from '../shared';
 
 export interface IKycRecord extends Document {
   userId: mongoose.Types.ObjectId;

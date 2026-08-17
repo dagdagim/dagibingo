@@ -10,7 +10,7 @@ import { FraudAlert } from '../../models/FraudAlert';
 import { AuditLog } from '../../models/AuditLog';
 import { GameEngine } from '../../game-engine/GameEngine';
 import { NotFoundError } from '../../utils/errors';
-import { AdminDashboardMetrics, AdminUserListItem, AdminBetLedgerData, AdminBetRecord, BetOutcome } from '@bingo/shared';
+import { AdminDashboardMetrics, AdminUserListItem, AdminBetLedgerData, AdminBetRecord, BetOutcome } from '../../shared';
 
 export class AdminService {
   public async getDashboardMetrics(): Promise<AdminDashboardMetrics> {

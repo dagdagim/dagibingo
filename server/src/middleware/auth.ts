@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/environment';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
-import { UserRole } from '@bingo/shared';
+import { UserRole } from '../shared';
 import { User } from '../models/User';
 
 export interface JwtAuthPayload {

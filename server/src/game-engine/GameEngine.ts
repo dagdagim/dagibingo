@@ -10,7 +10,7 @@ import { Notification } from '../models/Notification';
 import { AuditLog } from '../models/AuditLog';
 import { RNGService } from './RNGService';
 import { PatternValidator } from './PatternValidator';
-import { GAME_SPEEDS, CalledBall } from '@bingo/shared';
+import { GAME_SPEEDS, CalledBall } from '../shared';
 import { logger } from '../utils/logger';
 
 interface ActiveGameRuntime {

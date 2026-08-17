@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { GamesController } from './games.controller';
 import { authenticateJwt } from '../../middleware/auth';
 import { validateBody } from '../../middleware/validate';
-import { createGameSchema, joinGameSchema, bingoClaimSchema } from '@bingo/shared';
+import { createGameSchema, joinGameSchema, bingoClaimSchema } from '../../shared';
 
 const router = Router();
 
