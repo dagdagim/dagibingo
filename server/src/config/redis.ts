@@ -11,15 +11,23 @@ const memoryCache = new Map<string, { value: string; expiry?: number }>();
 export const getRedisClient = (): Redis | null => {
   if (redisClient) return redisClient;
 
+  // If on production and REDIS_URL is local default, use in-memory cache directly
+  if (env.NODE_ENV === 'production' && (!env.REDIS_URL || env.REDIS_URL.includes('127.0.0.1') || env.REDIS_URL.includes('localhost'))) {
+    logger.info('ℹ️ Using high-performance in-memory cache for game state');
+    return null;
+  }
+
   try {
     redisClient = new Redis(env.REDIS_URL, {
       maxRetriesPerRequest: 1,
+      connectTimeout: 3000,
+      lazyConnect: true,
       retryStrategy: (times) => {
-        if (times > 3) {
-          logger.warn('⚠️ Redis unreachable, utilizing memory fallback for game state caching');
+        if (times > 1) {
+          logger.info('ℹ️ Redis offline, switching to in-memory game state cache');
           return null; // stop retrying
         }
-        return Math.min(times * 100, 2000);
+        return 500;
       },
     });
 
@@ -28,14 +36,18 @@ export const getRedisClient = (): Redis | null => {
       logger.info('✅ Redis Connected successfully');
     });
 
-    redisClient.on('error', (err) => {
+    redisClient.on('error', (_err) => {
       isRedisConnected = false;
-      logger.warn(`⚠️ Redis notice: ${err.message}`);
+    });
+
+    redisClient.connect().catch(() => {
+      isRedisConnected = false;
+      logger.info('ℹ️ Operating in high-performance in-memory cache mode');
     });
 
     return redisClient;
   } catch (error) {
-    logger.warn('⚠️ Redis initialization failed, using in-memory cache');
+    logger.info('ℹ️ Operating in high-performance in-memory cache mode');
     return null;
   }
 };

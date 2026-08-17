@@ -44,6 +44,20 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Global Rate Limiting
 app.use('/api', apiRateLimiter);
 
+// Root entry endpoint
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    name: 'DAGI BINGO Authoritative Real-Time Server Engine',
+    version: '1.0.0',
+    status: 'online',
+    mode: env.GAME_MODE,
+    developer: 'Dagim Bekele (Tobiya)',
+    portfolio: 'https://dagimbekelebunera.vercel.app/',
+    health: '/health',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Health check endpoints
 app.get('/health', (_req, res) => {
   res.status(200).json({
