@@ -33,15 +33,15 @@ const seedDatabase = async () => {
     ]);
 
     logger.info('👥 Creating Admin and Demo Users...');
-    const adminPasswordHash = await bcrypt.hash('Admin@123456', 10);
+    const adminPasswordHash = await bcrypt.hash('password1234', 10);
     const playerPasswordHash = await bcrypt.hash('Player@123456', 10);
 
     const admin = await User.create({
-      username: 'admin',
-      email: 'admin@bingoarena.com',
+      username: 'admin@dagibing.com',
+      email: 'admin@dagibing.com',
       passwordHash: adminPasswordHash,
-      firstName: 'System',
-      lastName: 'Administrator',
+      firstName: 'Dagim',
+      lastName: 'Admin',
       role: 'ADMIN',
       kycStatus: 'VERIFIED',
       country: 'Ethiopia',
