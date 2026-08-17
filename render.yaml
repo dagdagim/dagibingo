@@ -16,7 +16,7 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: MONGODB_URI
-        placeholder: "mongodb+srv://<username>:<password>@cluster0.mongodb.net/dagibingo"
+        value: mongodb+srv://dagimbekele_db_user:xYR4kdAL5LSGyfrA@cluster0.sdxhjj4.mongodb.net/bingo_arena?retryWrites=true&w=majority&appName=Cluster0
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
