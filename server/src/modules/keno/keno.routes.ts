@@ -11,10 +11,8 @@ router.get('/stats', KenoController.getStats);
 // Quick play (Instant solo play works for both guests and authenticated players)
 router.post('/quick-play', optionalAuthenticateJwt, KenoController.quickPlay);
 
-// My Tickets (Returns user tickets if authenticated, or empty list for guests)
-router.get('/my-tickets', optionalAuthenticateJwt, KenoController.getMyTickets);
-
-// Authenticated: Place live bets
+// Authenticated: Place bets and view personal tickets
 router.post('/bet', authenticateJwt, KenoController.placeBet);
+router.get('/my-tickets', authenticateJwt, KenoController.getMyTickets);
 
 export default router;

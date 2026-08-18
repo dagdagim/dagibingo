@@ -33,7 +33,7 @@ export const BingoBall: React.FC<BingoBallProps> = ({
   };
 
   // Vivid column themes with realistic radial gradients
-  const columnTheme: Record<string, { bg: string; glow: string; ring: string; badge: string }> = {
+  const columnTheme = {
     B: {
       bg: 'radial-gradient(circle at 35% 28%, #67E8F9 0%, #06B6D4 45%, #0E7490 85%, #164E63 100%)',
       glow: 'rgba(6, 182, 212, 0.5)',
@@ -64,29 +64,9 @@ export const BingoBall: React.FC<BingoBallProps> = ({
       ring: 'border-orange-300/40',
       badge: 'bg-orange-950 text-orange-300 border-orange-400/40',
     },
-    K: {
-      bg: 'radial-gradient(circle at 35% 28%, #C084FC 0%, #9333EA 45%, #6B21A8 85%, #3B0764 100%)',
-      glow: 'rgba(147, 51, 234, 0.55)',
-      ring: 'border-purple-300/40',
-      badge: 'bg-purple-950 text-purple-300 border-purple-400/40',
-    },
   };
 
-  const letterKey =
-    (ball as any).letter ||
-    (ball.number <= 15
-      ? 'B'
-      : ball.number <= 30
-      ? 'I'
-      : ball.number <= 45
-      ? 'N'
-      : ball.number <= 60
-      ? 'G'
-      : ball.number <= 75
-      ? 'O'
-      : 'K');
-
-  const theme = columnTheme[letterKey] || columnTheme.B;
+  const theme = columnTheme[ball.letter] || columnTheme.B;
 
   return (
     <div

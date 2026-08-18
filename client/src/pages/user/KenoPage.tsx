@@ -6,7 +6,6 @@ import { useWalletStore } from '../../stores/walletStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { BingoBall } from '../../components/bingo/BingoBall';
 import {
   KENO_TOTAL_NUMBERS,
   KENO_MAX_SPOTS,
@@ -32,10 +31,6 @@ import {
   Radio,
   Gamepad2,
   Coins,
-  Check,
-  Star,
-  Shuffle,
-  Eye,
 } from 'lucide-react';
 import { voiceController } from '../../utils/voiceController';
 
@@ -108,8 +103,6 @@ export const KenoPage: React.FC = () => {
   const coldSet = useMemo(() => {
     return new Set((stats?.coldNumbers || []).slice(0, 8).map((c) => c.number));
   }, [stats]);
-
-  const latestBall = drawnBalls.length > 0 ? drawnBalls[drawnBalls.length - 1] : null;
 
   const toggleSound = () => {
     if (isMuted) {
@@ -206,22 +199,22 @@ export const KenoPage: React.FC = () => {
         {/* Left Column: 1-80 Grid & Draw Tray (8 Cols) */}
         <div className="lg:col-span-8 space-y-4">
           
-          {/* Round Status & Live Ball Spotlight Banner */}
-          <div className="glass-panel-elevated p-4 sm:p-5 rounded-2xl border border-amber-500/30 space-y-4">
+          {/* Round Status Banner */}
+          <Card elevated className="p-4 border-amber-500/25">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center font-black text-white font-display text-base shadow-sm border border-amber-300/40">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center font-black text-white font-display text-base shadow-sm">
                   #{currentRound?.roundNumber || 1001}
                 </div>
                 <div>
-                  <div className="text-xs text-arena-muted font-bold font-display uppercase tracking-wider">
-                    {gameMode === 'LIVE' ? 'Multiplayer Live Arena' : 'Instant Solo Draw'}
+                  <div className="text-xs text-arena-muted font-semibold">
+                    {gameMode === 'LIVE' ? 'Multiplayer Live Round' : 'Instant Solo Draw'}
                   </div>
                   <div className="text-sm font-black text-arena-text flex items-center gap-2">
                     {currentRound?.status === 'BETTING' && (
                       <span className="text-emerald-500 flex items-center gap-1.5 font-bold">
                         <Clock className="w-4 h-4 animate-spin-slow" />
-                        Betting Open — Draw in {currentRound.countdownSeconds || 30}s
+                        Betting Open — Draw in {currentRound.countdownSeconds || 25}s
                       </span>
                     )}
                     {currentRound?.status === 'DRAWING' && (
@@ -233,7 +226,7 @@ export const KenoPage: React.FC = () => {
                     {currentRound?.status === 'COMPLETED' && (
                       <span className="text-indigo-400 font-bold flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                        Round Settled — Next Round in {currentRound.countdownSeconds || 12}s
+                        Round Settled — Next Round in {currentRound.countdownSeconds || 10}s
                       </span>
                     )}
                   </div>
@@ -241,117 +234,87 @@ export const KenoPage: React.FC = () => {
               </div>
 
               {/* Matches Counter Display */}
-              <div className="flex items-center gap-2.5 bg-arena-surface px-3.5 py-2 rounded-2xl border border-arena-border shadow-xs">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-arena-muted font-bold">Spots:</span>
-                  <span className="text-sm font-black font-mono text-amber-500">
-                    {spotsCount}/{KENO_MAX_SPOTS}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2 bg-arena-surface px-3 py-1.5 rounded-2xl border border-arena-border">
+                <span className="text-xs text-arena-muted font-bold">Selected:</span>
+                <span className="text-sm font-black font-mono text-amber-500">
+                  {spotsCount} / {KENO_MAX_SPOTS} Spots
+                </span>
                 {drawnBalls.length > 0 && (
                   <>
                     <span className="text-arena-border">|</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-arena-muted font-bold">Hits:</span>
-                      <span className="text-sm font-black font-mono text-emerald-400 animate-bounce flex items-center gap-1">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        {hitsCount}
-                      </span>
-                    </div>
+                    <span className="text-xs text-arena-muted font-bold">Hits:</span>
+                    <span className="text-sm font-black font-mono text-emerald-400 animate-bounce">
+                      {hitsCount} Hits
+                    </span>
                   </>
                 )}
               </div>
             </div>
 
-            {/* Spotlight Showcase of Latest Ball when Drawing */}
-            {isDrawing && latestBall && (
-              <div className="flex items-center justify-center p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 border border-amber-400/30 animate-pop-in">
-                <div className="flex items-center gap-4">
-                  <BingoBall ball={{ number: latestBall, letter: 'K' as any }} size="lg" isNew />
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 block font-display animate-pulse">
-                      • CURRENT BALL DRAWN
+            {/* Live 20-Ball Catcher Tray */}
+            {drawnBalls.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-arena-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-arena-muted flex items-center gap-1 font-display">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    Drawn Balls ({drawnBalls.length}/20)
+                  </span>
+                  {hitsCount > 0 && (
+                    <span className="text-[11px] font-bold text-emerald-400">
+                      🎯 {hitsCount} of your picks matched!
                     </span>
-                    <span className="text-xl font-black font-display text-arena-text">
-                      Number {latestBall}
-                    </span>
-                  </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
+                  {drawnBalls.map((num, idx) => {
+                    const isHit = selectedNumbers.includes(num);
+                    return (
+                      <div
+                        key={`${num}-${idx}`}
+                        className={`w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center font-black text-sm font-mono transition-all transform animate-pop-in ${
+                          isHit
+                            ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 shadow-accent-glow ring-2 ring-emerald-400 scale-110'
+                            : 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-sm'
+                        }`}
+                      >
+                        {num}
+                      </div>
+                    );
+                  })}
+                  {Array.from({ length: Math.max(0, 20 - drawnBalls.length) }).map((_, i) => (
+                    <div
+                      key={`placeholder-${i}`}
+                      className="w-9 h-9 rounded-xl flex-shrink-0 border border-dashed border-arena-border/60 bg-arena-surface/40 flex items-center justify-center text-[10px] text-arena-muted/40 font-mono"
+                    >
+                      {drawnBalls.length + i + 1}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
-
-            {/* Live 20-Ball 3D Spherical Catcher Tray */}
-            <div className="pt-3 border-t border-arena-border">
-              <div className="flex items-center justify-between mb-2 px-0.5">
-                <span className="text-[11px] font-black uppercase tracking-wider text-arena-muted flex items-center gap-1.5 font-display">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  Live 20-Ball Tray ({drawnBalls.length}/20)
-                </span>
-                {hitsCount > 0 && (
-                  <span className="text-[11px] font-black text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                    🎯 {hitsCount} Matching Spot{hitsCount > 1 ? 's' : ''}!
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                {drawnBalls.map((num, idx) => {
-                  const isHit = selectedNumbers.includes(num);
-                  return (
-                    <div
-                      key={`${num}-${idx}`}
-                      className={`relative flex-shrink-0 transition-transform ${
-                        isHit ? 'scale-110 z-10' : ''
-                      }`}
-                    >
-                      <BingoBall
-                        ball={{ number: num, letter: 'K' as any }}
-                        size="md"
-                        isNew={idx === drawnBalls.length - 1}
-                      />
-                      {isHit && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center text-[9px] font-black shadow-md">
-                          ✓
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-                {Array.from({ length: Math.max(0, 20 - drawnBalls.length) }).map((_, i) => (
-                  <div
-                    key={`slot-${i}`}
-                    className="w-12 h-12 rounded-full flex-shrink-0 border-2 border-dashed border-arena-border/70 bg-arena-surface/50 flex flex-col items-center justify-center text-xs font-mono font-bold text-arena-muted/40"
-                  >
-                    #{drawnBalls.length + i + 1}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          </Card>
 
           {/* 1-80 Interactive Number Spot Matrix */}
-          <div className="glass-panel-elevated p-4 sm:p-6 rounded-2xl border border-arena-border shadow-card-elevated space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-xs font-black uppercase tracking-widest text-arena-text font-display">
-                  80-SPOT KENO BOARD
+          <Card elevated className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-black uppercase tracking-wider text-arena-muted font-display">
+                Keno Board (1 - 80)
+              </span>
+              <div className="flex items-center gap-2 text-[11px] text-arena-muted">
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-md bg-amber-500" /> Selected
                 </span>
-              </div>
-              <div className="flex items-center gap-3 text-[11px] font-semibold text-arena-muted">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-md daub-stamp free-space border border-amber-300" /> Picked
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-md bg-indigo-500" /> Drawn
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-md daub-stamp border border-indigo-300" /> Drawn
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-md winning-cell bg-emerald-400 border border-emerald-300" /> Match!
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-md bg-emerald-400" /> Hit!
                 </span>
               </div>
             </div>
 
-            {/* 10 x 8 Tactile Casino Number Grid */}
+            {/* 10 x 8 Grid */}
             <div className="grid grid-cols-10 gap-1.5 sm:gap-2 select-none">
               {Array.from({ length: KENO_TOTAL_NUMBERS }, (_, i) => i + 1).map((num) => {
                 const isSelected = selectedNumbers.includes(num);
@@ -360,18 +323,14 @@ export const KenoPage: React.FC = () => {
                 const isHot = hotSet.has(num);
                 const isCold = coldSet.has(num);
 
-                let cellClass =
-                  'bg-arena-surface hover:bg-arena-elevated text-arena-text border border-arena-border hover:border-amber-400/60 hover:scale-105 active:scale-95 shadow-xs';
+                let btnStyles = 'bg-arena-surface border-arena-border text-arena-text hover:border-amber-500/50 hover:bg-amber-500/10';
 
                 if (isHit) {
-                  cellClass =
-                    'winning-cell bg-gradient-to-tr from-emerald-400 via-teal-300 to-emerald-500 text-slate-950 border-2 border-emerald-300 shadow-accent-glow scale-110 z-20 animate-pop-in font-black';
+                  btnStyles = 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 border-emerald-400 font-black shadow-accent-glow scale-105 z-10';
                 } else if (isDrawn) {
-                  cellClass =
-                    'daub-stamp text-white border-2 border-indigo-300 shadow-arena-glow scale-105 z-10 font-black';
+                  btnStyles = 'bg-indigo-600/80 border-indigo-400 text-white font-bold shadow-sm';
                 } else if (isSelected) {
-                  cellClass =
-                    'daub-stamp free-space text-slate-950 font-black border-2 border-yellow-300 shadow-gold-glow scale-105 z-10 ring-2 ring-amber-400/50';
+                  btnStyles = 'bg-gradient-to-tr from-amber-500 to-amber-600 text-white border-amber-400 font-black shadow-arena-glow scale-105 z-10';
                 }
 
                 return (
@@ -380,28 +339,19 @@ export const KenoPage: React.FC = () => {
                     type="button"
                     disabled={isDrawing}
                     onClick={() => toggleNumber(num)}
-                    className={`relative aspect-square rounded-xl font-bold font-mono text-xs sm:text-sm flex flex-col items-center justify-center transition-all duration-150 cursor-pointer overflow-hidden ${cellClass}`}
+                    className={`relative h-10 sm:h-12 rounded-xl border text-xs sm:text-sm font-mono font-bold transition-all duration-150 flex items-center justify-center cursor-pointer ${btnStyles}`}
                   >
-                    {/* Top specular shine for 3D button feel */}
-                    <div className="absolute top-[4%] left-[10%] w-[40%] h-[20%] rounded-full bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
-
-                    <span>{num}</span>
+                    {num}
 
                     {/* Hot / Cold Indicators */}
                     {isHot && !isSelected && !isDrawn && (
-                      <span className="absolute top-0.5 right-0.5" title="Hot Number (High Frequency)">
+                      <span className="absolute top-0.5 right-0.5" title="Hot Number">
                         <Flame className="w-2.5 h-2.5 text-rose-500" />
                       </span>
                     )}
                     {isCold && !isSelected && !isDrawn && (
-                      <span className="absolute top-0.5 right-0.5" title="Cold Number (Low Frequency)">
+                      <span className="absolute top-0.5 right-0.5" title="Cold Number">
                         <Snowflake className="w-2.5 h-2.5 text-sky-400" />
-                      </span>
-                    )}
-
-                    {isHit && (
-                      <span className="absolute bottom-0.5 right-0.5">
-                        <Star className="w-2.5 h-2.5 fill-slate-950 text-slate-950" />
                       </span>
                     )}
                   </button>
@@ -410,102 +360,109 @@ export const KenoPage: React.FC = () => {
             </div>
 
             {/* Quick Pick and Selection Action Toolbar */}
-            <div className="pt-4 border-t border-arena-border flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-4 pt-4 border-t border-arena-border flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-black text-arena-muted mr-1 font-display uppercase tracking-wider">
-                  Quick Pick:
-                </span>
+                <span className="text-xs font-bold text-arena-muted mr-1 font-display">Quick Pick:</span>
                 {[3, 5, 8, 10].map((count) => (
                   <button
                     key={count}
                     type="button"
                     disabled={isDrawing}
                     onClick={() => quickPick(count)}
-                    className={`px-2.5 py-1.5 rounded-xl text-xs font-black font-display uppercase transition-all cursor-pointer border ${
-                      spotsCount === count
-                        ? 'bg-amber-500 text-white border-amber-400 shadow-sm'
-                        : 'bg-arena-surface text-arena-muted hover:text-arena-text border-arena-border hover:border-amber-400/40'
-                    }`}
+                    className="px-2.5 py-1 rounded-xl bg-arena-surface border border-arena-border text-arena-text text-xs font-bold hover:border-amber-500/50 hover:bg-amber-500/10 transition-colors cursor-pointer"
                   >
-                    {count} Spots
+                    Pick {count}
                   </button>
                 ))}
                 <button
                   type="button"
                   disabled={isDrawing}
                   onClick={() => quickPick(Math.floor(Math.random() * 8) + 3)}
-                  className="px-2.5 py-1.5 rounded-xl text-xs font-black font-display uppercase bg-arena-surface text-amber-500 border border-amber-500/30 hover:bg-amber-500/10 transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/20 to-indigo-500/20 border border-amber-500/40 text-amber-500 text-xs font-bold hover:bg-amber-500/30 transition-colors cursor-pointer"
                 >
-                  <Shuffle className="w-3 h-3" />
-                  Random
+                  🎲 Lucky
                 </button>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  disabled={isDrawing || spotsCount === 0}
+                  disabled={isDrawing || selectedNumbers.length === 0}
                   onClick={clearNumbers}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+                  className="px-3 py-1 rounded-xl bg-arena-surface border border-arena-border text-rose-400 text-xs font-bold hover:bg-rose-500/15 hover:border-rose-500/40 transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  Clear Grid
+                  Clear
                 </button>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
-        {/* Right Column: Wager Controls, Paytable, and Personal Bets (4 Cols) */}
+        {/* Right Column: Betting Engine & Paytable (4 Cols) */}
         <div className="lg:col-span-4 space-y-4">
           
-          {/* Wager Selection & Bet Panel */}
-          <div className="glass-panel-elevated p-4 sm:p-5 rounded-2xl border border-arena-border shadow-card-elevated space-y-4">
-            <div className="flex items-center justify-between border-b border-arena-border pb-3">
-              <div className="flex items-center gap-2">
-                <Coins className="w-4 h-4 text-amber-500" />
-                <span className="text-xs font-black font-display uppercase tracking-wider text-arena-text">
-                  Wager & Payout
-                </span>
-              </div>
-              <div className="text-xs font-mono font-bold text-arena-muted">
-                Balance: <span className="text-arena-text font-black">{balance?.availableBalance || 0} ETB</span>
-              </div>
+          {/* Bet Control Card */}
+          <Card elevated className="p-5 border-indigo-500/30">
+            <h2 className="text-base font-black font-display text-arena-text flex items-center gap-2 mb-3">
+              <Coins className="w-4 h-4 text-amber-400" />
+              Place Your Keno Bet
+            </h2>
+
+            {/* Wallet Balance Summary */}
+            <div className="p-3 rounded-2xl bg-arena-surface border border-arena-border flex items-center justify-between mb-4">
+              <span className="text-xs text-arena-muted font-semibold">Your Wallet Balance:</span>
+              <span className="text-sm font-black font-mono text-indigo-400">
+                {(balance?.availableBalance || 0).toLocaleString()} ETB
+              </span>
             </div>
 
-            {/* Preset Wager Poker Chips */}
-            <div>
-              <label className="text-xs font-bold text-arena-muted mb-2 block font-display">
-                Select Bet Amount (ETB):
+            {/* Preset Wager Chips */}
+            <div className="space-y-2 mb-4">
+              <label className="text-xs font-bold text-arena-muted uppercase tracking-wider block font-display">
+                Select Bet Amount (ETB)
               </label>
-              <div className="grid grid-cols-4 gap-2">
-                {KENO_PRESET_BETS.map((amt) => (
+              <div className="grid grid-cols-4 gap-1.5">
+                {KENO_PRESET_BETS.slice(0, 4).map((amt) => (
                   <button
                     key={amt}
                     type="button"
-                    disabled={isDrawing}
                     onClick={() => {
                       setBetAmount(amt);
                       setCustomBet('');
                     }}
-                    className={`py-2 rounded-xl text-xs font-mono font-black transition-all cursor-pointer border ${
+                    className={`py-2 rounded-xl text-xs font-mono font-bold border transition-all cursor-pointer ${
                       betAmount === amt && !customBet
-                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-gold-glow scale-105'
-                        : 'bg-arena-surface text-arena-text border-arena-border hover:border-amber-400/40 hover:scale-102'
+                        ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
+                        : 'bg-arena-surface border-arena-border text-arena-text hover:border-amber-500/50'
                     }`}
                   >
                     {amt}
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* Custom Bet Input */}
-            <div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {KENO_PRESET_BETS.slice(4).map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => {
+                      setBetAmount(amt);
+                      setCustomBet('');
+                    }}
+                    className={`py-2 rounded-xl text-xs font-mono font-bold border transition-all cursor-pointer ${
+                      betAmount === amt && !customBet
+                        ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
+                        : 'bg-arena-surface border-arena-border text-arena-text hover:border-amber-500/50'
+                    }`}
+                  >
+                    {amt}
+                  </button>
+                ))}
+              </div>
               <Input
-                label="Custom Amount"
+                placeholder="Or custom bet amount"
                 type="number"
-                placeholder="Enter custom ETB wager..."
                 min="1"
                 value={customBet}
                 onChange={(e) => {
@@ -519,20 +476,18 @@ export const KenoPage: React.FC = () => {
             </div>
 
             {/* Potential Max Payout Banner */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-indigo-500/15 border border-amber-500/30">
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-indigo-500/15 border border-amber-500/30 mb-4">
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-arena-muted font-bold font-display uppercase tracking-wider">
-                  Max Multiplier:
-                </span>
-                <span className="text-amber-500 font-mono font-black">{potentialMaxMultiplier}x</span>
+                <span className="text-arena-muted font-bold">Max Potential Payout:</span>
+                <span className="text-amber-500 font-mono font-bold">{potentialMaxMultiplier}x</span>
               </div>
-              <div className="text-xl font-black font-mono text-arena-text">
+              <div className="text-lg font-black font-mono text-arena-text">
                 {(betAmount * potentialMaxMultiplier).toLocaleString()} ETB
               </div>
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2 mb-4">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 {error}
               </div>
@@ -556,10 +511,10 @@ export const KenoPage: React.FC = () => {
                 ? `Play Instant (${betAmount} ETB)`
                 : `Play Instant Demo (${betAmount} ETB)`}
             </Button>
-          </div>
+          </Card>
 
           {/* Tabs: Paytable / History / Stats */}
-          <div className="glass-panel-elevated p-4 rounded-2xl border border-arena-border shadow-card-elevated">
+          <Card elevated className="p-4">
             <div className="flex border-b border-arena-border pb-2 mb-3 gap-2">
               <button
                 type="button"
@@ -595,84 +550,86 @@ export const KenoPage: React.FC = () => {
                 }`}
               >
                 <TrendingUp className="w-3.5 h-3.5" />
-                Hot / Cold
+                Stats
               </button>
             </div>
 
-            {/* TAB 1: Dynamic Paytable */}
+            {/* Tab 1: Paytable for Selected Spots */}
             {activeTab === 'paytable' && (
               <div className="space-y-2">
-                <div className="text-xs text-arena-muted flex items-center justify-between pb-1 font-semibold">
-                  <span>{spotsCount > 0 ? `${spotsCount}-Spot Multipliers` : 'Pick spots to view'}</span>
-                  <span>Payout for {betAmount} ETB</span>
+                <div className="text-xs font-bold text-arena-muted flex items-center justify-between mb-2">
+                  <span>Payouts for {spotsCount || 1} Spot{spotsCount !== 1 ? 's' : ''}:</span>
+                  <span className="text-[10px] text-amber-500 font-mono">Wager: {betAmount} ETB</span>
                 </div>
 
                 {currentPaytable ? (
-                  <div className="space-y-1 max-h-56 overflow-y-auto scrollbar-none">
-                    {Object.entries(currentPaytable).map(([hits, multiplier]) => {
-                      const isCurrentHit = hitsCount === Number(hits) && drawnBalls.length > 0;
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                    {Object.entries(currentPaytable).map(([hit, mult]) => {
+                      const isCurrentHit = hitsCount === parseInt(hit, 10);
+                      const prize = Math.round(betAmount * mult * 100) / 100;
                       return (
                         <div
-                          key={hits}
-                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono transition-all ${
+                          key={hit}
+                          className={`p-2 rounded-xl flex items-center justify-between text-xs transition-colors ${
                             isCurrentHit
-                              ? 'bg-emerald-500/25 border border-emerald-400 text-emerald-400 font-black shadow-accent-glow scale-102'
-                              : 'bg-arena-surface/80 border border-arena-border text-arena-text'
+                              ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-400 font-black scale-[1.02]'
+                              : 'bg-arena-surface border border-arena-border text-arena-text'
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold">{hits} Hits:</span>
-                            <span className="text-amber-500 font-bold">{multiplier}x</span>
-                          </div>
-                          <div className="font-black text-right text-arena-text">
-                            {(betAmount * multiplier).toLocaleString()} ETB
+                          <span className="font-bold flex items-center gap-1.5">
+                            {isCurrentHit && <Sparkles className="w-3.5 h-3.5 text-emerald-400" />}
+                            {hit} Hits
+                          </span>
+                          <div className="text-right font-mono">
+                            <span className="text-amber-500 font-bold mr-2">{mult}x</span>
+                            <span className="font-bold">{prize.toLocaleString()} ETB</span>
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <div className="py-6 text-center text-xs text-arena-muted italic">
-                    Select 1 to 10 numbers on the board to view the dynamic paytable and potential winnings.
+                  <div className="py-6 text-center text-xs text-arena-muted">
+                    Pick 1 to 10 numbers on the board to view the payout table.
                   </div>
                 )}
               </div>
             )}
 
-            {/* TAB 2: My Tickets & Result History */}
+            {/* Tab 2: User Bet History */}
             {activeTab === 'history' && (
-              <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-none">
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {myTickets.length === 0 ? (
-                  <div className="py-6 text-center text-xs text-arena-muted italic">
-                    No tickets placed yet. Place your bet and watch the live draw!
+                  <div className="py-6 text-center text-xs text-arena-muted">
+                    No tickets yet. Place your first Keno bet!
                   </div>
                 ) : (
-                  myTickets.slice(0, 15).map((ticket) => (
+                  myTickets.slice(0, 10).map((ticket) => (
                     <div
                       key={ticket._id}
-                      className="p-2.5 rounded-xl bg-arena-surface border border-arena-border text-xs space-y-1"
+                      className="p-2.5 rounded-xl bg-arena-surface border border-arena-border flex items-center justify-between text-xs"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-arena-text">
-                          {ticket.isQuickPlay ? '⚡ Instant' : `Round #${ticket.roundNumber || 'Live'}`}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                            ticket.status === 'WON'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : ticket.status === 'LOST'
-                              ? 'bg-rose-500/20 text-rose-400'
-                              : 'bg-amber-500/20 text-amber-400'
-                          }`}
-                        >
-                          {ticket.status === 'WON' ? `+${ticket.payoutAmount} ETB` : ticket.status}
-                        </span>
+                      <div>
+                        <div className="font-bold text-arena-text">
+                          {ticket.isQuickPlay ? '⚡ Solo Draw' : `Round #${ticket.roundNumber || 'Live'}`}
+                        </div>
+                        <div className="text-[11px] text-arena-muted">
+                          {ticket.spotsCount} Spots • {ticket.betAmount} ETB
+                        </div>
                       </div>
-                      <div className="text-[11px] text-arena-muted flex items-center justify-between">
-                        <span>
-                          Spots: {ticket.spotsCount} ({ticket.hitsCount || 0} Hits)
-                        </span>
-                        <span>Bet: {ticket.betAmount} ETB</span>
+                      <div className="text-right">
+                        {ticket.status === 'WON' ? (
+                          <div className="text-emerald-400 font-black font-mono">
+                            +{ticket.payoutAmount.toLocaleString()} ETB
+                          </div>
+                        ) : ticket.status === 'LOST' ? (
+                          <div className="text-rose-400 font-bold font-mono">Lost</div>
+                        ) : (
+                          <div className="text-amber-400 font-bold font-mono">Pending</div>
+                        )}
+                        <div className="text-[10px] text-arena-muted">
+                          {ticket.hitsCount}/{ticket.spotsCount} Hits
+                        </div>
                       </div>
                     </div>
                   ))
@@ -680,49 +637,43 @@ export const KenoPage: React.FC = () => {
               </div>
             )}
 
-            {/* TAB 3: Hot / Cold Frequency Stats */}
+            {/* Tab 3: Hot / Cold Frequency Stats */}
             {activeTab === 'stats' && (
-              <div className="space-y-3 text-xs">
+              <div className="space-y-3">
                 <div>
-                  <div className="flex items-center gap-1 font-bold text-rose-500 mb-1.5">
-                    <Flame className="w-3.5 h-3.5" />
-                    Hot Numbers (Most Drawn):
+                  <div className="text-xs font-bold text-rose-400 flex items-center gap-1 mb-1.5">
+                    <Flame className="w-3.5 h-3.5 text-rose-500" /> Hot Numbers (Last 50 Rounds)
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {(stats?.hotNumbers || []).slice(0, 10).map((item) => (
-                      <button
-                        key={`hot-${item.number}`}
-                        type="button"
-                        onClick={() => toggleNumber(item.number)}
-                        className="px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-400 font-mono font-bold hover:scale-105 cursor-pointer"
+                  <div className="flex flex-wrap gap-1.5">
+                    {(stats?.hotNumbers || []).slice(0, 8).map((h) => (
+                      <span
+                        key={h.number}
+                        className="px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-mono font-bold"
                       >
-                        {item.number} ({item.frequency}x)
-                      </button>
+                        #{h.number} ({h.frequency})
+                      </span>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <div className="flex items-center gap-1 font-bold text-sky-400 mb-1.5">
-                    <Snowflake className="w-3.5 h-3.5" />
-                    Cold Numbers (Least Drawn):
+                  <div className="text-xs font-bold text-sky-400 flex items-center gap-1 mb-1.5">
+                    <Snowflake className="w-3.5 h-3.5 text-sky-400" /> Cold Numbers
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {(stats?.coldNumbers || []).slice(0, 10).map((item) => (
-                      <button
-                        key={`cold-${item.number}`}
-                        type="button"
-                        onClick={() => toggleNumber(item.number)}
-                        className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-400 font-mono font-bold hover:scale-105 cursor-pointer"
+                  <div className="flex flex-wrap gap-1.5">
+                    {(stats?.coldNumbers || []).slice(0, 8).map((c) => (
+                      <span
+                        key={c.number}
+                        className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs font-mono font-bold"
                       >
-                        {item.number} ({item.frequency}x)
-                      </button>
+                        #{c.number} ({c.frequency})
+                      </span>
                     ))}
                   </div>
                 </div>
               </div>
             )}
-          </div>
+          </Card>
         </div>
       </div>
     </div>

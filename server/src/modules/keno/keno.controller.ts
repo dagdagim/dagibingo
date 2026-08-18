@@ -28,9 +28,9 @@ export class KenoController {
    */
   public static async placeBet(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.userId || (req as any).user?.id || (req as any).user?._id;
+      const userId = (req as any).user?.userId || (req as any).user?.id || (req as any).user?._id;
       if (!userId) {
-        res.status(401).json({ success: false, message: 'Please sign in to place live bets.' });
+        res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
       }
 
@@ -57,18 +57,17 @@ export class KenoController {
    */
   public static async quickPlay(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.userId || (req as any).user?.id || (req as any).user?._id;
+      const userId = (req as any).user?.userId || (req as any).user?.id || (req as any).user?._id;
       const { selectedNumbers, betAmount } = req.body;
 
       const result = await KenoEngine.getInstance().playQuickGame({
-        userId: userId || (null as any),
+        userId,
         selectedNumbers,
         betAmount: Number(betAmount),
       });
 
-      res.status(200).json({
+      res.json({
         success: true,
-        message: result.ticket.status === 'WON' ? 'Congratulations, You Won!' : 'Round completed.',
         data: result,
       });
     } catch (err) {
@@ -81,12 +80,9 @@ export class KenoController {
    */
   public static async getMyTickets(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.userId || (req as any).user?.id || (req as any).user?._id;
+      const userId = (req as any).user?.userId || (req as any).user?.id || (req as any).user?._id;
       if (!userId) {
-        res.json({
-          success: true,
-          data: [],
-        });
+        res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
       }
 
