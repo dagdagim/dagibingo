@@ -5,6 +5,7 @@ import { KenoTicket, IKenoTicket } from '../models/KenoTicket';
 import { Wallet } from '../models/Wallet';
 import { WalletTransaction } from '../models/WalletTransaction';
 import { Notification } from '../models/Notification';
+import { User } from '../models/User';
 import {
   KENO_PAYTABLE,
   KENO_TOTAL_NUMBERS,
@@ -237,6 +238,21 @@ export class KenoEngine {
             },
           });
 
+          // Debit Admin / House wallet for prize payout
+          await this.debitAdminPrizePayout({
+            amount: payoutAmount,
+            playerUserId: ticket.userId.toString(),
+            description: `Keno Round #${this.currentRound.roundNumber} Prize payout to player (${hitsCount}/${ticket.spotsCount} Hits, ${multiplier}x Multiplier)`,
+            referenceId: ticket._id.toString(),
+            metadata: {
+              roundNumber: this.currentRound.roundNumber,
+              spotsCount: ticket.spotsCount,
+              hitsCount,
+              multiplier,
+              ticketId: ticket._id.toString(),
+            },
+          });
+
           await Notification.create({
             userId: ticket.userId,
             type: 'GAME_WIN',
@@ -397,6 +413,19 @@ export class KenoEngine {
     this.currentRound.totalBets += betAmount;
     await this.currentRound.save();
 
+    // Credit Admin / House wallet with bet income
+    await this.creditAdminBetIncome({
+      amount: betAmount,
+      playerUserId: userId,
+      description: `Keno Bet income from player (Round #${this.currentRound.roundNumber}, ${uniqueNums.length} Spots)`,
+      referenceId: this.currentRound._id.toString(),
+      metadata: {
+        roundNumber: this.currentRound.roundNumber,
+        spots: uniqueNums,
+        betAmount,
+      },
+    });
+
     return ticket;
   }
 
@@ -491,6 +520,19 @@ export class KenoEngine {
     this.currentRound.totalBets += totalBetAmount;
     await this.currentRound.save();
 
+    // Credit Admin / House wallet with multi-card bet income
+    await this.creditAdminBetIncome({
+      amount: totalBetAmount,
+      playerUserId: userId,
+      description: `Keno Multi-Card Bet income (${validatedBets.length} Cards) from player (Round #${this.currentRound.roundNumber})`,
+      referenceId: this.currentRound._id.toString(),
+      metadata: {
+        roundNumber: this.currentRound.roundNumber,
+        cardsCount: validatedBets.length,
+        totalBetAmount,
+      },
+    });
+
     return tickets as unknown as IKenoTicket[];
   }
 
@@ -576,6 +618,15 @@ export class KenoEngine {
       metadata: { spots: uniqueNums, betAmount },
     });
 
+    // Credit Admin / House wallet with instant bet income
+    await this.creditAdminBetIncome({
+      amount: betAmount,
+      playerUserId: userId,
+      description: `Keno Instant Solo Bet income (${uniqueNums.length} Spots)`,
+      referenceId: this.currentRound?._id ? this.currentRound._id.toString() : new mongoose.Types.ObjectId().toString(),
+      metadata: { spots: uniqueNums, betAmount },
+    });
+
     // Draw 20 Numbers
     const drawnNumbers = this.generate20KenoNumbers();
     const matched = uniqueNums.filter((n) => drawnNumbers.includes(n));
@@ -599,6 +650,15 @@ export class KenoEngine {
         status: 'COMPLETED',
         description: `Keno Instant Solo Win (${hitsCount}/${uniqueNums.length} Hits, ${multiplier}x Multiplier)`,
         metadata: { hitsCount, multiplier, spotsCount: uniqueNums.length },
+      });
+
+      // Debit Admin / House wallet for instant prize payout
+      await this.debitAdminPrizePayout({
+        amount: payoutAmount,
+        playerUserId: userId,
+        description: `Keno Instant Solo Prize payout to player (${hitsCount}/${uniqueNums.length} Hits, ${multiplier}x Multiplier)`,
+        referenceId: this.currentRound?._id ? this.currentRound._id.toString() : new mongoose.Types.ObjectId().toString(),
+        metadata: { hitsCount, multiplier, spotsCount: uniqueNums.length, payoutAmount },
       });
     }
 
@@ -656,5 +716,105 @@ export class KenoEngine {
       endedAt: round.endedAt?.toISOString(),
       nextRoundAt: round.nextRoundAt?.toISOString(),
     };
+  }
+
+  /**
+   * Transfer bet income from player to Admin wallet and record transaction
+   */
+  private async creditAdminBetIncome(params: {
+    amount: number;
+    playerUserId: string;
+    description: string;
+    referenceId: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<void> {
+    try {
+      const adminUser = await User.findOne({ role: 'ADMIN' });
+      if (!adminUser) return;
+
+      let adminWallet = await Wallet.findOne({ userId: adminUser._id });
+      if (!adminWallet) {
+        adminWallet = await Wallet.create({
+          userId: adminUser._id,
+          availableBalance: 100000,
+          currency: 'ETB',
+          isDemo: false,
+        });
+      }
+
+      const adminBefore = adminWallet.availableBalance;
+      adminWallet.availableBalance += params.amount;
+      adminWallet.version = (adminWallet.version || 0) + 1;
+      await adminWallet.save();
+
+      await WalletTransaction.create({
+        userId: adminUser._id,
+        walletId: adminWallet._id,
+        type: 'DEPOSIT',
+        amount: params.amount,
+        balanceBefore: adminBefore,
+        balanceAfter: adminWallet.availableBalance,
+        currency: 'ETB',
+        status: 'COMPLETED',
+        referenceId: params.referenceId,
+        description: params.description,
+        metadata: {
+          playerUserId: params.playerUserId,
+          ...params.metadata,
+        },
+      });
+    } catch (err) {
+      logger.error('Error crediting Admin wallet with Keno bet income:', err);
+    }
+  }
+
+  /**
+   * Deduct prize payout from Admin wallet and record transaction
+   */
+  private async debitAdminPrizePayout(params: {
+    amount: number;
+    playerUserId: string;
+    description: string;
+    referenceId: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<void> {
+    try {
+      const adminUser = await User.findOne({ role: 'ADMIN' });
+      if (!adminUser) return;
+
+      let adminWallet = await Wallet.findOne({ userId: adminUser._id });
+      if (!adminWallet) {
+        adminWallet = await Wallet.create({
+          userId: adminUser._id,
+          availableBalance: 100000,
+          currency: 'ETB',
+          isDemo: false,
+        });
+      }
+
+      const adminBefore = adminWallet.availableBalance;
+      adminWallet.availableBalance = Math.max(0, adminWallet.availableBalance - params.amount);
+      adminWallet.version = (adminWallet.version || 0) + 1;
+      await adminWallet.save();
+
+      await WalletTransaction.create({
+        userId: adminUser._id,
+        walletId: adminWallet._id,
+        type: 'WITHDRAWAL',
+        amount: params.amount,
+        balanceBefore: adminBefore,
+        balanceAfter: adminWallet.availableBalance,
+        currency: 'ETB',
+        status: 'COMPLETED',
+        referenceId: params.referenceId,
+        description: params.description,
+        metadata: {
+          playerUserId: params.playerUserId,
+          ...params.metadata,
+        },
+      });
+    } catch (err) {
+      logger.error('Error debiting Admin wallet for Keno prize payout:', err);
+    }
   }
 }
