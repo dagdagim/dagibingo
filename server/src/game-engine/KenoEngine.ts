@@ -27,7 +27,7 @@ export class KenoEngine {
   private isRunning: boolean = false;
 
   private bettingDuration = 25; // 25s betting window
-  private ballIntervalMs = 1200; // 1.2s per drawn ball (24s total draw)
+  private ballIntervalMs = 2800; // 2.8s per drawn ball (comfortable, normal casino pace with full voice announcement)
   private cooldownDuration = 10; // 10s cooldown before next round
 
   private constructor() {}

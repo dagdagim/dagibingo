@@ -171,13 +171,17 @@ export const useKenoStore = create<KenoState>((set, get) => ({
       useWalletStore.getState().fetchBalance();
 
       const finalDrawn = res.ticket.drawnNumbers;
-      // Animate 20 ball reveals sequentially
+      // Animate 20 ball reveals sequentially at comfortable pace
       for (let i = 0; i < finalDrawn.length; i++) {
         const ball = finalDrawn[i];
-        await new Promise((resolve) => setTimeout(resolve, 140));
+        await new Promise((resolve) => setTimeout(resolve, 550));
         set((state) => ({
           drawnBalls: [...state.drawnBalls, ball],
         }));
+      }
+
+      if (res.ticket.status === 'WON') {
+        voiceController.speakCustom(`Winner! You hit ${res.ticket.hitsCount} numbers and won ${res.ticket.payoutAmount} ETB!`);
       }
 
       set({
