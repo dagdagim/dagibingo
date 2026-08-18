@@ -76,7 +76,7 @@ export const App: React.FC = () => {
               <Route path="/how-it-works" element={<HowItWorksPage />} />
               <Route path="/faq" element={<FaqPage />} />
 
-              {/* Lobby, Keno & Game (Accessible to all, enhanced when logged in) */}
+              {/* Lobby & Game (Accessible to all, enhanced when logged in) */}
               <Route path="/lobby" element={<LobbyPage />} />
               <Route path="/keno" element={<KenoPage />} />
               <Route path="/games/:gameId" element={<GameRoomPage />} />

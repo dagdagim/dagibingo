@@ -13,4 +13,3 @@ export * from './types/keno.types';
 export * from './schemas/auth.schemas';
 export * from './schemas/game.schemas';
 export * from './schemas/wallet.schemas';
-export * from './schemas/keno.schemas';

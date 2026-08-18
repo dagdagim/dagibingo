@@ -2,6 +2,7 @@ import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/environment';
 import { GameEngine } from '../game-engine/GameEngine';
+import { KenoEngine } from '../game-engine/KenoEngine';
 import { logger } from '../utils/logger';
 import { ClientToServerEvents, ServerToClientEvents } from '../shared';
 
@@ -17,6 +18,10 @@ const userChatTimestamps = new Map<string, number>();
 export const setupSocketServer = (io: Server<ClientToServerEvents, ServerToClientEvents>): void => {
   const gameEngine = GameEngine.getInstance();
   gameEngine.setSocketServer(io);
+
+  const kenoEngine = KenoEngine.getInstance();
+  kenoEngine.setSocketServer(io);
+  kenoEngine.start().catch((err) => logger.error('Failed to start Keno engine:', err));
 
   // Authentication Middleware for Sockets
   io.use((socket: AuthenticatedSocket, next) => {
@@ -89,6 +94,20 @@ export const setupSocketServer = (io: Server<ClientToServerEvents, ServerToClien
 
       io.to(roomName).emit('room:left', { gameId, userCount });
       logger.info(`👋 User ${socket.username} left room ${gameId}`);
+    });
+
+    // Join Keno Multiplayer Arena
+    socket.on('keno:join' as any, (callback: any) => {
+      socket.join('room:keno');
+      const activeState = kenoEngine.getActiveRound();
+      if (callback) {
+        callback({ success: true, ...activeState });
+      }
+    });
+
+    // Leave Keno Arena
+    socket.on('keno:leave' as any, () => {
+      socket.leave('room:keno');
     });
 
     // Handle Player Bingo Claim

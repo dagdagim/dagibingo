@@ -84,7 +84,7 @@ export const LandingPage: React.FC = () => {
         </div>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 max-w-xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
           <Link to="/lobby" className="w-full sm:w-auto">
             <Button
               variant="accent"
@@ -93,22 +93,12 @@ export const LandingPage: React.FC = () => {
               rightIcon={<ArrowRight className="w-5 h-5" />}
               className="text-base"
             >
-              Multiplayer Bingo
-            </Button>
-          </Link>
-          <Link to="/keno" className="w-full sm:w-auto">
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              className="text-base bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black border-none shadow-accent-glow"
-            >
-              ⚡ Play Keno 80
+              Enter Game Lobby
             </Button>
           </Link>
           <Link to="/how-it-works" className="w-full sm:w-auto">
             <Button variant="outline" size="lg" fullWidth className="text-base">
-              Rules & Guide
+              How It Works
             </Button>
           </Link>
         </div>

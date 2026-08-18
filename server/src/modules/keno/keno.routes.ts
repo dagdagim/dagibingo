@@ -1,17 +1,16 @@
 import { Router } from 'express';
 import { KenoController } from './keno.controller';
 import { authenticateJwt } from '../../middleware/auth';
-import { validateBody } from '../../middleware/validate';
-import { kenoPlaySchema } from '../../shared';
 
 const router = Router();
 
-// Publicly visible paytable & stats
-router.get('/paytable', KenoController.getPaytable);
+// Public: View active round and stats
+router.get('/live-round', KenoController.getLiveRound);
 router.get('/stats', KenoController.getStats);
 
-// Authenticated player actions
-router.post('/play', authenticateJwt, validateBody(kenoPlaySchema), KenoController.play);
-router.get('/history', authenticateJwt, KenoController.getHistory);
+// Authenticated: Place bets and view personal tickets
+router.post('/bet', authenticateJwt, KenoController.placeBet);
+router.post('/quick-play', authenticateJwt, KenoController.quickPlay);
+router.get('/my-tickets', authenticateJwt, KenoController.getMyTickets);
 
 export default router;

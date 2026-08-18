@@ -1,748 +1,625 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useKenoStore } from '../../stores/kenoStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useWalletStore } from '../../stores/walletStore';
-import { api } from '../../services/api';
-import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { DepositModal } from '../../components/wallet/DepositModal';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 import {
-  KenoPlayResult,
-  KenoHistoryItem,
-  KenoStats,
+  KENO_TOTAL_NUMBERS,
+  KENO_MAX_SPOTS,
+  KENO_MIN_SPOTS,
   KENO_PAYTABLE,
+  KENO_PRESET_BETS,
 } from '../../shared';
 import {
   Sparkles,
   Flame,
-  RotateCcw,
-  Zap,
+  Snowflake,
   Trophy,
   History,
   TrendingUp,
-  Wallet,
+  Volume2,
+  VolumeX,
   Play,
+  RotateCcw,
+  Zap,
+  Clock,
   CheckCircle2,
   AlertCircle,
-  Plus,
+  Radio,
+  Gamepad2,
   Coins,
-  ShieldCheck,
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
-
-// Web Audio API Sound Synthesizer for rich arcade effects without external asset dependencies
-class KenoSoundEffects {
-  private ctx: AudioContext | null = null;
-
-  private getContext() {
-    if (!this.ctx && typeof window !== 'undefined') {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioCtx) {
-        this.ctx = new AudioCtx();
-      }
-    }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-    return this.ctx;
-  }
-
-  playPick() {
-    try {
-      const ctx = this.getContext();
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(580, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.08);
-    } catch {
-      // Audio fallback
-    }
-  }
-
-  playBallDrop() {
-    try {
-      const ctx = this.getContext();
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(320, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.06);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.06);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.06);
-    } catch {
-      // Audio fallback
-    }
-  }
-
-  playMatchHit() {
-    try {
-      const ctx = this.getContext();
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(700, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.18);
-      gain.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.18);
-    } catch {
-      // Audio fallback
-    }
-  }
-
-  playWinFanfare() {
-    try {
-      const ctx = this.getContext();
-      if (!ctx) return;
-      const chords = [523.25, 659.25, 783.99, 1046.5]; // C Major
-      chords.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.08);
-        gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.08 + 0.4);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + i * 0.08);
-        osc.stop(ctx.currentTime + i * 0.08 + 0.4);
-      });
-    } catch {
-      // Audio fallback
-    }
-  }
-}
-
-const soundFx = new KenoSoundEffects();
+import { voiceController } from '../../utils/voiceController';
 
 export const KenoPage: React.FC = () => {
-  const { isAuthenticated } = useAuthStore();
-  const { balance, fetchBalance } = useWalletStore();
+  const { user } = useAuthStore();
+  const { balance } = useWalletStore();
+  const {
+    currentRound,
+    selectedNumbers,
+    betAmount,
+    myTickets,
+    stats,
+    gameMode,
+    isLoading,
+    isDrawing,
+    error,
+    drawnBalls,
+    lastResult,
+    setGameMode,
+    toggleNumber,
+    setBetAmount,
+    quickPick,
+    clearNumbers,
+    fetchLiveRound,
+    fetchMyTickets,
+    fetchStats,
+    placeLiveBet,
+    playInstant,
+    initSocketListeners,
+  } = useKenoStore();
 
-  const [selectedSpots, setSelectedSpots] = useState<number[]>([7, 14, 21, 45, 77]);
-  const [wager, setWager] = useState<number>(5);
-  const [customWager, setCustomWager] = useState<string>('');
-  const [speed, setSpeed] = useState<'normal' | 'fast' | 'instant'>('fast');
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [isDepositModalOpen, setIsDepositModalOpen] = useState<boolean>(false);
-
-  // Live Draw Animation State
-  const [drawnBalls, setDrawnBalls] = useState<number[]>([]);
-  const [revealedDrawn, setRevealedDrawn] = useState<number[]>([]);
-  const [lastResult, setLastResult] = useState<KenoPlayResult | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [history, setHistory] = useState<KenoHistoryItem[]>([]);
-  const [stats, setStats] = useState<KenoStats | null>(null);
   const [activeTab, setActiveTab] = useState<'paytable' | 'history' | 'stats'>('paytable');
+  const [isMuted, setIsMuted] = useState(false);
+  const [customBet, setCustomBet] = useState('');
 
-  const availableBalance = balance?.availableBalance || 0;
-  const currentWager = customWager ? Math.max(1, parseFloat(customWager) || 1) : wager;
-
-  // Fetch initial balance, history & stats
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchBalance();
-      fetchHistory();
-    }
+    fetchLiveRound();
+    fetchMyTickets();
     fetchStats();
-  }, [isAuthenticated, fetchBalance]);
+    const cleanup = initSocketListeners();
+    return () => cleanup();
+  }, [fetchLiveRound, fetchMyTickets, fetchStats, initSocketListeners]);
 
-  const fetchHistory = async () => {
-    try {
-      const data = await api.get<KenoHistoryItem[]>('/keno/history?limit=10');
-      if (Array.isArray(data)) {
-        setHistory(data);
-      }
-    } catch {
-      // Silently fail if not logged in
-    }
-  };
+  const spotsCount = selectedNumbers.length;
 
-  const fetchStats = async () => {
-    try {
-      const data = await api.get<KenoStats>('/keno/stats');
-      if (data) {
-        setStats(data);
-      }
-    } catch {
-      // Ignore
-    }
-  };
+  // Paytable for current spot count
+  const currentPaytable = useMemo(() => {
+    if (spotsCount === 0) return null;
+    return KENO_PAYTABLE[spotsCount] || null;
+  }, [spotsCount]);
 
-  // Toggle spot selection (1–80, max 10 spots)
-  const toggleSpot = (num: number) => {
-    if (isPlaying) return;
-    soundFx.playPick();
+  // Matches between user selections and drawn balls
+  const matchedNumbers = useMemo(() => {
+    return selectedNumbers.filter((n) => drawnBalls.includes(n));
+  }, [selectedNumbers, drawnBalls]);
 
-    if (selectedSpots.includes(num)) {
-      setSelectedSpots(selectedSpots.filter((s) => s !== num));
+  const hitsCount = matchedNumbers.length;
+  const currentMultiplier = currentPaytable ? currentPaytable[hitsCount] || 0 : 0;
+  const potentialMaxMultiplier = useMemo(() => {
+    if (!currentPaytable) return 0;
+    const multipliers = Object.values(currentPaytable);
+    return Math.max(...multipliers, 0);
+  }, [currentPaytable]);
+
+  const hotSet = useMemo(() => {
+    return new Set((stats?.hotNumbers || []).slice(0, 8).map((h) => h.number));
+  }, [stats]);
+
+  const coldSet = useMemo(() => {
+    return new Set((stats?.coldNumbers || []).slice(0, 8).map((c) => c.number));
+  }, [stats]);
+
+  const toggleSound = () => {
+    if (isMuted) {
+      voiceController.setVolume(0.9);
+      setIsMuted(false);
     } else {
-      if (selectedSpots.length >= 10) {
-        setErrorMsg('You can select a maximum of 10 spots');
-        setTimeout(() => setErrorMsg(null), 2500);
-        return;
-      }
-      setSelectedSpots([...selectedSpots, num].sort((a, b) => a - b));
+      voiceController.setVolume(0);
+      setIsMuted(true);
     }
   };
 
-  // Quick Pick Random Spots
-  const handleQuickPick = (count: number) => {
-    if (isPlaying) return;
-    soundFx.playPick();
-    const numbers: number[] = Array.from({ length: 80 }, (_, i) => i + 1);
-    for (let i = numbers.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
-    }
-    const picks = numbers.slice(0, count).sort((a, b) => a - b);
-    setSelectedSpots(picks);
-  };
-
-  const handleClear = () => {
-    if (isPlaying) return;
-    setSelectedSpots([]);
-    setRevealedDrawn([]);
-    setLastResult(null);
-  };
-
-  // Play Keno Round
-  const handlePlay = async () => {
-    if (selectedSpots.length === 0) {
-      setErrorMsg('Please select at least 1 number (up to 10 spots)');
-      return;
-    }
-    if (currentWager < 1) {
-      setErrorMsg('Minimum wager is 1 ETB');
-      return;
-    }
-    if (currentWager > availableBalance) {
-      setErrorMsg(`Insufficient balance (${availableBalance.toLocaleString()} ETB available). Please add funds.`);
-      setIsDepositModalOpen(true);
-      return;
-    }
-
-    setErrorMsg(null);
-    setIsPlaying(true);
-    setRevealedDrawn([]);
-    setLastResult(null);
-
-    try {
-      const result = await api.post<KenoPlayResult>('/keno/play', {
-        spots: selectedSpots,
-        wager: currentWager,
-      });
-
-      setDrawnBalls(result.drawnNumbers);
-
-      // Execute animated ball draw sequence
-      if (speed === 'instant') {
-        setRevealedDrawn(result.drawnNumbers);
-        handleRoundComplete(result);
-      } else {
-        const delay = speed === 'fast' ? 70 : 160;
-        result.drawnNumbers.forEach((num, index) => {
-          setTimeout(() => {
-            setRevealedDrawn((prev) => [...prev, num]);
-            if (selectedSpots.includes(num)) {
-              soundFx.playMatchHit();
-            } else {
-              soundFx.playBallDrop();
-            }
-
-            // Final ball drawn
-            if (index === result.drawnNumbers.length - 1) {
-              setTimeout(() => {
-                handleRoundComplete(result);
-              }, 200);
-            }
-          }, (index + 1) * delay);
-        });
-      }
-    } catch (err) {
-      setErrorMsg((err as Error).message || 'Failed to place Keno bet');
-      setIsPlaying(false);
+  const handleBetClick = () => {
+    if (gameMode === 'LIVE') {
+      placeLiveBet();
+    } else {
+      playInstant();
     }
   };
-
-  const handleRoundComplete = (result: KenoPlayResult) => {
-    setIsPlaying(false);
-    setLastResult(result);
-    fetchBalance();
-    fetchHistory();
-    fetchStats();
-
-    if (result.isWin) {
-      soundFx.playWinFanfare();
-      if (result.multiplier >= 5) {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#10B981', '#F59E0B', '#6366F1', '#EC4899'],
-        });
-      }
-    }
-  };
-
-  // Paytable for currently selected spot count
-  const currentPaytable = KENO_PAYTABLE[selectedSpots.length] || {};
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Top Banner & Wallet Status */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-amber-500/15 via-indigo-500/15 to-purple-500/15 border border-amber-500/30 shadow-lg relative overflow-hidden">
-        <div className="space-y-1 relative z-10">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-500 text-[10px] font-black tracking-widest uppercase font-mono">
-              PROVABLY FAIR • 1–80 DRAW
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black tracking-widest uppercase font-mono">
-              UP TO 25,000× PAYOUT
-            </span>
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Top Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-indigo-500/15 border border-amber-500/30 p-5 sm:p-6 shadow-sm">
+        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-300 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 font-display">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-spin-slow" />
+                Live 80-Ball Keno Arena
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-[11px] font-bold flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                Multiplayer Online
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black font-display text-arena-text">
+              DAGI BINGO <span className="bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 bg-clip-text text-transparent">KENO 80</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-arena-muted mt-0.5">
+              Pick 1 to 10 spots, watch 20 numbers drawn live, and win up to <strong>50,000x</strong> your wager in ETB!
+            </p>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black font-display text-arena-text flex items-center gap-3">
-            <span>DAGI KENO 80</span>
-            <Sparkles className="w-6 h-6 text-amber-400 animate-pulse" />
-          </h1>
-          <p className="text-xs sm:text-sm text-arena-muted">
-            Pick 1 to 10 numbers. 20 random balls drawn every round. Match and win instant ETB multipliers!
-          </p>
-        </div>
 
-        {/* Live Feature Highlights */}
-        <div className="flex items-center gap-2 relative z-10 self-start md:self-auto">
-          <div className="px-4 py-3 rounded-2xl bg-arena-surface/80 border border-arena-border shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-500 font-black text-lg">
-              ⚡
+          {/* Mode Toggle & Audio */}
+          <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
+            <div className="bg-arena-surface/80 p-1 rounded-2xl border border-arena-border flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setGameMode('LIVE')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  gameMode === 'LIVE'
+                    ? 'bg-amber-500 text-white shadow-sm font-black'
+                    : 'text-arena-muted hover:text-arena-text'
+                }`}
+              >
+                <Radio className={`w-3.5 h-3.5 ${gameMode === 'LIVE' ? 'animate-pulse' : ''}`} />
+                Live Multi-Draw
+              </button>
+              <button
+                type="button"
+                onClick={() => setGameMode('INSTANT')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  gameMode === 'INSTANT'
+                    ? 'bg-indigo-500 text-white shadow-sm font-black'
+                    : 'text-arena-muted hover:text-arena-text'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Instant Play
+              </button>
             </div>
-            <div>
-              <span className="text-[10px] font-black uppercase text-arena-muted tracking-wider block font-display">
-                Game Multiplier
-              </span>
-              <span className="text-sm font-black font-display text-amber-500">
-                Up to 25,000× Win
-              </span>
-            </div>
+
+            <button
+              type="button"
+              onClick={toggleSound}
+              className="p-2.5 rounded-2xl bg-arena-surface border border-arena-border text-arena-muted hover:text-arena-text cursor-pointer transition-colors"
+              title={isMuted ? 'Unmute Sound' : 'Mute Voice & Audio'}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Main Keno Play Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left / Center: 80-Ball Board & Tumbler (8 Cols) */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* Live Drawn Balls Tumbler Tray */}
-          <Card elevated className="p-4 border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
-                <span className="text-xs font-black uppercase tracking-wider font-display text-arena-text">
-                  Live 20-Ball Tumbler Draw ({revealedDrawn.length}/20)
-                </span>
-              </div>
-              <div className="text-[11px] font-mono text-arena-muted">
-                {isPlaying ? 'Drawing balls...' : revealedDrawn.length === 20 ? 'Round Finished' : 'Ready to draw'}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-10 gap-1.5 min-h-[72px] p-2 rounded-2xl bg-arena-bg border border-arena-border">
-              {Array.from({ length: 20 }).map((_, idx) => {
-                const num = revealedDrawn[idx];
-                const isMatch = num && selectedSpots.includes(num);
-
-                if (!num) {
-                  return (
-                    <div
-                      key={idx}
-                      className="h-8 rounded-lg bg-arena-surface/40 border border-arena-border/40 flex items-center justify-center text-[10px] font-mono text-arena-muted/30"
-                    >
-                      {idx + 1}
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={idx}
-                    className={`h-8 rounded-lg flex items-center justify-center font-mono font-black text-xs transition-all duration-300 transform scale-100 ${
-                      isMatch
-                        ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 shadow-accent-glow font-black scale-105 border border-emerald-300'
-                        : 'bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 shadow-md'
-                    }`}
-                  >
-                    {num}
+      {/* Main Game Arena Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* Left Column: 1-80 Grid & Draw Tray (8 Cols) */}
+        <div className="lg:col-span-8 space-y-4">
+          
+          {/* Round Status Banner */}
+          <Card elevated className="p-4 border-amber-500/25">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center font-black text-white font-display text-base shadow-sm">
+                  #{currentRound?.roundNumber || 1001}
+                </div>
+                <div>
+                  <div className="text-xs text-arena-muted font-semibold">
+                    {gameMode === 'LIVE' ? 'Multiplayer Live Round' : 'Instant Solo Draw'}
                   </div>
-                );
-              })}
+                  <div className="text-sm font-black text-arena-text flex items-center gap-2">
+                    {currentRound?.status === 'BETTING' && (
+                      <span className="text-emerald-500 flex items-center gap-1.5 font-bold">
+                        <Clock className="w-4 h-4 animate-spin-slow" />
+                        Betting Open — Draw in {currentRound.countdownSeconds || 25}s
+                      </span>
+                    )}
+                    {currentRound?.status === 'DRAWING' && (
+                      <span className="text-amber-500 flex items-center gap-1.5 font-bold animate-pulse">
+                        <Radio className="w-4 h-4 text-amber-500 animate-ping" />
+                        Live Draw In Progress ({drawnBalls.length}/20 Balls)
+                      </span>
+                    )}
+                    {currentRound?.status === 'COMPLETED' && (
+                      <span className="text-indigo-400 font-bold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                        Round Settled — Next Round in {currentRound.countdownSeconds || 10}s
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Matches Counter Display */}
+              <div className="flex items-center gap-2 bg-arena-surface px-3 py-1.5 rounded-2xl border border-arena-border">
+                <span className="text-xs text-arena-muted font-bold">Selected:</span>
+                <span className="text-sm font-black font-mono text-amber-500">
+                  {spotsCount} / {KENO_MAX_SPOTS} Spots
+                </span>
+                {drawnBalls.length > 0 && (
+                  <>
+                    <span className="text-arena-border">|</span>
+                    <span className="text-xs text-arena-muted font-bold">Hits:</span>
+                    <span className="text-sm font-black font-mono text-emerald-400 animate-bounce">
+                      {hitsCount} Hits
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
+
+            {/* Live 20-Ball Catcher Tray */}
+            {drawnBalls.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-arena-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-arena-muted flex items-center gap-1 font-display">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    Drawn Balls ({drawnBalls.length}/20)
+                  </span>
+                  {hitsCount > 0 && (
+                    <span className="text-[11px] font-bold text-emerald-400">
+                      🎯 {hitsCount} of your picks matched!
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
+                  {drawnBalls.map((num, idx) => {
+                    const isHit = selectedNumbers.includes(num);
+                    return (
+                      <div
+                        key={`${num}-${idx}`}
+                        className={`w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center font-black text-sm font-mono transition-all transform animate-pop-in ${
+                          isHit
+                            ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 shadow-accent-glow ring-2 ring-emerald-400 scale-110'
+                            : 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-sm'
+                        }`}
+                      >
+                        {num}
+                      </div>
+                    );
+                  })}
+                  {Array.from({ length: Math.max(0, 20 - drawnBalls.length) }).map((_, i) => (
+                    <div
+                      key={`placeholder-${i}`}
+                      className="w-9 h-9 rounded-xl flex-shrink-0 border border-dashed border-arena-border/60 bg-arena-surface/40 flex items-center justify-center text-[10px] text-arena-muted/40 font-mono"
+                    >
+                      {drawnBalls.length + i + 1}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </Card>
 
-          {/* 80-Number Grid */}
-          <Card elevated className="p-4 sm:p-6 space-y-4">
-            {/* Spot Pick Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-arena-border">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-arena-muted font-display uppercase tracking-wider">
-                  Spots Picked:
+          {/* 1-80 Interactive Number Spot Matrix */}
+          <Card elevated className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-black uppercase tracking-wider text-arena-muted font-display">
+                Keno Board (1 - 80)
+              </span>
+              <div className="flex items-center gap-2 text-[11px] text-arena-muted">
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-md bg-amber-500" /> Selected
                 </span>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono ${
-                    selectedSpots.length > 0
-                      ? 'bg-indigo-500/20 text-indigo-500 border border-indigo-500/30'
-                      : 'bg-arena-surface text-arena-muted border border-arena-border'
-                  }`}
-                >
-                  {selectedSpots.length} / 10
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-md bg-indigo-500" /> Drawn
                 </span>
-              </div>
-
-              {/* Quick Action Buttons */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                {[3, 5, 8, 10].map((count) => (
-                  <button
-                    key={count}
-                    type="button"
-                    disabled={isPlaying}
-                    onClick={() => handleQuickPick(count)}
-                    className="px-2.5 py-1.5 rounded-xl bg-arena-surface hover:bg-indigo-500/15 border border-arena-border hover:border-indigo-500/40 text-[11px] font-bold font-display text-arena-text transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    Pick {count}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  disabled={isPlaying || selectedSpots.length === 0}
-                  onClick={handleClear}
-                  className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-[11px] font-bold font-display text-rose-500 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Clear
-                </button>
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-md bg-emerald-400" /> Hit!
+                </span>
               </div>
             </div>
 
-            {/* 10x8 Grid */}
-            <div className="grid grid-cols-10 gap-1.5 sm:gap-2">
-              {Array.from({ length: 80 }, (_, i) => i + 1).map((num) => {
-                const isSelected = selectedSpots.includes(num);
-                const isDrawn = revealedDrawn.includes(num);
+            {/* 10 x 8 Grid */}
+            <div className="grid grid-cols-10 gap-1.5 sm:gap-2 select-none">
+              {Array.from({ length: KENO_TOTAL_NUMBERS }, (_, i) => i + 1).map((num) => {
+                const isSelected = selectedNumbers.includes(num);
+                const isDrawn = drawnBalls.includes(num);
                 const isHit = isSelected && isDrawn;
+                const isHot = hotSet.has(num);
+                const isCold = coldSet.has(num);
 
-                let tileClass = 'bg-arena-surface border-arena-border text-arena-text hover:border-indigo-500/50';
+                let btnStyles = 'bg-arena-surface border-arena-border text-arena-text hover:border-amber-500/50 hover:bg-amber-500/10';
 
                 if (isHit) {
-                  tileClass =
-                    'bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 font-black shadow-accent-glow border-emerald-300 scale-105 z-10 animate-bounce';
-                } else if (isSelected) {
-                  tileClass =
-                    'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-black shadow-arena-glow border-indigo-400 scale-105 z-10';
+                  btnStyles = 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 border-emerald-400 font-black shadow-accent-glow scale-105 z-10';
                 } else if (isDrawn) {
-                  tileClass =
-                    'bg-amber-500/20 border-amber-500/40 text-amber-500 font-bold';
+                  btnStyles = 'bg-indigo-600/80 border-indigo-400 text-white font-bold shadow-sm';
+                } else if (isSelected) {
+                  btnStyles = 'bg-gradient-to-tr from-amber-500 to-amber-600 text-white border-amber-400 font-black shadow-arena-glow scale-105 z-10';
                 }
 
                 return (
                   <button
                     key={num}
                     type="button"
-                    disabled={isPlaying}
-                    onClick={() => toggleSpot(num)}
-                    className={`h-9 sm:h-11 rounded-xl border text-xs sm:text-sm font-mono font-bold transition-all duration-200 flex items-center justify-center cursor-pointer select-none ${tileClass}`}
+                    disabled={isDrawing}
+                    onClick={() => toggleNumber(num)}
+                    className={`relative h-10 sm:h-12 rounded-xl border text-xs sm:text-sm font-mono font-bold transition-all duration-150 flex items-center justify-center cursor-pointer ${btnStyles}`}
                   >
                     {num}
+
+                    {/* Hot / Cold Indicators */}
+                    {isHot && !isSelected && !isDrawn && (
+                      <span className="absolute top-0.5 right-0.5" title="Hot Number">
+                        <Flame className="w-2.5 h-2.5 text-rose-500" />
+                      </span>
+                    )}
+                    {isCold && !isSelected && !isDrawn && (
+                      <span className="absolute top-0.5 right-0.5" title="Cold Number">
+                        <Snowflake className="w-2.5 h-2.5 text-sky-400" />
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
 
-            {/* Legend */}
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-arena-border text-[11px] text-arena-muted">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3.5 h-3.5 rounded bg-gradient-to-tr from-indigo-600 to-purple-600" />
-                <span>Your Pick</span>
+            {/* Quick Pick and Selection Action Toolbar */}
+            <div className="mt-4 pt-4 border-t border-arena-border flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-bold text-arena-muted mr-1 font-display">Quick Pick:</span>
+                {[3, 5, 8, 10].map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    disabled={isDrawing}
+                    onClick={() => quickPick(count)}
+                    className="px-2.5 py-1 rounded-xl bg-arena-surface border border-arena-border text-arena-text text-xs font-bold hover:border-amber-500/50 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                  >
+                    Pick {count}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={isDrawing}
+                  onClick={() => quickPick(Math.floor(Math.random() * 8) + 3)}
+                  className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/20 to-indigo-500/20 border border-amber-500/40 text-amber-500 text-xs font-bold hover:bg-amber-500/30 transition-colors cursor-pointer"
+                >
+                  🎲 Lucky
+                </button>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3.5 h-3.5 rounded bg-amber-500/20 border border-amber-500/40" />
-                <span>Drawn Number</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3.5 h-3.5 rounded bg-gradient-to-tr from-emerald-500 to-teal-400" />
-                <span className="font-bold text-emerald-500">HIT / MATCH!</span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isDrawing || selectedNumbers.length === 0}
+                  onClick={clearNumbers}
+                  className="px-3 py-1 rounded-xl bg-arena-surface border border-arena-border text-rose-400 text-xs font-bold hover:bg-rose-500/15 hover:border-rose-500/40 transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Clear
+                </button>
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Right Column: Controls, Paytable, History (4 Cols) */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Bet & Play Card */}
-          <Card elevated className="p-6 space-y-5 border-indigo-500/30">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider font-display text-arena-text flex items-center gap-2">
-                <Coins className="w-4 h-4 text-amber-400" />
-                Wager Selection
+        {/* Right Column: Betting Engine & Paytable (4 Cols) */}
+        <div className="lg:col-span-4 space-y-4">
+          
+          {/* Bet Control Card */}
+          <Card elevated className="p-5 border-indigo-500/30">
+            <h2 className="text-base font-black font-display text-arena-text flex items-center gap-2 mb-3">
+              <Coins className="w-4 h-4 text-amber-400" />
+              Place Your Keno Bet
+            </h2>
+
+            {/* Wallet Balance Summary */}
+            <div className="p-3 rounded-2xl bg-arena-surface border border-arena-border flex items-center justify-between mb-4">
+              <span className="text-xs text-arena-muted font-semibold">Your Wallet Balance:</span>
+              <span className="text-sm font-black font-mono text-indigo-400">
+                {(balance?.availableBalance || 0).toLocaleString()} ETB
               </span>
-              <span className="text-xs font-mono font-bold text-arena-muted">Min: 1 ETB</span>
             </div>
 
-            {/* Wager Chip Presets */}
-            <div className="grid grid-cols-3 gap-2">
-              {[1, 5, 10, 20, 50, 100].map((amt) => (
-                <button
-                  key={amt}
-                  type="button"
-                  disabled={isPlaying}
-                  onClick={() => {
-                    setWager(amt);
-                    setCustomWager('');
-                  }}
-                  className={`py-2.5 rounded-xl font-mono font-black text-xs border transition-all cursor-pointer ${
-                    wager === amt && !customWager
-                      ? 'bg-indigo-500 border-indigo-500 text-white shadow-arena-glow'
-                      : 'bg-arena-surface border-arena-border text-arena-text hover:border-indigo-500/50'
-                  }`}
-                >
-                  {amt} ETB
-                </button>
-              ))}
-            </div>
-
-            {/* Custom Wager Input */}
-            <div className="relative">
-              <input
-                type="number"
-                min="1"
-                max={availableBalance.toString()}
-                placeholder="Or Custom Wager (ETB)"
-                value={customWager}
-                disabled={isPlaying}
-                onChange={(e) => {
-                  setCustomWager(e.target.value);
-                  setWager(0);
-                }}
-                className="w-full px-4 py-2.5 rounded-xl bg-arena-surface border border-arena-border text-arena-text placeholder:text-arena-muted/50 text-xs font-mono font-bold focus:outline-none focus:border-indigo-500"
-              />
-              <span className="absolute right-3 top-2.5 text-xs font-mono font-bold text-arena-muted">ETB</span>
-            </div>
-
-            {/* Draw Speed Controls */}
-            <div>
-              <label className="text-[11px] font-bold text-arena-muted uppercase tracking-wider block mb-1.5 font-display">
-                Draw Speed
+            {/* Preset Wager Chips */}
+            <div className="space-y-2 mb-4">
+              <label className="text-xs font-bold text-arena-muted uppercase tracking-wider block font-display">
+                Select Bet Amount (ETB)
               </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {(['normal', 'fast', 'instant'] as const).map((s) => (
+              <div className="grid grid-cols-4 gap-1.5">
+                {KENO_PRESET_BETS.slice(0, 4).map((amt) => (
                   <button
-                    key={s}
+                    key={amt}
                     type="button"
-                    disabled={isPlaying}
-                    onClick={() => setSpeed(s)}
-                    className={`py-1.5 rounded-xl text-[11px] font-extrabold uppercase font-display border transition-all cursor-pointer ${
-                      speed === s
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-500 shadow-sm'
-                        : 'bg-arena-surface border-arena-border text-arena-muted hover:text-arena-text'
+                    onClick={() => {
+                      setBetAmount(amt);
+                      setCustomBet('');
+                    }}
+                    className={`py-2 rounded-xl text-xs font-mono font-bold border transition-all cursor-pointer ${
+                      betAmount === amt && !customBet
+                        ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
+                        : 'bg-arena-surface border-arena-border text-arena-text hover:border-amber-500/50'
                     }`}
                   >
-                    {s}
+                    {amt}
                   </button>
                 ))}
               </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {KENO_PRESET_BETS.slice(4).map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => {
+                      setBetAmount(amt);
+                      setCustomBet('');
+                    }}
+                    className={`py-2 rounded-xl text-xs font-mono font-bold border transition-all cursor-pointer ${
+                      betAmount === amt && !customBet
+                        ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
+                        : 'bg-arena-surface border-arena-border text-arena-text hover:border-amber-500/50'
+                    }`}
+                  >
+                    {amt}
+                  </button>
+                ))}
+              </div>
+              <Input
+                placeholder="Or custom bet amount"
+                type="number"
+                min="1"
+                value={customBet}
+                onChange={(e) => {
+                  setCustomBet(e.target.value);
+                  const parsed = parseFloat(e.target.value);
+                  if (!isNaN(parsed) && parsed > 0) {
+                    setBetAmount(parsed);
+                  }
+                }}
+              />
             </div>
 
-            {/* Error Message */}
-            {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-xs font-semibold flex items-center gap-2">
+            {/* Potential Max Payout Banner */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-indigo-500/15 border border-amber-500/30 mb-4">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-arena-muted font-bold">Max Potential Payout:</span>
+                <span className="text-amber-500 font-mono font-bold">{potentialMaxMultiplier}x</span>
+              </div>
+              <div className="text-lg font-black font-mono text-arena-text">
+                {(betAmount * potentialMaxMultiplier).toLocaleString()} ETB
+              </div>
+            </div>
+
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2 mb-4">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{errorMsg}</span>
+                {error}
               </div>
             )}
 
-            {/* Play Button */}
+            {/* Main Action Bet Button */}
             <Button
               variant="accent"
               size="lg"
               fullWidth
-              disabled={selectedSpots.length === 0}
-              isLoading={isPlaying}
-              onClick={handlePlay}
-              leftIcon={<Play className="w-5 h-5 fill-current" />}
+              isLoading={isLoading || isDrawing}
+              disabled={selectedNumbers.length === 0}
+              onClick={handleBetClick}
+              rightIcon={<Play className="w-4 h-4 fill-current" />}
             >
-              {selectedSpots.length === 0
-                ? 'Select Spots to Play'
-                : `Play Keno (${currentWager} ETB)`}
+              {gameMode === 'LIVE'
+                ? `Place Live Bet (${betAmount} ETB)`
+                : `Play Instant (${betAmount} ETB)`}
             </Button>
           </Card>
 
-          {/* Last Result Banner */}
-          {lastResult && (
-            <div
-              className={`p-4 rounded-2xl border transition-all animate-fade-in ${
-                lastResult.isWin
-                  ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-emerald-500/40'
-                  : 'bg-arena-surface border-arena-border'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold font-display uppercase tracking-wider text-arena-text">
-                  Round Result:
-                </span>
-                <span
-                  className={`text-xs font-black font-mono ${
-                    lastResult.isWin ? 'text-emerald-500' : 'text-arena-muted'
-                  }`}
-                >
-                  {lastResult.matchesCount} / {lastResult.spots.length} Hits
-                </span>
-              </div>
-
-              {lastResult.isWin ? (
-                <div className="flex items-center justify-between pt-1">
-                  <div className="text-xs text-emerald-600 dark:text-emerald-300 font-bold flex items-center gap-1">
-                    <Trophy className="w-4 h-4" />
-                    <span>Won ({lastResult.multiplier}× Multiplier)!</span>
-                  </div>
-                  <div className="text-lg font-black font-mono text-emerald-500">
-                    +{lastResult.payout.toLocaleString()} ETB
-                  </div>
-                </div>
-              ) : (
-                <div className="text-xs text-arena-muted pt-1">
-                  No winning combination hit. Try your luck again!
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Paytable & Stats Tabs Card */}
-          <Card elevated className="p-4 space-y-3">
-            <div className="flex items-center gap-1 border-b border-arena-border pb-2">
+          {/* Tabs: Paytable / History / Stats */}
+          <Card elevated className="p-4">
+            <div className="flex border-b border-arena-border pb-2 mb-3 gap-2">
               <button
                 type="button"
                 onClick={() => setActiveTab('paytable')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold font-display transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
                   activeTab === 'paytable'
-                    ? 'bg-indigo-500/20 text-indigo-500 border border-indigo-500/30'
+                    ? 'bg-amber-500 text-white font-black'
                     : 'text-arena-muted hover:text-arena-text'
                 }`}
               >
+                <Trophy className="w-3.5 h-3.5" />
                 Paytable
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('history')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold font-display transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
                   activeTab === 'history'
-                    ? 'bg-indigo-500/20 text-indigo-500 border border-indigo-500/30'
+                    ? 'bg-amber-500 text-white font-black'
                     : 'text-arena-muted hover:text-arena-text'
                 }`}
               >
-                My History
+                <History className="w-3.5 h-3.5" />
+                My Bets
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('stats')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold font-display transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
                   activeTab === 'stats'
-                    ? 'bg-indigo-500/20 text-indigo-500 border border-indigo-500/30'
+                    ? 'bg-amber-500 text-white font-black'
                     : 'text-arena-muted hover:text-arena-text'
                 }`}
               >
-                Hot / Cold
+                <TrendingUp className="w-3.5 h-3.5" />
+                Stats
               </button>
             </div>
 
-            {/* Dynamic Paytable View */}
+            {/* Tab 1: Paytable for Selected Spots */}
             {activeTab === 'paytable' && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-bold text-arena-muted uppercase tracking-wider font-display">
-                  <span>Hits ({selectedSpots.length || 1} Spots)</span>
-                  <span>Multiplier & Payout</span>
+                <div className="text-xs font-bold text-arena-muted flex items-center justify-between mb-2">
+                  <span>Payouts for {spotsCount || 1} Spot{spotsCount !== 1 ? 's' : ''}:</span>
+                  <span className="text-[10px] text-amber-500 font-mono">Wager: {betAmount} ETB</span>
                 </div>
-                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                  {Object.keys(currentPaytable).length === 0 ? (
-                    <div className="text-center py-4 text-xs text-arena-muted">
-                      Select spots on the board to view potential payouts.
-                    </div>
-                  ) : (
-                    Object.entries(currentPaytable)
-                      .sort(([a], [b]) => Number(b) - Number(a))
-                      .map(([hits, mult]) => {
-                        const isCurrentHit =
-                          lastResult && lastResult.matchesCount === Number(hits);
-                        const winPayout = Math.floor(currentWager * mult);
 
-                        return (
-                          <div
-                            key={hits}
-                            className={`p-2 rounded-xl flex items-center justify-between text-xs transition-all ${
-                              isCurrentHit
-                                ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-500 font-bold scale-102'
-                                : 'bg-arena-surface border border-arena-border text-arena-text'
-                            }`}
-                          >
-                            <span className="font-display font-bold">
-                              {hits} {Number(hits) === 1 ? 'Hit' : 'Hits'}
-                            </span>
-                            <div className="text-right font-mono">
-                              <span className="text-amber-500 font-black mr-2">{mult}×</span>
-                              <span className="text-arena-muted text-[11px]">
-                                ({winPayout.toLocaleString()} ETB)
-                              </span>
-                            </div>
+                {currentPaytable ? (
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                    {Object.entries(currentPaytable).map(([hit, mult]) => {
+                      const isCurrentHit = hitsCount === parseInt(hit, 10);
+                      const prize = Math.round(betAmount * mult * 100) / 100;
+                      return (
+                        <div
+                          key={hit}
+                          className={`p-2 rounded-xl flex items-center justify-between text-xs transition-colors ${
+                            isCurrentHit
+                              ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-400 font-black scale-[1.02]'
+                              : 'bg-arena-surface border border-arena-border text-arena-text'
+                          }`}
+                        >
+                          <span className="font-bold flex items-center gap-1.5">
+                            {isCurrentHit && <Sparkles className="w-3.5 h-3.5 text-emerald-400" />}
+                            {hit} Hits
+                          </span>
+                          <div className="text-right font-mono">
+                            <span className="text-amber-500 font-bold mr-2">{mult}x</span>
+                            <span className="font-bold">{prize.toLocaleString()} ETB</span>
                           </div>
-                        );
-                      })
-                  )}
-                </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-6 text-center text-xs text-arena-muted">
+                    Pick 1 to 10 numbers on the board to view the payout table.
+                  </div>
+                )}
               </div>
             )}
 
-            {/* My History View */}
+            {/* Tab 2: User Bet History */}
             {activeTab === 'history' && (
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                {history.length === 0 ? (
-                  <div className="text-center py-4 text-xs text-arena-muted">
-                    No recent Keno games found.
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {myTickets.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-arena-muted">
+                    No tickets yet. Place your first Keno bet!
                   </div>
                 ) : (
-                  history.map((item) => (
+                  myTickets.slice(0, 10).map((ticket) => (
                     <div
-                      key={item.id}
-                      className="p-2 rounded-xl bg-arena-surface border border-arena-border text-xs flex items-center justify-between"
+                      key={ticket._id}
+                      className="p-2.5 rounded-xl bg-arena-surface border border-arena-border flex items-center justify-between text-xs"
                     >
                       <div>
-                        <div className="font-bold text-arena-text font-display">
-                          {item.matchesCount}/{item.spots.length} Hits (Wager: {item.wager} ETB)
+                        <div className="font-bold text-arena-text">
+                          {ticket.isQuickPlay ? '⚡ Solo Draw' : `Round #${ticket.roundNumber || 'Live'}`}
                         </div>
-                        <div className="text-[10px] text-arena-muted font-mono">
-                          {new Date(item.createdAt).toLocaleTimeString()}
+                        <div className="text-[11px] text-arena-muted">
+                          {ticket.spotsCount} Spots • {ticket.betAmount} ETB
                         </div>
                       </div>
-                      <div className="text-right font-mono">
-                        {item.isWin ? (
-                          <span className="text-emerald-500 font-black">
-                            +{item.payout.toLocaleString()} ETB
-                          </span>
+                      <div className="text-right">
+                        {ticket.status === 'WON' ? (
+                          <div className="text-emerald-400 font-black font-mono">
+                            +{ticket.payoutAmount.toLocaleString()} ETB
+                          </div>
+                        ) : ticket.status === 'LOST' ? (
+                          <div className="text-rose-400 font-bold font-mono">Lost</div>
                         ) : (
-                          <span className="text-arena-muted">0 ETB</span>
+                          <div className="text-amber-400 font-bold font-mono">Pending</div>
                         )}
+                        <div className="text-[10px] text-arena-muted">
+                          {ticket.hitsCount}/{ticket.spotsCount} Hits
+                        </div>
                       </div>
                     </div>
                   ))
@@ -750,66 +627,45 @@ export const KenoPage: React.FC = () => {
               </div>
             )}
 
-            {/* Hot / Cold Stats View */}
+            {/* Tab 3: Hot / Cold Frequency Stats */}
             {activeTab === 'stats' && (
-              <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-                {stats ? (
-                  <>
-                    <div>
-                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-500 uppercase font-display mb-1.5">
-                        <Flame className="w-3.5 h-3.5" />
-                        <span>Hot Numbers (Most Drawn)</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {stats.hotNumbers.slice(0, 7).map((n) => (
-                          <button
-                            key={n.number}
-                            type="button"
-                            onClick={() => toggleSpot(n.number)}
-                            className="px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-500 text-xs font-mono font-bold hover:scale-105 cursor-pointer"
-                          >
-                            #{n.number} ({n.count})
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-1.5 text-xs font-black text-indigo-400 uppercase font-display mb-1.5">
-                        <TrendingUp className="w-3.5 h-3.5" />
-                        <span>Cold Numbers</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {stats.coldNumbers.slice(0, 7).map((n) => (
-                          <button
-                            key={n.number}
-                            type="button"
-                            onClick={() => toggleSpot(n.number)}
-                            className="px-2 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-mono font-bold hover:scale-105 cursor-pointer"
-                          >
-                            #{n.number} ({n.count})
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-4 text-xs text-arena-muted">
-                    Loading stats...
+              <div className="space-y-3">
+                <div>
+                  <div className="text-xs font-bold text-rose-400 flex items-center gap-1 mb-1.5">
+                    <Flame className="w-3.5 h-3.5 text-rose-500" /> Hot Numbers (Last 50 Rounds)
                   </div>
-                )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {(stats?.hotNumbers || []).slice(0, 8).map((h) => (
+                      <span
+                        key={h.number}
+                        className="px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-mono font-bold"
+                      >
+                        #{h.number} ({h.frequency})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs font-bold text-sky-400 flex items-center gap-1 mb-1.5">
+                    <Snowflake className="w-3.5 h-3.5 text-sky-400" /> Cold Numbers
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(stats?.coldNumbers || []).slice(0, 8).map((c) => (
+                      <span
+                        key={c.number}
+                        className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs font-mono font-bold"
+                      >
+                        #{c.number} ({c.frequency})
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </Card>
         </div>
       </div>
-
-      <DepositModal
-        isOpen={isDepositModalOpen}
-        onClose={() => setIsDepositModalOpen(false)}
-      />
     </div>
   );
 };
-
-export default KenoPage;

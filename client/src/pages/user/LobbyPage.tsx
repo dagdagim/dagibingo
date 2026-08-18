@@ -117,6 +117,36 @@ export const LobbyPage: React.FC = () => {
         )}
       </div>
 
+      {/* Featured Live Keno 80 Banner */}
+      <Link
+        to="/keno"
+        className="block relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-indigo-600/20 border border-amber-500/40 p-5 sm:p-6 shadow-arena-glow group hover:scale-[1.01] transition-all"
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/30 text-amber-500 text-[10px] font-black uppercase tracking-wider font-display flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-500" />
+                New Game Added
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 text-[10px] font-bold">
+                Up to 50,000x Max Win
+              </span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black font-display text-arena-text group-hover:text-amber-500 transition-colors">
+              🎰 Live Keno 80 Arena & Instant Draw
+            </h3>
+            <p className="text-xs sm:text-sm text-arena-muted">
+              Pick 1 to 10 numbers from 1–80, watch the live 20-ball draw sequence with voice caller, and win instant ETB multipliers!
+            </p>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-500 text-white font-black text-xs sm:text-sm group-hover:bg-amber-400 transition-colors flex-shrink-0 shadow-lg">
+            <span>Play Keno Now</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </div>
+      </Link>
+
       {/* Category Pills & Search */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         {/* Category Pills */}

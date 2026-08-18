@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Gamepad2, Zap, Wallet, Trophy } from 'lucide-react';
+import { Home, Gamepad2, Wallet, Trophy, User, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 export const MobileNav: React.FC = () => {
@@ -8,8 +8,8 @@ export const MobileNav: React.FC = () => {
 
   const links = [
     { label: 'Home', path: '/', icon: <Home className="w-5 h-5" /> },
-    { label: 'Bingo', path: '/lobby', icon: <Gamepad2 className="w-5 h-5" /> },
-    { label: 'Keno 80', path: '/keno', icon: <Zap className="w-5 h-5 text-amber-500" /> },
+    { label: 'Lobby', path: '/lobby', icon: <Gamepad2 className="w-5 h-5" /> },
+    { label: 'Keno', path: '/keno', icon: <Sparkles className="w-5 h-5 text-amber-500" /> },
     { label: 'Wallet', path: isAuthenticated ? '/wallet' : '/login', icon: <Wallet className="w-5 h-5" /> },
     { label: 'Ranks', path: '/leaderboard', icon: <Trophy className="w-5 h-5" /> },
   ];
