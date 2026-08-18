@@ -26,9 +26,9 @@ export class KenoEngine {
   private drawInterval: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
 
-  private bettingDuration = 25; // 25s betting window
-  private ballIntervalMs = 2800; // 2.8s per drawn ball (comfortable, normal casino pace with full voice announcement)
-  private cooldownDuration = 10; // 10s cooldown before next round
+  private bettingDuration = 30; // 30s betting window
+  private ballIntervalMs = 5000; // 5.0s per drawn ball (comfortable, relaxed pace with clear voice call)
+  private cooldownDuration = 12; // 12s cooldown before next round
 
   private constructor() {}
 
