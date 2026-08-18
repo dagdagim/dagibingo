@@ -53,6 +53,34 @@ export class KenoController {
   }
 
   /**
+   * POST /api/keno/multi-bet
+   */
+  public static async placeMultiBets(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.userId || (req as any).user?.id || (req as any).user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const { bets } = req.body;
+
+      const tickets = await KenoEngine.getInstance().placeMultiBets({
+        userId,
+        bets,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: `${tickets.length} Keno cards placed successfully!`,
+        data: tickets,
+      });
+    } catch (err) {
+      res.status(400).json({ success: false, message: (err as Error).message });
+    }
+  }
+
+  /**
    * POST /api/keno/quick-play
    */
   public static async quickPlay(req: Request, res: Response): Promise<void> {

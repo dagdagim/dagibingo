@@ -401,6 +401,100 @@ export class KenoEngine {
   }
 
   /**
+   * Place Multiple Keno Bets/Cards in one atomic batch
+   */
+  public async placeMultiBets(params: {
+    userId: string;
+    bets: Array<{ selectedNumbers: number[]; betAmount: number }>;
+  }): Promise<IKenoTicket[]> {
+    const { userId, bets } = params;
+    if (!this.currentRound || this.currentRound.status !== 'BETTING') {
+      throw new Error('Betting is closed for this round. Please wait for next round countdown.');
+    }
+    if (!Array.isArray(bets) || bets.length === 0) {
+      throw new Error('Please provide at least one card to place.');
+    }
+    if (bets.length > 20) {
+      throw new Error('Maximum 20 cards per batch.');
+    }
+
+    const totalBetAmount = bets.reduce((sum, b) => sum + Number(b.betAmount), 0);
+    if (totalBetAmount <= 0) {
+      throw new Error('Total bet amount must be greater than 0.');
+    }
+
+    // Validate each card
+    const validatedBets = bets.map((b) => {
+      if (!Array.isArray(b.selectedNumbers) || b.selectedNumbers.length < KENO_MIN_SPOTS || b.selectedNumbers.length > KENO_MAX_SPOTS) {
+        throw new Error(`Each card must have between ${KENO_MIN_SPOTS} and ${KENO_MAX_SPOTS} spots.`);
+      }
+      const unique = Array.from(new Set(b.selectedNumbers));
+      if (unique.length !== b.selectedNumbers.length) {
+        throw new Error('Duplicate numbers on a card.');
+      }
+      for (const num of unique) {
+        if (num < 1 || num > KENO_TOTAL_NUMBERS) {
+          throw new Error(`Numbers must be between 1 and ${KENO_TOTAL_NUMBERS}.`);
+        }
+      }
+      if (b.betAmount <= 0) {
+        throw new Error('Each card bet amount must be greater than 0.');
+      }
+      return {
+        selectedNumbers: unique.sort((a, b) => a - b),
+        spotsCount: unique.length,
+        betAmount: Number(b.betAmount),
+      };
+    });
+
+    // Check user balance
+    const wallet = await Wallet.findOne({ userId });
+    if (!wallet || wallet.availableBalance < totalBetAmount) {
+      throw new Error(`Insufficient wallet balance. Required: ${totalBetAmount} ETB, Available: ${wallet?.availableBalance || 0} ETB.`);
+    }
+
+    const balanceBefore = wallet.availableBalance;
+    wallet.availableBalance -= totalBetAmount;
+    await wallet.save();
+
+    await WalletTransaction.create({
+      userId,
+      walletId: wallet._id,
+      type: 'GAME_ENTRY',
+      amount: totalBetAmount,
+      balanceBefore,
+      balanceAfter: wallet.availableBalance,
+      currency: 'ETB',
+      status: 'COMPLETED',
+      description: `Keno Round #${this.currentRound.roundNumber} (${validatedBets.length} Cards)`,
+      referenceId: this.currentRound._id.toString(),
+      metadata: {
+        roundNumber: this.currentRound.roundNumber,
+        cardsCount: validatedBets.length,
+        totalBetAmount,
+      },
+    });
+
+    const tickets = await KenoTicket.insertMany(
+      validatedBets.map((b) => ({
+        userId: new mongoose.Types.ObjectId(userId),
+        roundId: this.currentRound!._id,
+        roundNumber: this.currentRound!.roundNumber,
+        selectedNumbers: b.selectedNumbers,
+        spotsCount: b.spotsCount,
+        betAmount: b.betAmount,
+        status: 'PENDING',
+        isQuickPlay: false,
+      }))
+    );
+
+    this.currentRound.totalBets += totalBetAmount;
+    await this.currentRound.save();
+
+    return tickets as unknown as IKenoTicket[];
+  }
+
+  /**
    * Instant Solo Quick Play (Immediate single player draw)
    */
   public async playQuickGame(params: {

@@ -3,26 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { useKenoStore } from '../../stores/kenoStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useWalletStore } from '../../stores/walletStore';
-import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import {
   KENO_TOTAL_NUMBERS,
   KENO_MAX_SPOTS,
-  KENO_MIN_SPOTS,
-  KENO_PAYTABLE,
   KENO_PRESET_BETS,
+  KENO_PAYTABLE,
 } from '../../shared';
 import {
   Sparkles,
   Flame,
   Snowflake,
+  Play,
   Trophy,
   History,
   TrendingUp,
   Volume2,
   VolumeX,
-  Play,
   RotateCcw,
   Zap,
   Clock,
@@ -31,6 +30,10 @@ import {
   Radio,
   Gamepad2,
   Coins,
+  Plus,
+  Trash2,
+  Layers,
+  Copy,
 } from 'lucide-react';
 import { voiceController } from '../../utils/voiceController';
 
@@ -42,6 +45,7 @@ export const KenoPage: React.FC = () => {
     currentRound,
     selectedNumbers,
     betAmount,
+    cartCards,
     myTickets,
     stats,
     gameMode,
@@ -55,15 +59,20 @@ export const KenoPage: React.FC = () => {
     setBetAmount,
     quickPick,
     clearNumbers,
+    addCurrentCardToCart,
+    addQuickCardToCart,
+    removeCardFromCart,
+    clearCart,
     fetchLiveRound,
     fetchMyTickets,
     fetchStats,
     placeLiveBet,
+    placeMultiBet,
     playInstant,
     initSocketListeners,
   } = useKenoStore();
 
-  const [activeTab, setActiveTab] = useState<'paytable' | 'history' | 'stats'>('paytable');
+  const [activeTab, setActiveTab] = useState<'paytable' | 'cards' | 'history' | 'stats'>('paytable');
   const [isMuted, setIsMuted] = useState(false);
   const [customBet, setCustomBet] = useState('');
 
@@ -76,6 +85,26 @@ export const KenoPage: React.FC = () => {
   }, [fetchLiveRound, fetchMyTickets, fetchStats, initSocketListeners]);
 
   const spotsCount = selectedNumbers.length;
+
+  // Active tickets for the current live round
+  const activeRoundTickets = useMemo(() => {
+    if (!currentRound) return [];
+    return myTickets.filter(
+      (t) => t.roundNumber === currentRound.roundNumber || t.status === 'PENDING'
+    );
+  }, [myTickets, currentRound]);
+
+  // Total stake and winnings for active round
+  const activeRoundSummary = useMemo(() => {
+    const totalStake = activeRoundTickets.reduce((sum, t) => sum + t.betAmount, 0);
+    const totalWon = activeRoundTickets.reduce((sum, t) => sum + (t.payoutAmount || 0), 0);
+    return { totalStake, totalWon };
+  }, [activeRoundTickets]);
+
+  // Cart total stake
+  const totalCartStake = useMemo(() => {
+    return cartCards.reduce((sum, c) => sum + c.betAmount, 0);
+  }, [cartCards]);
 
   // Paytable for current spot count
   const currentPaytable = useMemo(() => {
@@ -120,7 +149,11 @@ export const KenoPage: React.FC = () => {
         navigate('/login');
         return;
       }
-      placeLiveBet();
+      if (cartCards.length > 0) {
+        placeMultiBet();
+      } else {
+        placeLiveBet();
+      }
     } else {
       playInstant();
     }
@@ -141,14 +174,14 @@ export const KenoPage: React.FC = () => {
               </span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-[11px] font-bold flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                Multiplayer Online
+                Multi-Card Enabled
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black font-display text-arena-text">
               DAGI BINGO <span className="bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 bg-clip-text text-transparent">KENO 80</span>
             </h1>
             <p className="text-xs sm:text-sm text-arena-muted mt-0.5">
-              Pick 1 to 10 spots, watch 20 numbers drawn live, and win up to <strong>50,000x</strong> your wager in ETB!
+              Buy multiple cards, pick 1–10 spots per card, and watch all your numbers light up live as 20 balls drop!
             </p>
           </div>
 
@@ -165,7 +198,7 @@ export const KenoPage: React.FC = () => {
                 }`}
               >
                 <Radio className={`w-3.5 h-3.5 ${gameMode === 'LIVE' ? 'animate-pulse' : ''}`} />
-                Live Multi-Draw
+                Live Arena
               </button>
               <button
                 type="button"
@@ -177,7 +210,7 @@ export const KenoPage: React.FC = () => {
                 }`}
               >
                 <Zap className="w-3.5 h-3.5" />
-                Instant Play
+                Instant Solo
               </button>
             </div>
 
@@ -214,7 +247,7 @@ export const KenoPage: React.FC = () => {
                     {currentRound?.status === 'BETTING' && (
                       <span className="text-emerald-500 flex items-center gap-1.5 font-bold">
                         <Clock className="w-4 h-4 animate-spin-slow" />
-                        Betting Open — Draw in {currentRound.countdownSeconds || 25}s
+                        Betting Open — Draw in {currentRound.countdownSeconds || 30}s
                       </span>
                     )}
                     {currentRound?.status === 'DRAWING' && (
@@ -226,25 +259,32 @@ export const KenoPage: React.FC = () => {
                     {currentRound?.status === 'COMPLETED' && (
                       <span className="text-indigo-400 font-bold flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                        Round Settled — Next Round in {currentRound.countdownSeconds || 10}s
+                        Round Settled — Next Round in {currentRound.countdownSeconds || 12}s
                       </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Matches Counter Display */}
+              {/* Active Cards Counter Display */}
               <div className="flex items-center gap-2 bg-arena-surface px-3 py-1.5 rounded-2xl border border-arena-border">
-                <span className="text-xs text-arena-muted font-bold">Selected:</span>
-                <span className="text-sm font-black font-mono text-amber-500">
-                  {spotsCount} / {KENO_MAX_SPOTS} Spots
-                </span>
-                {drawnBalls.length > 0 && (
+                {activeRoundTickets.length > 0 ? (
                   <>
-                    <span className="text-arena-border">|</span>
-                    <span className="text-xs text-arena-muted font-bold">Hits:</span>
-                    <span className="text-sm font-black font-mono text-emerald-400 animate-bounce">
-                      {hitsCount} Hits
+                    <span className="text-xs text-arena-muted font-bold">Active Cards:</span>
+                    <span className="text-sm font-black font-mono text-emerald-400 animate-pulse">
+                      {activeRoundTickets.length} Cards
+                    </span>
+                    {activeRoundSummary.totalWon > 0 && (
+                      <span className="text-xs font-black font-mono text-amber-400 ml-1">
+                        (+{activeRoundSummary.totalWon} ETB)
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="text-xs text-arena-muted font-bold">Selected:</span>
+                    <span className="text-sm font-black font-mono text-amber-500">
+                      {spotsCount} / {KENO_MAX_SPOTS} Spots
                     </span>
                   </>
                 )}
@@ -259,9 +299,9 @@ export const KenoPage: React.FC = () => {
                     <Sparkles className="w-3 h-3 text-amber-400" />
                     Drawn Balls ({drawnBalls.length}/20)
                   </span>
-                  {hitsCount > 0 && (
-                    <span className="text-[11px] font-bold text-emerald-400">
-                      🎯 {hitsCount} of your picks matched!
+                  {drawnBalls.length > 0 && (
+                    <span className="text-[11px] font-bold text-amber-400 animate-pulse">
+                      Live calling in progress...
                     </span>
                   )}
                 </div>
@@ -295,11 +335,95 @@ export const KenoPage: React.FC = () => {
             )}
           </Card>
 
+          {/* LIVE ACTIVE MULTI-CARD MONITOR TRAY (When player has cards in this round) */}
+          {activeRoundTickets.length > 0 && (
+            <Card elevated className="p-4 border-emerald-500/30 bg-emerald-950/10">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-400 font-display">
+                    Your Active Cards in Round #{currentRound?.roundNumber} ({activeRoundTickets.length} Cards)
+                  </span>
+                </div>
+                <div className="text-xs font-bold text-arena-muted">
+                  Total Bet: <span className="text-arena-text font-mono">{activeRoundSummary.totalStake} ETB</span>
+                </div>
+              </div>
+
+              {/* Multi-Card Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {activeRoundTickets.map((card, idx) => {
+                  const cardHits = card.selectedNumbers.filter((n) => drawnBalls.includes(n));
+                  const hitsCount = cardHits.length;
+                  const paytable = KENO_PAYTABLE[card.spotsCount] || {};
+                  const currentMult = paytable[hitsCount] || 0;
+                  const livePayout = Math.round(card.betAmount * currentMult * 100) / 100;
+                  const isWon = card.status === 'WON' || (drawnBalls.length === 20 && livePayout > 0);
+
+                  return (
+                    <div
+                      key={card._id}
+                      className={`p-3 rounded-2xl border transition-all ${
+                        isWon
+                          ? 'bg-emerald-500/20 border-emerald-400 shadow-arena-glow'
+                          : hitsCount > 0
+                          ? 'bg-arena-surface border-amber-500/50'
+                          : 'bg-arena-surface border-arena-border'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-black font-display text-arena-text">
+                          Card #{idx + 1} • {card.spotsCount} Spots
+                        </span>
+                        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-arena-border/50 text-arena-text">
+                          {card.betAmount} ETB
+                        </span>
+                      </div>
+
+                      {/* Card Numbers Matrix */}
+                      <div className="flex flex-wrap gap-1 mb-2.5">
+                        {card.selectedNumbers.map((num) => {
+                          const isMatched = drawnBalls.includes(num);
+                          return (
+                            <span
+                              key={num}
+                              className={`w-6 h-6 rounded-lg text-[11px] font-mono font-bold flex items-center justify-center transition-all ${
+                                isMatched
+                                  ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 font-black scale-110 shadow-sm animate-pulse'
+                                  : 'bg-arena-border/60 text-arena-text'
+                              }`}
+                            >
+                              {num}
+                            </span>
+                          );
+                        })}
+                      </div>
+
+                      {/* Hit & Payout Status */}
+                      <div className="flex items-center justify-between text-xs pt-1.5 border-t border-arena-border/60">
+                        <span className="font-bold flex items-center gap-1 text-arena-muted">
+                          Hits: <strong className="text-emerald-400 font-mono">{hitsCount}/{card.spotsCount}</strong>
+                        </span>
+                        <div className="text-right font-mono font-bold">
+                          {livePayout > 0 ? (
+                            <span className="text-emerald-400">+{livePayout} ETB ({currentMult}x)</span>
+                          ) : (
+                            <span className="text-arena-muted text-[10px]">0x</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
           {/* 1-80 Interactive Number Spot Matrix */}
           <Card elevated className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-black uppercase tracking-wider text-arena-muted font-display">
-                Keno Board (1 - 80)
+                Interactive Keno Board (1 - 80)
               </span>
               <div className="flex items-center gap-2 text-[11px] text-arena-muted">
                 <span className="flex items-center gap-1">
@@ -399,14 +523,21 @@ export const KenoPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Column: Betting Engine & Paytable (4 Cols) */}
+        {/* Right Column: Multi-Card Slip & Betting Engine (4 Cols) */}
         <div className="lg:col-span-4 space-y-4">
           
-          {/* Bet Control Card */}
+          {/* Bet & Multi-Card Control Card */}
           <Card elevated className="p-5 border-indigo-500/30">
-            <h2 className="text-base font-black font-display text-arena-text flex items-center gap-2 mb-3">
-              <Coins className="w-4 h-4 text-amber-400" />
-              Place Your Keno Bet
+            <h2 className="text-base font-black font-display text-arena-text flex items-center justify-between mb-3">
+              <span className="flex items-center gap-2">
+                <Coins className="w-4 h-4 text-amber-400" />
+                Keno Card Wager
+              </span>
+              {cartCards.length > 0 && (
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[11px] font-black">
+                  {cartCards.length} in Slip
+                </span>
+              )}
             </h2>
 
             {/* Wallet Balance Summary */}
@@ -420,7 +551,7 @@ export const KenoPage: React.FC = () => {
             {/* Preset Wager Chips */}
             <div className="space-y-2 mb-4">
               <label className="text-xs font-bold text-arena-muted uppercase tracking-wider block font-display">
-                Select Bet Amount (ETB)
+                Select Bet Amount Per Card (ETB)
               </label>
               <div className="grid grid-cols-4 gap-1.5">
                 {KENO_PRESET_BETS.slice(0, 4).map((amt) => (
@@ -475,14 +606,119 @@ export const KenoPage: React.FC = () => {
               />
             </div>
 
+            {/* MULTI-CARD BUILDER & SLIP ACTIONS */}
+            <div className="p-3 rounded-2xl bg-arena-surface border border-arena-border mb-4 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-arena-muted">
+                <span>Multi-Card Quick Actions:</span>
+                {cartCards.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearCart}
+                    className="text-rose-400 hover:underline text-[11px] cursor-pointer"
+                  >
+                    Clear Slip
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Plus className="w-3.5 h-3.5" />}
+                  disabled={selectedNumbers.length === 0}
+                  onClick={addCurrentCardToCart}
+                  className="text-xs"
+                >
+                  + Add Current Card
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Copy className="w-3.5 h-3.5" />}
+                  onClick={() => addQuickCardToCart(5, betAmount)}
+                  className="text-xs"
+                >
+                  ⚡ +1 Quick 5-Spot
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => addQuickCardToCart(10, betAmount)}
+                  className="text-xs"
+                >
+                  ⚡ +1 Quick 10-Spot
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    addQuickCardToCart(5, betAmount);
+                    addQuickCardToCart(8, betAmount);
+                    addQuickCardToCart(10, betAmount);
+                  }}
+                  className="text-xs text-amber-500 font-bold"
+                >
+                  🎲 +3 Random Cards
+                </Button>
+              </div>
+            </div>
+
+            {/* Multi-Card Slip List (if any cards added) */}
+            {cartCards.length > 0 && (
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-4 space-y-2">
+                <div className="flex items-center justify-between text-xs font-black text-amber-500">
+                  <span>Card Slip ({cartCards.length} Cards)</span>
+                  <span className="font-mono">Total Stake: {totalCartStake} ETB</span>
+                </div>
+
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                  {cartCards.map((c, idx) => (
+                    <div
+                      key={c.id}
+                      className="p-2 rounded-xl bg-arena-bg border border-arena-border flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <div className="font-bold text-arena-text">
+                          Card #{idx + 1} ({c.selectedNumbers.length} Spots)
+                        </div>
+                        <div className="text-[10px] text-arena-muted font-mono">
+                          [{c.selectedNumbers.join(', ')}]
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-amber-400">{c.betAmount} ETB</span>
+                        <button
+                          type="button"
+                          onClick={() => removeCardFromCart(c.id)}
+                          className="p-1 text-rose-400 hover:text-rose-300 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Potential Max Payout Banner */}
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-indigo-500/15 border border-amber-500/30 mb-4">
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-arena-muted font-bold">Max Potential Payout:</span>
-                <span className="text-amber-500 font-mono font-bold">{potentialMaxMultiplier}x</span>
+                <span className="text-arena-muted font-bold">
+                  {cartCards.length > 0 ? 'Cards in Slip:' : 'Max Potential Payout:'}
+                </span>
+                <span className="text-amber-500 font-mono font-bold">
+                  {cartCards.length > 0 ? `${cartCards.length} Cards` : `${potentialMaxMultiplier}x`}
+                </span>
               </div>
               <div className="text-lg font-black font-mono text-arena-text">
-                {(betAmount * potentialMaxMultiplier).toLocaleString()} ETB
+                {cartCards.length > 0
+                  ? `Total: ${totalCartStake.toLocaleString()} ETB`
+                  : `${(betAmount * potentialMaxMultiplier).toLocaleString()} ETB`}
               </div>
             </div>
 
@@ -499,27 +735,31 @@ export const KenoPage: React.FC = () => {
               size="lg"
               fullWidth
               isLoading={isLoading || isDrawing}
-              disabled={selectedNumbers.length === 0}
+              disabled={cartCards.length === 0 && selectedNumbers.length === 0}
               onClick={handleBetClick}
               rightIcon={<Play className="w-4 h-4 fill-current" />}
             >
               {gameMode === 'LIVE'
                 ? isAuthenticated
-                  ? `Place Live Bet (${betAmount} ETB)`
-                  : `Sign In to Place Live Bet (${betAmount} ETB)`
+                  ? cartCards.length > 0
+                    ? `Buy All ${cartCards.length} Cards (${totalCartStake} ETB)`
+                    : `Place Live Card (${betAmount} ETB)`
+                  : cartCards.length > 0
+                  ? `Sign In to Buy ${cartCards.length} Cards (${totalCartStake} ETB)`
+                  : `Sign In to Place Card (${betAmount} ETB)`
                 : isAuthenticated
                 ? `Play Instant (${betAmount} ETB)`
                 : `Play Instant Demo (${betAmount} ETB)`}
             </Button>
           </Card>
 
-          {/* Tabs: Paytable / History / Stats */}
+          {/* Tabs: Paytable / Active Cards / History / Stats */}
           <Card elevated className="p-4">
-            <div className="flex border-b border-arena-border pb-2 mb-3 gap-2">
+            <div className="flex border-b border-arena-border pb-2 mb-3 gap-1.5 overflow-x-auto scrollbar-none">
               <button
                 type="button"
                 onClick={() => setActiveTab('paytable')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 flex-shrink-0 ${
                   activeTab === 'paytable'
                     ? 'bg-amber-500 text-white font-black'
                     : 'text-arena-muted hover:text-arena-text'
@@ -530,20 +770,32 @@ export const KenoPage: React.FC = () => {
               </button>
               <button
                 type="button"
+                onClick={() => setActiveTab('cards')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 flex-shrink-0 ${
+                  activeTab === 'cards'
+                    ? 'bg-amber-500 text-white font-black'
+                    : 'text-arena-muted hover:text-arena-text'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Active ({activeRoundTickets.length})
+              </button>
+              <button
+                type="button"
                 onClick={() => setActiveTab('history')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 flex-shrink-0 ${
                   activeTab === 'history'
                     ? 'bg-amber-500 text-white font-black'
                     : 'text-arena-muted hover:text-arena-text'
                 }`}
               >
                 <History className="w-3.5 h-3.5" />
-                My Bets
+                History
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('stats')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 flex-shrink-0 ${
                   activeTab === 'stats'
                     ? 'bg-amber-500 text-white font-black'
                     : 'text-arena-muted hover:text-arena-text'
@@ -554,7 +806,7 @@ export const KenoPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Tab 1: Paytable for Selected Spots */}
+            {/* Tab 1: Paytable */}
             {activeTab === 'paytable' && (
               <div className="space-y-2">
                 <div className="text-xs font-bold text-arena-muted flex items-center justify-between mb-2">
@@ -596,7 +848,40 @@ export const KenoPage: React.FC = () => {
               </div>
             )}
 
-            {/* Tab 2: User Bet History */}
+            {/* Tab 2: Active Round Cards */}
+            {activeTab === 'cards' && (
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {activeRoundTickets.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-arena-muted">
+                    No active cards in Round #{currentRound?.roundNumber || ''}. Add cards to the slip and play!
+                  </div>
+                ) : (
+                  activeRoundTickets.map((t, idx) => (
+                    <div
+                      key={t._id}
+                      className="p-2.5 rounded-xl bg-arena-surface border border-arena-border flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <div className="font-bold text-arena-text">
+                          Card #{idx + 1} • {t.spotsCount} Spots
+                        </div>
+                        <div className="text-[11px] text-arena-muted font-mono">
+                          [{t.selectedNumbers.join(', ')}]
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-mono font-bold text-amber-400">{t.betAmount} ETB</div>
+                        <div className="text-[10px] text-emerald-400 font-bold">
+                          {t.selectedNumbers.filter((n) => drawnBalls.includes(n)).length}/{t.spotsCount} Hits
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Tab 3: User Bet History */}
             {activeTab === 'history' && (
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {myTickets.length === 0 ? (
@@ -637,7 +922,7 @@ export const KenoPage: React.FC = () => {
               </div>
             )}
 
-            {/* Tab 3: Hot / Cold Frequency Stats */}
+            {/* Tab 4: Hot / Cold Frequency Stats */}
             {activeTab === 'stats' && (
               <div className="space-y-3">
                 <div>

@@ -6,10 +6,17 @@ import { useWalletStore } from './walletStore';
 import { useAuthStore } from './authStore';
 import { voiceController } from '../utils/voiceController';
 
+export interface KenoCartCard {
+  id: string;
+  selectedNumbers: number[];
+  betAmount: number;
+}
+
 interface KenoState {
   currentRound: KenoRound | null;
   selectedNumbers: number[];
   betAmount: number;
+  cartCards: KenoCartCard[];
   myTickets: KenoTicket[];
   lastResult: { ticket: KenoTicket; newBalance?: number } | null;
   stats: KenoStats | null;
@@ -25,10 +32,15 @@ interface KenoState {
   setBetAmount: (amount: number) => void;
   quickPick: (count: number) => void;
   clearNumbers: () => void;
+  addCurrentCardToCart: () => void;
+  addQuickCardToCart: (spotsCount?: number, bet?: number) => void;
+  removeCardFromCart: (id: string) => void;
+  clearCart: () => void;
   fetchLiveRound: () => void;
   fetchMyTickets: () => void;
   fetchStats: () => void;
   placeLiveBet: () => Promise<void>;
+  placeMultiBet: () => Promise<void>;
   playInstant: () => Promise<void>;
   initSocketListeners: () => () => void;
 }
@@ -37,6 +49,7 @@ export const useKenoStore = create<KenoState>((set, get) => ({
   currentRound: null,
   selectedNumbers: [7, 14, 21, 42, 77],
   betAmount: 10,
+  cartCards: [],
   myTickets: [],
   lastResult: null,
   stats: null,
@@ -126,6 +139,55 @@ export const useKenoStore = create<KenoState>((set, get) => ({
     }
   },
 
+  addCurrentCardToCart: () => {
+    const { selectedNumbers, betAmount, cartCards } = get();
+    if (selectedNumbers.length === 0) {
+      set({ error: 'Please choose at least 1 spot before adding card to slip.' });
+      return;
+    }
+    if (cartCards.length >= 20) {
+      set({ error: 'Maximum 20 cards per round.' });
+      return;
+    }
+    const newCard: KenoCartCard = {
+      id: Math.random().toString(36).substring(2, 9),
+      selectedNumbers: [...selectedNumbers],
+      betAmount,
+    };
+    set({ cartCards: [...cartCards, newCard], error: null });
+  },
+
+  addQuickCardToCart: (spotsCount = 5, bet = 10) => {
+    const { cartCards } = get();
+    if (cartCards.length >= 20) {
+      set({ error: 'Maximum 20 cards per round.' });
+      return;
+    }
+    const clampedCount = Math.min(KENO_MAX_SPOTS, Math.max(1, spotsCount));
+    const pool = Array.from({ length: 80 }, (_, i) => i + 1);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const picks = pool.slice(0, clampedCount).sort((a, b) => a - b);
+    const newCard: KenoCartCard = {
+      id: Math.random().toString(36).substring(2, 9),
+      selectedNumbers: picks,
+      betAmount: Math.max(1, bet),
+    };
+    set({ cartCards: [...cartCards, newCard], error: null });
+  },
+
+  removeCardFromCart: (id) => {
+    set((state) => ({
+      cartCards: state.cartCards.filter((c) => c.id !== id),
+    }));
+  },
+
+  clearCart: () => {
+    set({ cartCards: [] });
+  },
+
   placeLiveBet: async () => {
     const { selectedNumbers, betAmount, currentRound } = get();
     if (!useAuthStore.getState().isAuthenticated) {
@@ -152,6 +214,42 @@ export const useKenoStore = create<KenoState>((set, get) => ({
       useWalletStore.getState().fetchBalance();
       get().fetchMyTickets();
       set({
+        isLoading: false,
+        error: null,
+      });
+    } catch (err) {
+      set({ isLoading: false, error: (err as Error).message });
+    }
+  },
+
+  placeMultiBet: async () => {
+    const { cartCards, currentRound } = get();
+    if (!useAuthStore.getState().isAuthenticated) {
+      set({ error: 'Please sign in to your account to place live multiplayer cards and win ETB.' });
+      return;
+    }
+    if (cartCards.length === 0) {
+      set({ error: 'Your card slip is empty. Add cards first!' });
+      return;
+    }
+    if (currentRound && currentRound.status !== 'BETTING') {
+      set({ error: 'Betting is closed for this round. Please wait for the next round countdown.' });
+      return;
+    }
+
+    set({ isLoading: true, error: null });
+    try {
+      await api.post<KenoTicket[]>('/keno/multi-bet', {
+        bets: cartCards.map((c) => ({
+          selectedNumbers: c.selectedNumbers,
+          betAmount: c.betAmount,
+        })),
+      });
+
+      useWalletStore.getState().fetchBalance();
+      get().fetchMyTickets();
+      set({
+        cartCards: [],
         isLoading: false,
         error: null,
       });

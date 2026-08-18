@@ -13,6 +13,7 @@ router.post('/quick-play', optionalAuthenticateJwt, KenoController.quickPlay);
 
 // Authenticated: Place bets and view personal tickets
 router.post('/bet', authenticateJwt, KenoController.placeBet);
+router.post('/multi-bet', authenticateJwt, KenoController.placeMultiBets);
 router.get('/my-tickets', authenticateJwt, KenoController.getMyTickets);
 
 export default router;
