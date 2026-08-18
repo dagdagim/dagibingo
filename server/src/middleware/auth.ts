@@ -64,3 +64,25 @@ export const requireRole = (...roles: UserRole[]) => {
     next();
   };
 };
+
+export const optionalAuthenticateJwt = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, env.JWT_SECRET) as JwtAuthPayload;
+      const user = await User.findById(decoded.userId).select('isActive role username');
+      if (user && user.isActive) {
+        req.user = {
+          userId: user._id.toString(),
+          role: user.role,
+          username: user.username,
+        };
+      }
+    }
+  } catch {
+    // Graceful fallback for unauthenticated guests
+  }
+  next();
+};
+

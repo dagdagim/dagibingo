@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useKenoStore } from '../../stores/kenoStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useWalletStore } from '../../stores/walletStore';
@@ -34,7 +35,8 @@ import {
 import { voiceController } from '../../utils/voiceController';
 
 export const KenoPage: React.FC = () => {
-  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuthStore();
   const { balance } = useWalletStore();
   const {
     currentRound,
@@ -114,6 +116,10 @@ export const KenoPage: React.FC = () => {
 
   const handleBetClick = () => {
     if (gameMode === 'LIVE') {
+      if (!isAuthenticated) {
+        navigate('/login');
+        return;
+      }
       placeLiveBet();
     } else {
       playInstant();
@@ -498,8 +504,12 @@ export const KenoPage: React.FC = () => {
               rightIcon={<Play className="w-4 h-4 fill-current" />}
             >
               {gameMode === 'LIVE'
-                ? `Place Live Bet (${betAmount} ETB)`
-                : `Play Instant (${betAmount} ETB)`}
+                ? isAuthenticated
+                  ? `Place Live Bet (${betAmount} ETB)`
+                  : `Sign In to Place Live Bet (${betAmount} ETB)`
+                : isAuthenticated
+                ? `Play Instant (${betAmount} ETB)`
+                : `Play Instant Demo (${betAmount} ETB)`}
             </Button>
           </Card>
 

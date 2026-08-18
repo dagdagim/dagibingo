@@ -432,6 +432,33 @@ export class KenoEngine {
       throw new Error('Bet amount must be greater than 0.');
     }
 
+    if (!userId) {
+      // Guest Sandbox Play
+      const drawnNumbers = this.generate20KenoNumbers();
+      const matched = uniqueNums.filter((n) => drawnNumbers.includes(n));
+      const hitsCount = matched.length;
+      const multiplier = KENO_PAYTABLE[uniqueNums.length]?.[hitsCount] || 0;
+      const payoutAmount = Math.round(betAmount * multiplier * 100) / 100;
+
+      const guestTicket: any = {
+        _id: new mongoose.Types.ObjectId(),
+        userId: null,
+        selectedNumbers: uniqueNums.sort((a, b) => a - b),
+        spotsCount: uniqueNums.length,
+        betAmount,
+        drawnNumbers,
+        matchedNumbers: matched,
+        hitsCount,
+        multiplier,
+        payoutAmount,
+        status: payoutAmount > 0 ? 'WON' : 'LOST',
+        isQuickPlay: true,
+        createdAt: new Date(),
+      };
+
+      return { ticket: guestTicket, newBalance: 10000 };
+    }
+
     const wallet = await Wallet.findOne({ userId });
     if (!wallet || wallet.availableBalance < betAmount) {
       throw new Error('Insufficient wallet balance for Quick Play.');

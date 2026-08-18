@@ -3,6 +3,7 @@ import { KenoRound, KenoTicket, KenoStats, KENO_PAYTABLE, KENO_MAX_SPOTS } from 
 import { api } from '../services/api';
 import { socketService } from '../services/socket';
 import { useWalletStore } from './walletStore';
+import { useAuthStore } from './authStore';
 import { voiceController } from '../utils/voiceController';
 
 interface KenoState {
@@ -100,6 +101,10 @@ export const useKenoStore = create<KenoState>((set, get) => ({
   },
 
   fetchMyTickets: async () => {
+    if (!localStorage.getItem('bingo_access_token')) {
+      set({ myTickets: [] });
+      return;
+    }
     try {
       const res = await api.get<KenoTicket[]>('/keno/my-tickets');
       if (Array.isArray(res)) {
@@ -123,6 +128,10 @@ export const useKenoStore = create<KenoState>((set, get) => ({
 
   placeLiveBet: async () => {
     const { selectedNumbers, betAmount, currentRound } = get();
+    if (!useAuthStore.getState().isAuthenticated) {
+      set({ error: 'Please sign in to your account to place live multiplayer bets and win ETB.' });
+      return;
+    }
     if (selectedNumbers.length === 0) {
       set({ error: 'Please choose at least 1 spot before placing your bet.' });
       return;

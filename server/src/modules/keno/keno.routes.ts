@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { KenoController } from './keno.controller';
-import { authenticateJwt } from '../../middleware/auth';
+import { authenticateJwt, optionalAuthenticateJwt } from '../../middleware/auth';
 
 const router = Router();
 
@@ -8,9 +8,11 @@ const router = Router();
 router.get('/live-round', KenoController.getLiveRound);
 router.get('/stats', KenoController.getStats);
 
+// Quick play (Instant solo play works for both guests and authenticated players)
+router.post('/quick-play', optionalAuthenticateJwt, KenoController.quickPlay);
+
 // Authenticated: Place bets and view personal tickets
 router.post('/bet', authenticateJwt, KenoController.placeBet);
-router.post('/quick-play', authenticateJwt, KenoController.quickPlay);
 router.get('/my-tickets', authenticateJwt, KenoController.getMyTickets);
 
 export default router;
