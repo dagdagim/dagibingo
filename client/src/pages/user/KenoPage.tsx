@@ -326,29 +326,21 @@ export const KenoPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Live Wallet Chip */}
-        <div className="flex items-center gap-3 relative z-10 self-start md:self-auto">
-          <div className="p-3.5 rounded-2xl bg-arena-surface border border-arena-border shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-500">
-              <Wallet className="w-5 h-5" />
+        {/* Live Feature Highlights */}
+        <div className="flex items-center gap-2 relative z-10 self-start md:self-auto">
+          <div className="px-4 py-3 rounded-2xl bg-arena-surface/80 border border-arena-border shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-500 font-black text-lg">
+              ⚡
             </div>
             <div>
               <span className="text-[10px] font-black uppercase text-arena-muted tracking-wider block font-display">
-                Available Wallet
+                Game Multiplier
               </span>
-              <span className="text-lg font-black font-mono text-arena-text">
-                {availableBalance.toLocaleString()} <span className="text-xs text-indigo-400">ETB</span>
+              <span className="text-sm font-black font-display text-amber-500">
+                Up to 25,000× Win
               </span>
             </div>
           </div>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => setIsDepositModalOpen(true)}
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            Deposit
-          </Button>
         </div>
       </div>
 
