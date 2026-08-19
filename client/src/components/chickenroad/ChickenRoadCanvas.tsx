@@ -40,6 +40,7 @@ interface CarEntity {
   height: number;
   wheelRot: number;
   isBraking?: boolean;
+  alpha: number;
 }
 
 interface SkidMark {
@@ -117,6 +118,7 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
           width: carType === 'truck' ? 110 : carType === 'suv' ? 85 : 75,
           height: 38,
           wheelRot: 0,
+          alpha: 1,
         });
       }
     }
@@ -222,6 +224,12 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       chickenPos.current.targetX = targetX;
       chickenPos.current.targetY = targetY;
       chickenPos.current.hopProgress = 0; // Trigger hop animation
+    }
+
+    if (currentRow === 0 && !isCrushed) {
+      cars.current.forEach((car) => {
+        car.alpha = 1;
+      });
     }
 
     if (isCrushed) {
@@ -484,12 +492,24 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       // -------------------------------------------------------------
       // 4. UPDATE & DRAW DYNAMIC CARS
       // -------------------------------------------------------------
+      const isCrushed = game?.status === 'CRUSHED';
+      const crashLane = isCrushed ? currentRow : -1;
+
       for (const car of cars.current) {
         const laneY = TOTAL_WORLD_HEIGHT - SIDEWALK_HEIGHT - (car.lane + 1) * LANE_HEIGHT + (LANE_HEIGHT - car.height) / 2;
-        const isLaneBlocked = car.lane < currentRow;
+        const isPassedLane = car.lane < currentRow;
 
-        // Move car if not stopped by road blocker
-        if (!isLaneBlocked) {
+        // Disappear / Fade out cars on passed lanes if not crushed
+        if (isPassedLane && car.lane !== crashLane) {
+          car.alpha = Math.max(0, car.alpha - dt * 3.5);
+          if (car.alpha <= 0) continue; // Completely disappeared from this lane!
+        } else {
+          // Normal traffic on uncrossed lanes or crashed car
+          car.alpha = Math.min(1, car.alpha + dt * 2);
+        }
+
+        // Move active cars
+        if (!isPassedLane && (!isCrushed || car.lane !== crashLane)) {
           car.x += car.speed;
           if (car.direction === 1 && car.x > viewWidth + 150) {
             car.x = -150;
@@ -501,6 +521,7 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
 
         // Draw Car Body
         ctx.save();
+        ctx.globalAlpha = car.alpha;
         ctx.translate(car.x, laneY);
 
         if (car.direction === -1) {
