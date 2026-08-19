@@ -117,8 +117,39 @@ export const LobbyPage: React.FC = () => {
         )}
       </div>
 
-      {/* Featured Games Showcase: Aviator, Keno 80, & Plinko */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Featured Games Showcase: Mines, Aviator, Keno 80, & Plinko */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Mines */}
+        <Link
+          to="/mines"
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600/25 via-teal-500/15 to-slate-900/40 border border-emerald-500/40 p-5 shadow-arena-glow group hover:scale-[1.02] transition-all flex flex-col justify-between"
+        >
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-wider font-display flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-emerald-400 animate-spin-slow" />
+                NEW GAME
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+                97% RTP
+              </span>
+            </div>
+            <h3 className="text-xl font-black font-display text-arena-text group-hover:text-emerald-400 transition-colors">
+              💣 Dagi Mines
+            </h3>
+            <p className="text-xs text-arena-muted">
+              5×5 grid, choose 1–24 hidden mines, find safe diamonds, and cash out massive multipliers before bombs explode!
+            </p>
+          </div>
+          <div className="mt-4 flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-400">Up to 5.1M× Win</span>
+            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-black text-xs group-hover:brightness-110 transition-all shadow-md">
+              <span>Play Mines</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </Link>
+
         {/* Aviator Crash */}
         <Link
           to="/aviator"
@@ -173,7 +204,7 @@ export const LobbyPage: React.FC = () => {
             </p>
           </div>
           <div className="mt-4 flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-400">Continuous 30s Rounds</span>
+            <span className="text-xs font-bold text-amber-400">Continuous 30s</span>
             <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 text-white font-black text-xs group-hover:bg-amber-400 transition-colors shadow-md">
               <span>Play Keno</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -204,7 +235,7 @@ export const LobbyPage: React.FC = () => {
             </p>
           </div>
           <div className="mt-4 flex items-center justify-between">
-            <span className="text-xs font-bold text-indigo-400">Single & Multi-Volleys</span>
+            <span className="text-xs font-bold text-indigo-400">Volleys</span>
             <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xs group-hover:brightness-110 transition-all shadow-md">
               <span>Play Plinko</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Gamepad2, Wallet, Trophy, Sparkles, Play, Flame } from 'lucide-react';
+import { Gamepad2, Wallet, Sparkles, Play, Flame, Bomb } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 export const MobileNav: React.FC = () => {
@@ -8,6 +8,7 @@ export const MobileNav: React.FC = () => {
 
   const links = [
     { label: 'Lobby', path: '/lobby', icon: <Gamepad2 className="w-5 h-5" /> },
+    { label: 'Mines', path: '/mines', icon: <Bomb className="w-5 h-5 text-emerald-400" /> },
     { label: 'Aviator', path: '/aviator', icon: <Play className="w-5 h-5 text-rose-500 fill-rose-500/20" /> },
     { label: 'Keno', path: '/keno', icon: <Sparkles className="w-5 h-5 text-amber-500" /> },
     { label: 'Plinko', path: '/plinko', icon: <Flame className="w-5 h-5 text-orange-500" /> },

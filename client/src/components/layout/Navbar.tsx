@@ -15,7 +15,7 @@ import {
   Plus,
   Flame,
   Sparkles,
-  HelpCircle,
+  Bomb,
   BookOpen,
   Sun,
   Moon,
@@ -41,6 +41,7 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { path: '/lobby', label: 'Game Lobby', icon: <Gamepad2 className="w-4 h-4" /> },
+    { path: '/mines', label: '💣 Mines', icon: <Bomb className="w-4 h-4 text-emerald-400" /> },
     { path: '/aviator', label: '🚀 Aviator', icon: <Play className="w-4 h-4 text-rose-500" /> },
     { path: '/keno', label: '🎰 Keno 80', icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
     { path: '/plinko', label: '🎯 Plinko', icon: <Flame className="w-4 h-4 text-orange-500" /> },
