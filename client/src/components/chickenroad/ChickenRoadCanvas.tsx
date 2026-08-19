@@ -51,6 +51,25 @@ interface SkidMark {
   alpha: number;
 }
 
+interface CrashAnimationState {
+  active: boolean;
+  hasCollided: boolean;
+  carX: number;
+  carY: number;
+  carSpeed: number;
+  carColor: string;
+  carWidth: number;
+  carHeight: number;
+  chickenX: number;
+  chickenY: number;
+  chickenVx: number;
+  chickenVy: number;
+  chickenRot: number;
+  shake: number;
+  shockwaveRadius: number;
+  shockwaveAlpha: number;
+}
+
 const CAR_COLORS = [
   '#ef4444', // Red sports
   '#f59e0b', // Yellow taxi
@@ -82,10 +101,29 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
   // Chicken Visual State
   const chickenPos = useRef({ x: 0, y: 0, targetX: 0, targetY: 0, hopHeight: 0, hopProgress: 1 });
   const chickenState = useRef<'idle' | 'hopping' | 'crushed' | 'winner'>('idle');
-  const chickenFacing = useRef<1 | -1>(1);
   const cameraY = useRef(0);
   const targetCameraY = useRef(0);
   const hoverTile = useRef<{ row: number; col: number } | null>(null);
+
+  // Dedicated Car Crash Animation State
+  const crashAnim = useRef<CrashAnimationState>({
+    active: false,
+    hasCollided: false,
+    carX: -200,
+    carY: 0,
+    carSpeed: 34,
+    carColor: '#ef4444',
+    carWidth: 100,
+    carHeight: 40,
+    chickenX: 0,
+    chickenY: 0,
+    chickenVx: 0,
+    chickenVy: 0,
+    chickenRot: 0,
+    shake: 0,
+    shockwaveRadius: 0,
+    shockwaveAlpha: 0,
+  });
 
   // Lane configuration
   const TOTAL_LANES = 10;
@@ -127,35 +165,35 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
 
   // Spawn Feathers / Particles
   const spawnFeathers = (x: number, y: number) => {
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 50; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 7;
+      const speed = 3 + Math.random() * 8;
       particles.current.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 3,
+        vy: Math.sin(angle) * speed - 4,
         color: i % 4 === 0 ? '#f59e0b' : i % 3 === 0 ? '#ef4444' : '#ffffff',
         size: 5 + Math.random() * 8,
         alpha: 1,
-        decay: 0.012 + Math.random() * 0.015,
+        decay: 0.01 + Math.random() * 0.012,
         rotation: Math.random() * Math.PI * 2,
-        vRot: (Math.random() - 0.5) * 0.2,
+        vRot: (Math.random() - 0.5) * 0.25,
         type: 'feather',
       });
     }
 
-    // Smoke
-    for (let i = 0; i < 20; i++) {
+    // Tire Smoke & Spark Puffs
+    for (let i = 0; i < 25; i++) {
       particles.current.push({
-        x: x + (Math.random() - 0.5) * 40,
-        y: y + (Math.random() - 0.5) * 20,
-        vx: (Math.random() - 0.5) * 2,
-        vy: -1 - Math.random() * 2,
-        color: '#94a3b8',
-        size: 15 + Math.random() * 25,
-        alpha: 0.8,
-        decay: 0.02,
+        x: x + (Math.random() - 0.5) * 50,
+        y: y + (Math.random() - 0.5) * 25,
+        vx: (Math.random() - 0.5) * 3,
+        vy: -1.5 - Math.random() * 2.5,
+        color: i % 2 === 0 ? '#94a3b8' : '#cbd5e1',
+        size: 18 + Math.random() * 25,
+        alpha: 0.85,
+        decay: 0.018,
         rotation: Math.random() * Math.PI,
         vRot: 0.05,
         type: 'smoke',
@@ -234,19 +272,32 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
 
     if (isCrushed) {
       chickenState.current = 'crushed';
-      spawnFeathers(targetX, targetY);
-      skidMarks.current.push({
-        x: targetX - 50,
-        y: targetY,
-        width: 100,
-        height: 12,
-        alpha: 0.9,
-      });
+      // Trigger dramatic car crush animation
+      crashAnim.current = {
+        active: true,
+        hasCollided: false,
+        carX: targetX - 320, // Car zooms from the left
+        carY: targetY,
+        carSpeed: 30, // High speed
+        carColor: '#ef4444', // Fiery Red Muscle Car
+        carWidth: 100,
+        carHeight: 40,
+        chickenX: targetX,
+        chickenY: targetY,
+        chickenVx: 0,
+        chickenVy: 0,
+        chickenRot: 0,
+        shake: 0,
+        shockwaveRadius: 0,
+        shockwaveAlpha: 0,
+      };
     } else if (isWon) {
       chickenState.current = 'winner';
+      crashAnim.current.active = false;
       spawnCelebration(targetX, targetY);
     } else {
       chickenState.current = 'idle';
+      crashAnim.current.active = false;
     }
 
     // Set camera target
@@ -290,7 +341,72 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       // Smooth Camera Lerp
       cameraY.current += (targetCameraY.current - cameraY.current) * 0.08;
 
-      ctx.translate(0, -cameraY.current);
+      // -------------------------------------------------------------
+      // UPDATE CAR CRUSH ANIMATION & CAMERA SHAKE
+      // -------------------------------------------------------------
+      const ca = crashAnim.current;
+      if (ca.active) {
+        if (!ca.hasCollided) {
+          ca.carX += ca.carSpeed;
+          // Impact collision point!
+          if (ca.carX >= ca.chickenX - 25) {
+            ca.hasCollided = true;
+            ca.shake = 16; // Strong Camera Shake
+            ca.shockwaveAlpha = 1;
+            ca.shockwaveRadius = 15;
+            ca.chickenVx = 6;
+            ca.chickenVy = -16; // Propel chicken upwards
+            spawnFeathers(ca.chickenX, ca.chickenY);
+
+            // Burn skid marks onto asphalt
+            skidMarks.current.push({
+              x: ca.carX - 80,
+              y: ca.carY,
+              width: 110,
+              height: 14,
+              alpha: 0.95,
+            });
+          }
+        } else {
+          // Car brakes to a halt
+          ca.carSpeed = Math.max(0, ca.carSpeed - dt * 50);
+          ca.carX += ca.carSpeed;
+
+          // Chicken airborne tumbling physics
+          ca.chickenX += ca.chickenVx;
+          ca.chickenY += ca.chickenVy;
+          ca.chickenVy += 0.75; // Gravity
+          ca.chickenRot += 0.22; // Spinning in air
+
+          // Chicken lands and squashes on road
+          const groundY = chickenPos.current.targetY;
+          if (ca.chickenY >= groundY) {
+            ca.chickenY = groundY;
+            ca.chickenVx = 0;
+            ca.chickenVy = 0;
+          }
+
+          // Camera shake decay
+          if (ca.shake > 0) {
+            ca.shake = Math.max(0, ca.shake - dt * 25);
+          }
+
+          // Shockwave ring expansion
+          if (ca.shockwaveAlpha > 0) {
+            ca.shockwaveRadius += dt * 180;
+            ca.shockwaveAlpha = Math.max(0, ca.shockwaveAlpha - dt * 2.2);
+          }
+        }
+      }
+
+      let shakeX = 0;
+      let shakeY = 0;
+      if (ca.active && ca.shake > 0) {
+        shakeX = (Math.random() - 0.5) * ca.shake;
+        shakeY = (Math.random() - 0.5) * ca.shake;
+      }
+
+      ctx.translate(shakeX, -cameraY.current + shakeY);
 
       // -------------------------------------------------------------
       // 1. DRAW BACKGROUND & HIGHWAY
@@ -329,7 +445,7 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       }
 
       // -------------------------------------------------------------
-      // 2. DRAW LANES, MARKINGS & ROAD BLOCKERS
+      // 2. DRAW LANES, MARKINGS & ONE VERTICAL ROAD BLOCKER AT LEFT MIDDLE
       // -------------------------------------------------------------
       const currentRow = game ? game.currentRow : 0;
 
@@ -370,94 +486,84 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
         ctx.restore();
 
         // ---------------------------------------------------------
-        // VERTICAL ROAD BLOCKERS / HYDRAULIC BARRIERS (Safely crossed lane)
+        // ONE VERTICAL ROAD BLOCKER AT LEFT-MIDDLE (Safely crossed lane)
         // ---------------------------------------------------------
         if (isPassedLane && rowState) {
           const barrierH = LANE_HEIGHT - 16;
           const barrierY = laneY + 8;
-          const barrierW = 20;
+          const barrierW = 24; // Prominent heavy-duty pillar
+          const blockerX = roadX + roadWidth * 0.18; // Exactly at the left-middle position!
 
-          // Helper to draw vertical hydraulic road blocker column
-          const drawVerticalBlocker = (bx: number) => {
-            ctx.save();
+          ctx.save();
 
-            // Shadow
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-            ctx.fillRect(bx + 4, barrierY + 4, barrierW, barrierH);
+          // Blocker Shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          ctx.fillRect(blockerX + 5, barrierY + 5, barrierW, barrierH);
 
-            // Outer steel casing & hydraulic piston mount
-            ctx.fillStyle = '#0f172a';
-            ctx.fillRect(bx - 3, barrierY - 3, barrierW + 6, barrierH + 6);
-            ctx.strokeStyle = '#475569';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(bx - 3, barrierY - 3, barrierW + 6, barrierH + 6);
+          // Outer Heavy Steel Frame & Hydraulic Strut Mounts
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(blockerX - 4, barrierY - 4, barrierW + 8, barrierH + 8);
+          ctx.strokeStyle = '#64748b';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(blockerX - 4, barrierY - 4, barrierW + 8, barrierH + 8);
 
-            // Warning Yellow Pillar Body
-            ctx.fillStyle = '#eab308';
-            ctx.fillRect(bx, barrierY, barrierW, barrierH);
+          // Caution Yellow Pillar Body
+          ctx.fillStyle = '#eab308';
+          ctx.fillRect(blockerX, barrierY, barrierW, barrierH);
 
-            // Diagonal Hazard Stripes (Clipped inside vertical pillar)
-            ctx.save();
+          // Diagonal Black Hazard Stripes (Clipped inside vertical pillar)
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(blockerX, barrierY, barrierW, barrierH);
+          ctx.clip();
+          ctx.fillStyle = '#000000';
+          const stripeH = 16;
+          for (let sy = barrierY - barrierW; sy < barrierY + barrierH + barrierW; sy += stripeH * 1.6) {
             ctx.beginPath();
-            ctx.rect(bx, barrierY, barrierW, barrierH);
-            ctx.clip();
-            ctx.fillStyle = '#000000';
-            const stripeH = 16;
-            for (let sy = barrierY - barrierW; sy < barrierY + barrierH + barrierW; sy += stripeH * 1.6) {
-              ctx.beginPath();
-              ctx.moveTo(bx, sy);
-              ctx.lineTo(bx + barrierW, sy + barrierW);
-              ctx.lineTo(bx + barrierW, sy + barrierW + stripeH);
-              ctx.lineTo(bx, sy + stripeH);
-              ctx.closePath();
-              ctx.fill();
-            }
-            ctx.restore();
-
-            // Vertical Steel Edge Highlights
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(bx + 2, barrierY);
-            ctx.lineTo(bx + 2, barrierY + barrierH);
-            ctx.stroke();
-
-            // Top & Bottom Flashing Amber Strobe LEDs
-            const blink = Math.sin(time * 0.01 + bx) > 0;
-            ctx.fillStyle = blink ? '#fbbf24' : '#78350f';
-            ctx.beginPath();
-            ctx.arc(bx + barrierW / 2, barrierY + 7, 4, 0, Math.PI * 2);
-            ctx.arc(bx + barrierW / 2, barrierY + barrierH - 7, 4, 0, Math.PI * 2);
+            ctx.moveTo(blockerX, sy);
+            ctx.lineTo(blockerX + barrierW, sy + barrierW);
+            ctx.lineTo(blockerX + barrierW, sy + barrierW + stripeH);
+            ctx.lineTo(blockerX, sy + stripeH);
+            ctx.closePath();
             ctx.fill();
+          }
+          ctx.restore();
 
-            if (blink) {
-              ctx.fillStyle = 'rgba(251, 191, 36, 0.25)';
-              ctx.beginPath();
-              ctx.arc(bx + barrierW / 2, barrierY + 7, 10, 0, Math.PI * 2);
-              ctx.arc(bx + barrierW / 2, barrierY + barrierH - 7, 10, 0, Math.PI * 2);
-              ctx.fill();
-            }
+          // Vertical Steel Edge Highlights
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(blockerX + 2, barrierY);
+          ctx.lineTo(blockerX + 2, barrierY + barrierH);
+          ctx.stroke();
 
-            // Hydraulic side pistons
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillRect(bx - 4, barrierY + barrierH * 0.25, 3, 14);
-            ctx.fillRect(bx - 4, barrierY + barrierH * 0.65, 3, 14);
-            ctx.fillRect(bx + barrierW + 1, barrierY + barrierH * 0.25, 3, 14);
-            ctx.fillRect(bx + barrierW + 1, barrierY + barrierH * 0.65, 3, 14);
+          // Top & Bottom Flashing Amber Warning Strobe LEDs
+          const blink = Math.sin(time * 0.01 + blockerX) > 0;
+          ctx.fillStyle = blink ? '#fbbf24' : '#78350f';
+          ctx.beginPath();
+          ctx.arc(blockerX + barrierW / 2, barrierY + 8, 5, 0, Math.PI * 2);
+          ctx.arc(blockerX + barrierW / 2, barrierY + barrierH - 8, 5, 0, Math.PI * 2);
+          ctx.fill();
 
-            ctx.restore();
-          };
+          if (blink) {
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.3)';
+            ctx.beginPath();
+            ctx.arc(blockerX + barrierW / 2, barrierY + 8, 12, 0, Math.PI * 2);
+            ctx.arc(blockerX + barrierW / 2, barrierY + barrierH - 8, 12, 0, Math.PI * 2);
+            ctx.fill();
+          }
 
-          // Draw vertical barriers at traffic entry points and along the lane boundary
-          drawVerticalBlocker(roadX + 40);
-          drawVerticalBlocker(roadX + roadWidth * 0.25);
-          drawVerticalBlocker(roadX + roadWidth * 0.75 - barrierW);
-          drawVerticalBlocker(roadX + roadWidth - 60);
+          // Hydraulic Piston Cylinders on sides
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillRect(blockerX - 6, barrierY + barrierH * 0.25, 4, 16);
+          ctx.fillRect(blockerX - 6, barrierY + barrierH * 0.65, 4, 16);
+          ctx.fillRect(blockerX + barrierW + 2, barrierY + barrierH * 0.25, 4, 16);
+          ctx.fillRect(blockerX + barrierW + 2, barrierY + barrierH * 0.65, 4, 16);
 
           // Subtle green safety clearance tint for the passed lane
-          ctx.save();
           ctx.fillStyle = 'rgba(16, 185, 129, 0.06)';
           ctx.fillRect(roadX + 15, laneY, roadWidth - 30, LANE_HEIGHT);
+
           ctx.restore();
         }
 
@@ -558,11 +664,11 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
           car.alpha = Math.max(0, car.alpha - dt * 3.5);
           if (car.alpha <= 0) continue; // Completely disappeared from this lane!
         } else {
-          // Normal traffic on uncrossed lanes or crashed car
+          // Normal traffic on uncrossed lanes
           car.alpha = Math.min(1, car.alpha + dt * 2);
         }
 
-        // Move active cars
+        // Move active cars (unless in crash state on collision lane)
         if (!isPassedLane && (!isCrushed || car.lane !== crashLane)) {
           car.x += car.speed;
           if (car.direction === 1 && car.x > viewWidth + 150) {
@@ -628,6 +734,83 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       }
 
       // -------------------------------------------------------------
+      // DRAW SPEEDING CRASHING CAR (If Crash Active)
+      // -------------------------------------------------------------
+      if (ca.active) {
+        ctx.save();
+        ctx.translate(ca.carX, ca.carY);
+
+        // Car Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.beginPath();
+        ctx.ellipse(0, ca.carHeight / 2 + 4, ca.carWidth / 2 + 8, ca.carHeight / 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Fiery Red Muscle Car Chassis
+        ctx.fillStyle = ca.carColor;
+        ctx.beginPath();
+        ctx.roundRect(-ca.carWidth / 2, -ca.carHeight / 2, ca.carWidth, ca.carHeight, 8);
+        ctx.fill();
+
+        // Windshield
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-ca.carWidth / 4, -ca.carHeight / 2 + 4, ca.carWidth / 2.2, ca.carHeight - 8);
+
+        // Bright Headlights
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(ca.carWidth / 2 - 2, -ca.carHeight / 2 + 4, 5, 8);
+        ctx.fillRect(ca.carWidth / 2 - 2, ca.carHeight / 2 - 12, 5, 8);
+
+        // Headlight Beam
+        ctx.fillStyle = 'rgba(254, 240, 138, 0.35)';
+        ctx.beginPath();
+        ctx.moveTo(ca.carWidth / 2, -ca.carHeight / 4);
+        ctx.lineTo(ca.carWidth / 2 + 130, -ca.carHeight * 1.2);
+        ctx.lineTo(ca.carWidth / 2 + 130, ca.carHeight * 1.2);
+        ctx.lineTo(ca.carWidth / 2, ca.carHeight / 4);
+        ctx.fill();
+
+        // Red Tail lights
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(-ca.carWidth / 2 - 2, -ca.carHeight / 2 + 4, 4, 8);
+        ctx.fillRect(-ca.carWidth / 2 - 2, ca.carHeight / 2 - 12, 4, 8);
+
+        // Wheels with Tread
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-ca.carWidth / 2.8, -ca.carHeight / 2 - 4, 16, 7);
+        ctx.fillRect(ca.carWidth / 4, -ca.carHeight / 2 - 4, 16, 7);
+        ctx.fillRect(-ca.carWidth / 2.8, ca.carHeight / 2 - 3, 16, 7);
+        ctx.fillRect(ca.carWidth / 4, ca.carHeight / 2 - 3, 16, 7);
+
+        ctx.restore();
+
+        // Impact Shockwave Ring & "💥 CRASH!" comic burst
+        if (ca.shockwaveAlpha > 0) {
+          ctx.save();
+          ctx.strokeStyle = `rgba(239, 68, 68, ${ca.shockwaveAlpha})`;
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.arc(ca.chickenX, ca.chickenY, ca.shockwaveRadius, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.strokeStyle = `rgba(251, 191, 36, ${ca.shockwaveAlpha * 0.8})`;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(ca.chickenX, ca.chickenY, ca.shockwaveRadius * 0.7, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Comic "💥 CRASH!" badge pop
+          if (ca.shockwaveRadius < 85) {
+            ctx.fillStyle = `rgba(239, 68, 68, ${ca.shockwaveAlpha})`;
+            ctx.font = 'black 30px system-ui';
+            ctx.textAlign = 'center';
+            ctx.fillText('💥 CRASH!', ca.chickenX, ca.chickenY - 45);
+          }
+          ctx.restore();
+        }
+      }
+
+      // -------------------------------------------------------------
       // 5. UPDATE & DRAW CHICKEN
       // -------------------------------------------------------------
       const c = chickenPos.current;
@@ -646,29 +829,66 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
 
       const drawY = c.y - c.hopHeight;
 
-      ctx.save();
-      ctx.translate(c.x, drawY);
-
-      // Shadow below chicken (scales with jump height)
-      const shadowScale = Math.max(0.4, 1 - c.hopHeight / 50);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.beginPath();
-      ctx.ellipse(0, c.hopHeight + 12, 18 * shadowScale, 9 * shadowScale, 0, 0, Math.PI * 2);
-      ctx.fill();
-
       if (chickenState.current === 'crushed') {
-        // Flattened Chicken Splat
-        ctx.fillStyle = '#f59e0b';
+        const cx = ca.active ? ca.chickenX : c.x;
+        const cy = ca.active ? ca.chickenY : drawY;
+        const crot = ca.active ? ca.chickenRot : 0;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(crot);
+
+        if (ca.active && ca.hasCollided && ca.chickenY < chickenPos.current.targetY) {
+          // Mid-air tumbling chicken in flight
+          ctx.fillStyle = '#f8fafc';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 16, 19, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Flapping disoriented wings
+          ctx.fillStyle = '#fef08a';
+          ctx.beginPath();
+          ctx.ellipse(-14, 0, 8, 14, 0.5, 0, Math.PI * 2);
+          ctx.ellipse(14, 0, 8, 14, -0.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Head with X eyes
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(0, -16, 10, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#0f172a';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('❌', 0, -12);
+        } else {
+          // Flattened Chicken Splat on Road
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.ellipse(0, 5, 28, 13, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Dizzy Rotating Stars 💫
+          const starAngle = time * 0.005;
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = '22px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText('💫', Math.cos(starAngle) * 16, -18 + Math.sin(starAngle) * 4);
+          ctx.fillText('⭐', Math.cos(starAngle + Math.PI) * 16, -18 + Math.sin(starAngle + Math.PI) * 4);
+        }
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.translate(c.x, drawY);
+
+        // Shadow below chicken (scales with jump height)
+        const shadowScale = Math.max(0.4, 1 - c.hopHeight / 50);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.beginPath();
-        ctx.ellipse(0, 5, 26, 12, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, c.hopHeight + 12, 18 * shadowScale, 9 * shadowScale, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Dizzy Stars / Eyes
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '24px system-ui';
-        ctx.textAlign = 'center';
-        ctx.fillText('💫', 0, -15);
-      } else {
         // Realistic Animated 2.5D Chicken
         const breathe = Math.sin(time * 0.006) * 1.5;
         const wingFlap = c.hopHeight > 0 ? Math.sin(time * 0.04) * 8 : 0;
@@ -740,9 +960,9 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
           ctx.fillStyle = '#0f172a';
           ctx.fillRect(4, -18 + breathe, 12, 5);
         }
-      }
 
-      ctx.restore();
+        ctx.restore();
+      }
 
       // -------------------------------------------------------------
       // 6. UPDATE & DRAW PARTICLES (Feathers, Smoke, Confetti)
