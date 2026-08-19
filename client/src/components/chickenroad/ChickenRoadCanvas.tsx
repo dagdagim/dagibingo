@@ -370,40 +370,94 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
         ctx.restore();
 
         // ---------------------------------------------------------
-        // ROAD BLOCKER / HYDRAULIC BARRIER (Safely crossed lane)
+        // VERTICAL ROAD BLOCKERS / HYDRAULIC BARRIERS (Safely crossed lane)
         // ---------------------------------------------------------
         if (isPassedLane && rowState) {
-          // Draw heavy duty yellow/black diagonal striped barrier
-          const barrierY = laneY + LANE_HEIGHT / 2 - 8;
-          ctx.save();
-          
-          // Outer housing
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(roadX + 100, barrierY - 4, roadWidth - 200, 24);
+          const barrierH = LANE_HEIGHT - 16;
+          const barrierY = laneY + 8;
+          const barrierW = 20;
 
-          // Striped barrier bar
-          ctx.fillStyle = '#eab308';
-          ctx.fillRect(roadX + 105, barrierY, roadWidth - 210, 16);
+          // Helper to draw vertical hydraulic road blocker column
+          const drawVerticalBlocker = (bx: number) => {
+            ctx.save();
 
-          // Diagonal Hazard Stripes
-          ctx.fillStyle = '#000000';
-          for (let sx = roadX + 105; sx < roadX + roadWidth - 105; sx += 30) {
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.fillRect(bx + 4, barrierY + 4, barrierW, barrierH);
+
+            // Outer steel casing & hydraulic piston mount
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(bx - 3, barrierY - 3, barrierW + 6, barrierH + 6);
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(bx - 3, barrierY - 3, barrierW + 6, barrierH + 6);
+
+            // Warning Yellow Pillar Body
+            ctx.fillStyle = '#eab308';
+            ctx.fillRect(bx, barrierY, barrierW, barrierH);
+
+            // Diagonal Hazard Stripes (Clipped inside vertical pillar)
+            ctx.save();
             ctx.beginPath();
-            ctx.moveTo(sx, barrierY + 16);
-            ctx.lineTo(sx + 15, barrierY);
-            ctx.lineTo(sx + 25, barrierY);
-            ctx.lineTo(sx + 10, barrierY + 16);
+            ctx.rect(bx, barrierY, barrierW, barrierH);
+            ctx.clip();
+            ctx.fillStyle = '#000000';
+            const stripeH = 16;
+            for (let sy = barrierY - barrierW; sy < barrierY + barrierH + barrierW; sy += stripeH * 1.6) {
+              ctx.beginPath();
+              ctx.moveTo(bx, sy);
+              ctx.lineTo(bx + barrierW, sy + barrierW);
+              ctx.lineTo(bx + barrierW, sy + barrierW + stripeH);
+              ctx.lineTo(bx, sy + stripeH);
+              ctx.closePath();
+              ctx.fill();
+            }
+            ctx.restore();
+
+            // Vertical Steel Edge Highlights
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(bx + 2, barrierY);
+            ctx.lineTo(bx + 2, barrierY + barrierH);
+            ctx.stroke();
+
+            // Top & Bottom Flashing Amber Strobe LEDs
+            const blink = Math.sin(time * 0.01 + bx) > 0;
+            ctx.fillStyle = blink ? '#fbbf24' : '#78350f';
+            ctx.beginPath();
+            ctx.arc(bx + barrierW / 2, barrierY + 7, 4, 0, Math.PI * 2);
+            ctx.arc(bx + barrierW / 2, barrierY + barrierH - 7, 4, 0, Math.PI * 2);
             ctx.fill();
-          }
 
-          // Blinking Amber Warning LEDs
-          const blink = Math.sin(time * 0.008) > 0;
-          ctx.fillStyle = blink ? '#fbbf24' : '#78350f';
-          ctx.beginPath();
-          ctx.arc(roadX + 120, barrierY + 8, 5, 0, Math.PI * 2);
-          ctx.arc(roadX + roadWidth - 120, barrierY + 8, 5, 0, Math.PI * 2);
-          ctx.fill();
+            if (blink) {
+              ctx.fillStyle = 'rgba(251, 191, 36, 0.25)';
+              ctx.beginPath();
+              ctx.arc(bx + barrierW / 2, barrierY + 7, 10, 0, Math.PI * 2);
+              ctx.arc(bx + barrierW / 2, barrierY + barrierH - 7, 10, 0, Math.PI * 2);
+              ctx.fill();
+            }
 
+            // Hydraulic side pistons
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(bx - 4, barrierY + barrierH * 0.25, 3, 14);
+            ctx.fillRect(bx - 4, barrierY + barrierH * 0.65, 3, 14);
+            ctx.fillRect(bx + barrierW + 1, barrierY + barrierH * 0.25, 3, 14);
+            ctx.fillRect(bx + barrierW + 1, barrierY + barrierH * 0.65, 3, 14);
+
+            ctx.restore();
+          };
+
+          // Draw vertical barriers at traffic entry points and along the lane boundary
+          drawVerticalBlocker(roadX + 40);
+          drawVerticalBlocker(roadX + roadWidth * 0.25);
+          drawVerticalBlocker(roadX + roadWidth * 0.75 - barrierW);
+          drawVerticalBlocker(roadX + roadWidth - 60);
+
+          // Subtle green safety clearance tint for the passed lane
+          ctx.save();
+          ctx.fillStyle = 'rgba(16, 185, 129, 0.06)';
+          ctx.fillRect(roadX + 15, laneY, roadWidth - 30, LANE_HEIGHT);
           ctx.restore();
         }
 
