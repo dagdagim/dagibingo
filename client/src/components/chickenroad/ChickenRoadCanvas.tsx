@@ -53,6 +53,7 @@ interface SkidMark {
 
 interface CrashAnimationState {
   active: boolean;
+  delay?: number;
   hasCollided: boolean;
   carX: number;
   carY: number;
@@ -232,29 +233,32 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
     const isFinished = game && game.status !== 'IN_PROGRESS';
     const isCrushed = game?.status === 'CRUSHED';
     const isWon = game?.status === 'CASHED_OUT';
-
-    // Find the latest stepped row / lane
     const lastRow = game && game.rows.length > 0 ? game.rows[game.rows.length - 1] : null;
-    let stepLane = currentRow;
-    if (isCrushed && lastRow) {
-      stepLane = lastRow.rowIndex + 1; // Move forward onto the next lane where collision happens
-    }
 
     // Calculate Y world position
     let targetY = TOTAL_WORLD_HEIGHT - SIDEWALK_HEIGHT / 2;
-    if (stepLane > 0 && stepLane <= TOTAL_LANES) {
-      targetY = TOTAL_WORLD_HEIGHT - (SIDEWALK_HEIGHT + (stepLane - 0.5) * LANE_HEIGHT);
-    } else if (stepLane > TOTAL_LANES || isWon) {
-      targetY = FINISH_HEIGHT / 2;
-    }
-
-    // Calculate X world position
     let targetX = width / 2;
-    if (lastRow && lastRow.selectedTileIndex !== undefined) {
+
+    if (isCrushed && lastRow) {
+      // The chicken moves forward 1 step into the crashed lane!
+      const crashLaneIndex = lastRow.rowIndex;
+      targetY = TOTAL_WORLD_HEIGHT - (SIDEWALK_HEIGHT + (crashLaneIndex + 0.5) * LANE_HEIGHT);
+      
       const laneWidth = width * 0.85;
       const startX = (width - laneWidth) / 2;
       const colWidth = laneWidth / tilesPerRow;
-      targetX = startX + (lastRow.selectedTileIndex + 0.5) * colWidth;
+      const colIdx = lastRow.selectedTileIndex ?? 0;
+      targetX = startX + (colIdx + 0.5) * colWidth;
+    } else if (currentRow > 0 && currentRow <= TOTAL_LANES) {
+      targetY = TOTAL_WORLD_HEIGHT - (SIDEWALK_HEIGHT + (currentRow - 0.5) * LANE_HEIGHT);
+      if (lastRow && lastRow.selectedTileIndex !== undefined) {
+        const laneWidth = width * 0.85;
+        const startX = (width - laneWidth) / 2;
+        const colWidth = laneWidth / tilesPerRow;
+        targetX = startX + (lastRow.selectedTileIndex + 0.5) * colWidth;
+      }
+    } else if (currentRow > TOTAL_LANES || isWon) {
+      targetY = FINISH_HEIGHT / 2;
     }
 
     if (chickenPos.current.x === 0 && chickenPos.current.y === 0) {
@@ -265,7 +269,7 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
     } else {
       chickenPos.current.targetX = targetX;
       chickenPos.current.targetY = targetY;
-      chickenPos.current.hopProgress = 0; // Trigger hop animation onto the next line
+      chickenPos.current.hopProgress = 0; // Trigger hop animation
     }
 
     if (currentRow === 0 && !isCrushed) {
@@ -274,15 +278,16 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       });
     }
 
-    if (isCrushed) {
+    if (isCrushed && lastRow) {
       chickenState.current = 'crushed';
-      // Trigger dramatic car crush animation on the stepped line!
+      // Trigger dramatic car crush animation with a hop delay so chicken lands on next line first!
       crashAnim.current = {
         active: true,
+        delay: 0.16, // Hop forward 1 step into the lane first
         hasCollided: false,
-        carX: targetX - 350, // Car zooms across from the left
-        carY: targetY, // Exactly on the new line the chicken jumped onto
-        carSpeed: 32, // High speed
+        carX: -160, // Car zooms from the left
+        carY: targetY,
+        carSpeed: 34, // High speed
         carColor: '#ef4444', // Fiery Red Muscle Car
         carWidth: 100,
         carHeight: 40,
@@ -350,7 +355,9 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       // -------------------------------------------------------------
       const ca = crashAnim.current;
       if (ca.active) {
-        if (!ca.hasCollided) {
+        if (ca.delay !== undefined && ca.delay > 0) {
+          ca.delay -= dt;
+        } else if (!ca.hasCollided) {
           ca.carX += ca.carSpeed;
           // Impact collision point!
           if (ca.carX >= ca.chickenX - 25) {
@@ -657,12 +664,11 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       // 4. UPDATE & DRAW DYNAMIC CARS
       // -------------------------------------------------------------
       const isCrushed = game?.status === 'CRUSHED';
-      const lastRevealed = game && game.rows.length > 0 ? game.rows[game.rows.length - 1] : null;
-      const crashLane = isCrushed && lastRevealed ? lastRevealed.rowIndex : -1;
+      const crashLane = isCrushed ? currentRow : -1;
 
       for (const car of cars.current) {
         const laneY = TOTAL_WORLD_HEIGHT - SIDEWALK_HEIGHT - (car.lane + 1) * LANE_HEIGHT + (LANE_HEIGHT - car.height) / 2;
-        const isPassedLane = isCrushed ? (car.lane < crashLane) : (car.lane < currentRow);
+        const isPassedLane = car.lane < currentRow;
 
         // Disappear / Fade out cars on passed lanes if not crushed
         if (isPassedLane && car.lane !== crashLane) {
