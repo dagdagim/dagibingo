@@ -1,28 +1,21 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import {
-  ChickenRoadDifficulty,
-  ChickenRoadGameStatus,
-  ChickenSkinType,
-  ChickenStageTheme,
-} from '../shared';
+import { ChickenRoadDifficulty, ChickenRoadGameStatus, ChickenRoadTileType } from '../shared';
 
 export interface IChickenRoadGame extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   username: string;
   difficulty: ChickenRoadDifficulty;
-  skin: ChickenSkinType;
   betAmount: number;
-  currentRoad: number; // 0 to 25
+  currentRow: number; // 0 to 9 (10 total roads)
   currentMultiplier: number;
-  autoStopMultiplier?: number;
   status: ChickenRoadGameStatus;
   payoutAmount: number;
-  stageTheme: ChickenStageTheme;
-  fullRoadLayout: boolean[]; // true = SAFE, false = CAR_CRASH
-  revealedRoads: {
-    roadIndex: number;
-    isSafe: boolean;
+  fullLayout: ChickenRoadTileType[][];
+  revealedRows: {
+    rowIndex: number;
+    tiles: ChickenRoadTileType[];
+    selectedTileIndex?: number;
   }[];
   hash: string;
   serverSeed: string;
@@ -46,21 +39,16 @@ const ChickenRoadGameSchema = new Schema<IChickenRoadGame>(
     },
     difficulty: {
       type: String,
-      enum: ['EASY', 'MEDIUM', 'HARD', 'DAREDEVIL'],
+      enum: ['EASY', 'MEDIUM', 'HARD', 'EXTREME', 'NIGHTMARE'],
       required: true,
-      default: 'MEDIUM',
-    },
-    skin: {
-      type: String,
-      enum: ['CLASSIC', 'BABY', 'ROYAL', 'NINJA', 'COWBOY', 'SPACE', 'GOLDEN'],
-      default: 'CLASSIC',
+      default: 'EASY',
     },
     betAmount: {
       type: Number,
       required: true,
       min: 0.5,
     },
-    currentRoad: {
+    currentRow: {
       type: Number,
       default: 0,
     },
@@ -68,12 +56,9 @@ const ChickenRoadGameSchema = new Schema<IChickenRoadGame>(
       type: Number,
       default: 1.0,
     },
-    autoStopMultiplier: {
-      type: Number,
-    },
     status: {
       type: String,
-      enum: ['IN_PROGRESS', 'CASHED_OUT', 'CRASHED'],
+      enum: ['IN_PROGRESS', 'CASHED_OUT', 'CRUSHED'],
       default: 'IN_PROGRESS',
       index: true,
     },
@@ -81,19 +66,15 @@ const ChickenRoadGameSchema = new Schema<IChickenRoadGame>(
       type: Number,
       default: 0,
     },
-    stageTheme: {
-      type: String,
-      enum: ['COUNTRY', 'HIGHWAY', 'CITY', 'NIGHT', 'SPEEDWAY'],
-      default: 'COUNTRY',
-    },
-    fullRoadLayout: {
-      type: [Boolean],
+    fullLayout: {
+      type: [[String]],
       required: true,
     },
-    revealedRoads: [
+    revealedRows: [
       {
-        roadIndex: { type: Number, required: true },
-        isSafe: { type: Boolean, required: true },
+        rowIndex: { type: Number, required: true },
+        tiles: [{ type: String }],
+        selectedTileIndex: { type: Number },
       },
     ],
     hash: {
@@ -106,7 +87,7 @@ const ChickenRoadGameSchema = new Schema<IChickenRoadGame>(
     },
     clientSeed: {
       type: String,
-      default: 'dagi_chicken_road_seed',
+      default: 'chickenroad_client_seed',
     },
     nonce: {
       type: Number,

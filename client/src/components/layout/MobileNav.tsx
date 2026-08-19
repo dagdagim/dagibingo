@@ -82,20 +82,6 @@ export const MobileNav: React.FC = () => {
             {/* Instant Games Grid */}
             <div className="grid grid-cols-2 gap-2.5">
               <Link
-                to="/chickenroad"
-                onClick={() => setIsMoreOpen(false)}
-                className="p-3 bg-arena-surface rounded-2xl border border-arena-border flex items-center gap-2.5 hover:border-amber-400 transition-colors"
-              >
-                <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
-                  <span className="text-base">🐔</span>
-                </div>
-                <div>
-                  <span className="text-xs font-black text-arena-text block">Chicken Road</span>
-                  <span className="text-[9px] text-arena-muted">Traffic Hop</span>
-                </div>
-              </Link>
-
-              <Link
                 to="/towers"
                 onClick={() => setIsMoreOpen(false)}
                 className="p-3 bg-arena-surface rounded-2xl border border-arena-border flex items-center gap-2.5 hover:border-yellow-400 transition-colors"
@@ -162,6 +148,20 @@ export const MobileNav: React.FC = () => {
                 <div>
                   <span className="text-xs font-black text-arena-text block">Plinko</span>
                   <span className="text-[9px] text-arena-muted">Physics Arcade</span>
+                </div>
+              </Link>
+
+              <Link
+                to="/chickenroad"
+                onClick={() => setIsMoreOpen(false)}
+                className="p-3 bg-arena-surface rounded-2xl border border-arena-border flex items-center gap-2.5 hover:border-green-400 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400">
+                  <span className="text-base">🐔</span>
+                </div>
+                <div>
+                  <span className="text-xs font-black text-arena-text block">Chicken</span>
+                  <span className="text-[9px] text-arena-muted">Road Crossing</span>
                 </div>
               </Link>
 

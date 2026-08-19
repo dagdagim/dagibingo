@@ -1,21 +1,22 @@
 import { Router } from 'express';
 import {
   startChickenRoadGame,
-  stepChickenRoadGame,
-  cashoutChickenRoadGame,
+  stepChickenRoad,
+  cashoutChickenRoad,
   getActiveChickenRoadGame,
   getMyChickenRoadHistory,
-  getChickenLiveRuns,
 } from './chickenroad.controller';
 import { authenticateJwt } from '../../middleware/auth';
 
 const router = Router();
 
-router.get('/live-runs', getChickenLiveRuns);
-router.get('/active', authenticateJwt, getActiveChickenRoadGame);
-router.get('/my-history', authenticateJwt, getMyChickenRoadHistory);
-router.post('/start', authenticateJwt, startChickenRoadGame);
-router.post('/step', authenticateJwt, stepChickenRoadGame);
-router.post('/cashout', authenticateJwt, cashoutChickenRoadGame);
+// All routes require authentication
+router.use(authenticateJwt);
+
+router.post('/start', startChickenRoadGame);
+router.post('/step', stepChickenRoad);
+router.post('/cashout', cashoutChickenRoad);
+router.get('/active', getActiveChickenRoadGame);
+router.get('/my-history', getMyChickenRoadHistory);
 
 export default router;

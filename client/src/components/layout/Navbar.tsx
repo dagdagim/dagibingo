@@ -68,15 +68,6 @@ export const Navbar: React.FC = () => {
       category: '⚡ Instant Arcade',
       games: [
         {
-          path: '/chickenroad',
-          label: 'Chicken Road',
-          badge: '97% RTP',
-          badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-          icon: <span className="text-lg">🐔</span>,
-          desc: 'Cross 25 traffic lanes, dodge vehicles and cashout',
-          multiplier: 'Up to 50k×',
-        },
-        {
           path: '/towers',
           label: 'Dagi Towers',
           badge: '97% RTP',
@@ -111,6 +102,15 @@ export const Navbar: React.FC = () => {
           icon: <Flame className="w-5 h-5 text-orange-400" />,
           desc: 'Drop physics balls down the pegboard pyramid',
           multiplier: 'Up to 1000×',
+        },
+        {
+          path: '/chickenroad',
+          label: 'Chicken Road',
+          badge: 'NEW',
+          badgeColor: 'bg-green-500/20 text-green-400 border-green-500/30',
+          icon: <span className="text-lg">🐔</span>,
+          desc: 'Cross the road and dodge the cars to win',
+          multiplier: 'Up to 1M×',
         },
       ],
     },
@@ -158,7 +158,7 @@ export const Navbar: React.FC = () => {
   ];
 
   const quickChips = [
-    { path: '/chickenroad', label: 'Chicken', icon: <span>🐔</span>, activeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/40' },
+    { path: '/chickenroad', label: 'Chicken', icon: <span>🐔</span>, activeColor: 'bg-green-500/20 text-green-400 border-green-500/40' },
     { path: '/towers', label: 'Towers', icon: <span>🏰</span>, activeColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' },
     { path: '/limbo', label: 'Limbo', icon: <Rocket className="w-3.5 h-3.5 text-rose-500" />, activeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/40' },
     { path: '/greyhound', label: 'Hounds', icon: <span>🐕</span>, activeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/40' },

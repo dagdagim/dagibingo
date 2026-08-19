@@ -1,222 +1,208 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
-import { ChickenRoadGame, IChickenRoadGame } from '../../models/ChickenRoadGame';
+import { ChickenRoadGame } from '../../models/ChickenRoadGame';
+import { User } from '../../models/User';
 import { Wallet } from '../../models/Wallet';
 import { WalletTransaction } from '../../models/WalletTransaction';
-import { User } from '../../models/User';
+import { BadRequestError, NotFoundError } from '../../utils/errors';
 import {
   ChickenRoadDifficulty,
-  ChickenSkinType,
-  ChickenStageTheme,
+  ChickenRoadTileType,
+  IChickenRoadDifficultyConfig,
   IChickenRoadGameDTO,
-  ChickenLiveRunDTO,
 } from '../../shared';
 
-export const PROGRESSIVE_ROAD_MULTIPLIERS = [
-  1.0,   // Start (0)
-  1.15,  // Road 1
-  1.40,  // Road 2
-  1.80,  // Road 3
-  2.40,  // Road 4
-  3.20,  // Road 5 (Checkpoint 🏁)
-  4.50,  // Road 6
-  6.80,  // Road 7
-  10.00, // Road 8
-  15.00, // Road 9
-  25.00, // Road 10 (Gold Checkpoint 🏆)
-  35.00, // Road 11
-  50.00, // Road 12
-  75.00, // Road 13
-  110.0, // Road 14
-  165.0, // Road 15
-  250.0, // Road 16
-  380.0, // Road 17
-  580.0, // Road 18
-  900.0, // Road 19
-  1400.0, // Road 20
-  2200.0, // Road 21
-  3500.0, // Road 22
-  5500.0, // Road 23
-  8000.0, // Road 24
-  12500.0, // Road 25 (Ultimate Finish 👑)
-];
+const CHICKEN_ROAD_DIFFICULTY_DATA: Record<ChickenRoadDifficulty, IChickenRoadDifficultyConfig> = {
+  EASY: {
+    name: 'EASY',
+    label: 'Easy (3 Safe / 1 Car)',
+    tilesPerRow: 4,
+    safePerRow: 3,
+    carsPerRow: 1,
+    multipliers: [1.29, 1.72, 2.29, 3.06, 4.08, 5.44, 7.25, 9.67, 12.89, 17.18],
+  },
+  MEDIUM: {
+    name: 'MEDIUM',
+    label: 'Medium (2 Safe / 1 Car)',
+    tilesPerRow: 3,
+    safePerRow: 2,
+    carsPerRow: 1,
+    multipliers: [1.45, 2.18, 3.27, 4.91, 7.36, 11.04, 16.56, 24.84, 37.26, 55.89],
+  },
+  HARD: {
+    name: 'HARD',
+    label: 'Hard (1 Safe / 1 Car)',
+    tilesPerRow: 2,
+    safePerRow: 1,
+    carsPerRow: 1,
+    multipliers: [1.94, 3.88, 7.76, 15.52, 31.04, 62.08, 124.16, 248.32, 496.64, 993.28],
+  },
+  EXTREME: {
+    name: 'EXTREME',
+    label: 'Extreme (1 Safe / 2 Cars)',
+    tilesPerRow: 3,
+    safePerRow: 1,
+    carsPerRow: 2,
+    multipliers: [2.91, 8.73, 26.19, 78.57, 235.71, 707.13, 2121.39, 6364.17, 19092.51, 57277.53],
+  },
+  NIGHTMARE: {
+    name: 'NIGHTMARE',
+    label: 'Nightmare (1 Safe / 3 Cars)',
+    tilesPerRow: 4,
+    safePerRow: 1,
+    carsPerRow: 3,
+    multipliers: [3.88, 15.52, 62.08, 248.32, 993.28, 3973.12, 15892.48, 63569.92, 254279.68, 1017118.72],
+  },
+};
 
-export function getStageThemeForRoad(roadIndex: number): ChickenStageTheme {
-  if (roadIndex <= 4) return 'COUNTRY';
-  if (roadIndex <= 8) return 'HIGHWAY';
-  if (roadIndex <= 13) return 'CITY';
-  if (roadIndex <= 18) return 'NIGHT';
-  return 'SPEEDWAY';
-}
+const generateChickenRoadLayout = (difficulty: ChickenRoadDifficulty): ChickenRoadTileType[][] => {
+  const config = CHICKEN_ROAD_DIFFICULTY_DATA[difficulty];
+  const layout: ChickenRoadTileType[][] = [];
 
-function generateChickenRoadLayout(seed: string): boolean[] {
-  const layout: boolean[] = [];
-  let hash = crypto.createHash('sha256').update(seed).digest('hex');
+  for (let row = 0; row < 10; row++) { // 10 rows (lanes)
+    const rowTiles: ChickenRoadTileType[] = [];
+    for (let i = 0; i < config.safePerRow; i++) rowTiles.push('SAFE');
+    for (let i = 0; i < config.carsPerRow; i++) rowTiles.push('CAR');
 
-  // Survival probability starts high (95%) and tapers smoothly down to 78% on late roads
-  for (let r = 1; r <= 25; r++) {
-    const byteIdx = (r * 4) % (hash.length - 4);
-    const intVal = parseInt(hash.substring(byteIdx, byteIdx + 4), 16);
-    const randFloat = intVal / 0xffff;
-
-    // Survival curve: 95% down to 80%
-    const survivalRate = Math.max(0.75, 0.96 - (r * 0.007));
-    const isSafe = randFloat <= survivalRate;
-    layout.push(isSafe);
-
-    if (r % 6 === 0) {
-      hash = crypto.createHash('sha256').update(hash).digest('hex');
+    // Shuffle row
+    for (let i = rowTiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [rowTiles[i], rowTiles[j]] = [rowTiles[j], rowTiles[i]];
     }
+    layout.push(rowTiles);
   }
 
   return layout;
-}
+};
 
-function formatChickenRoadDTO(game: IChickenRoadGame): IChickenRoadGameDTO {
+const generateHash = (serverSeed: string, clientSeed: string, nonce: number): string => {
+  return crypto
+    .createHmac('sha256', serverSeed)
+    .update(`${clientSeed}-${nonce}`)
+    .digest('hex');
+};
+
+const mapGameToDTO = (game: any): IChickenRoadGameDTO => {
+  const isFinished = game.status !== 'IN_PROGRESS';
+
+  let rowsToReturn = game.revealedRows;
+  if (isFinished) {
+    const revealedIndices = new Set(game.revealedRows.map((r: any) => r.rowIndex));
+    const allRows = [...game.revealedRows];
+
+    for (let i = 0; i < game.fullLayout.length; i++) {
+      if (!revealedIndices.has(i)) {
+        allRows.push({
+          rowIndex: i,
+          tiles: game.fullLayout[i],
+        });
+      }
+    }
+    allRows.sort((a, b) => a.rowIndex - b.rowIndex);
+    rowsToReturn = allRows;
+  } else {
+    // Inject the current unknown row so UI can render the interactive tiles
+    rowsToReturn = [
+      ...game.revealedRows,
+      {
+        rowIndex: game.currentRow,
+        tiles: Array(game.fullLayout[game.currentRow].length).fill('HIDDEN'),
+      },
+    ].sort((a, b) => a.rowIndex - b.rowIndex);
+  }
+
   return {
     id: game._id.toString(),
     userId: game.userId.toString(),
     username: game.username,
     difficulty: game.difficulty,
-    skin: game.skin,
     betAmount: game.betAmount,
-    currentRoad: game.currentRoad,
+    currentRow: game.currentRow,
     currentMultiplier: game.currentMultiplier,
-    autoStopMultiplier: game.autoStopMultiplier,
     status: game.status,
     payoutAmount: game.payoutAmount,
-    stageTheme: game.stageTheme,
-    revealedRoads: game.revealedRoads,
+    rows: rowsToReturn,
     hash: game.hash,
-    serverSeed: game.status !== 'IN_PROGRESS' ? game.serverSeed : undefined,
+    serverSeed: isFinished ? game.serverSeed : undefined,
+    clientSeed: game.clientSeed,
     createdAt: game.createdAt.toISOString(),
     updatedAt: game.updatedAt.toISOString(),
   };
-}
+};
 
-/**
- * POST /api/chickenroad/start
- */
-export const startChickenRoadGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const startChickenRoadGame = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Authentication required' });
-      return;
+    const { difficulty, betAmount } = req.body;
+    const userId = req.user!.userId;
+
+    const diffLevel = difficulty as ChickenRoadDifficulty;
+
+    if (!CHICKEN_ROAD_DIFFICULTY_DATA[diffLevel]) {
+      throw new BadRequestError('Invalid difficulty level.');
     }
 
-    const {
-      difficulty = 'MEDIUM',
-      skin = 'CLASSIC',
-      betAmount,
-      autoStopMultiplier,
-    } = req.body;
-
-    const parsedBet = Number(betAmount);
-    if (isNaN(parsedBet) || parsedBet < 0.5) {
-      res.status(400).json({ success: false, message: 'Minimum bet is 0.5 ETB.' });
-      return;
+    if (betAmount < 0.5) {
+      throw new BadRequestError('Minimum bet is 0.5 ETB.');
     }
 
-    // Check active game
-    const existing = await ChickenRoadGame.findOne({
-      userId: new mongoose.Types.ObjectId(userId),
-      status: 'IN_PROGRESS',
-    });
-
-    if (existing) {
-      res.status(400).json({
-        success: false,
-        message: 'You already have an active Chicken Road run in progress.',
-        game: formatChickenRoadDTO(existing),
-      });
-      return;
+    const activeGame = await ChickenRoadGame.findOne({ userId: new mongoose.Types.ObjectId(userId), status: 'IN_PROGRESS' });
+    if (activeGame) {
+      throw new BadRequestError('You already have an active Chicken Road game. Cash out or finish it first.');
     }
 
     const user = await User.findById(userId);
-    const userWallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+    if (!user) throw new NotFoundError('User not found.');
 
-    if (!userWallet || userWallet.availableBalance < parsedBet) {
-      res.status(400).json({
-        success: false,
-        message: `Insufficient balance. You have ${userWallet?.availableBalance || 0} ETB.`,
-      });
-      return;
+    const userWallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+    if (!userWallet || userWallet.availableBalance < betAmount) {
+      throw new BadRequestError(`Insufficient balance. You have ${userWallet?.availableBalance || 0} ETB.`);
     }
 
-    // Debit player wallet
+    // Debit
     const userBalBefore = userWallet.availableBalance;
-    userWallet.availableBalance -= parsedBet;
+    userWallet.availableBalance -= betAmount;
     await userWallet.save();
 
-    const serverSeed = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.createHash('sha256').update(serverSeed).digest('hex');
-    const fullRoadLayout = generateChickenRoadLayout(serverSeed);
-
-    const game = await ChickenRoadGame.create({
-      userId: new mongoose.Types.ObjectId(userId),
-      username: user?.username || 'Clucker',
-      difficulty: difficulty as ChickenRoadDifficulty,
-      skin: skin as ChickenSkinType,
-      betAmount: parsedBet,
-      currentRoad: 0,
-      currentMultiplier: 1.0,
-      autoStopMultiplier: autoStopMultiplier ? Number(autoStopMultiplier) : undefined,
-      status: 'IN_PROGRESS',
-      payoutAmount: 0,
-      stageTheme: 'COUNTRY',
-      fullRoadLayout,
-      revealedRoads: [],
-      hash,
-      serverSeed,
-    });
-
     await WalletTransaction.create({
-      walletId: userWallet._id,
       userId: new mongoose.Types.ObjectId(userId),
+      walletId: userWallet._id,
       type: 'GAME_ENTRY',
-      amount: parsedBet,
+      amount: -betAmount,
       balanceBefore: userBalBefore,
       balanceAfter: userWallet.availableBalance,
-      currency: 'ETB',
+      referenceId: new mongoose.Types.ObjectId().toString(),
+      description: `Chicken Road Start: ${diffLevel}`,
       status: 'COMPLETED',
-      description: `Chicken Road Entry (${skin} skin, ${parsedBet} ETB)`,
-      referenceId: game._id.toString(),
-      metadata: {
-        gameType: 'CHICKEN_ROAD',
-        skin,
-        gameId: game._id.toString(),
-      },
     });
 
-    // Credit house admin for stake
-    const adminUser = await User.findOne({ role: 'ADMIN' });
-    if (adminUser) {
-      const adminWallet = await Wallet.findOne({ userId: adminUser._id });
-      if (adminWallet) {
-        const adminBalBefore = adminWallet.availableBalance;
-        adminWallet.availableBalance += parsedBet;
-        await adminWallet.save();
+    const fullLayout = generateChickenRoadLayout(diffLevel);
+    const serverSeed = crypto.randomBytes(32).toString('hex');
+    const clientSeed = 'chickenroad_client_seed';
+    const nonce = 1;
+    const hash = generateHash(serverSeed, clientSeed, nonce);
 
-        await WalletTransaction.create({
-          walletId: adminWallet._id,
-          userId: adminUser._id,
-          type: 'DEPOSIT',
-          amount: parsedBet,
-          balanceBefore: adminBalBefore,
-          balanceAfter: adminWallet.availableBalance,
-          currency: 'ETB',
-          status: 'COMPLETED',
-          description: `House Stake from ${user?.username} (Chicken Road #${game._id})`,
-          referenceId: game._id.toString(),
-        });
-      }
-    }
+    const game = new ChickenRoadGame({
+      userId: new mongoose.Types.ObjectId(userId),
+      username: user.username,
+      difficulty: diffLevel,
+      betAmount,
+      currentRow: 0,
+      currentMultiplier: 1.0,
+      status: 'IN_PROGRESS',
+      payoutAmount: 0,
+      fullLayout,
+      revealedRows: [],
+      hash,
+      serverSeed,
+      clientSeed,
+      nonce,
+    });
+
+    await game.save();
 
     res.status(201).json({
-      success: true,
-      game: formatChickenRoadDTO(game),
+      game: mapGameToDTO(game),
       newBalance: userWallet.availableBalance,
     });
   } catch (error) {
@@ -224,328 +210,163 @@ export const startChickenRoadGame = async (req: Request, res: Response, next: Ne
   }
 };
 
-/**
- * POST /api/chickenroad/step
- */
-export const stepChickenRoadGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const stepChickenRoad = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Authentication required' });
-      return;
+    const { gameId, tileIndex } = req.body;
+    const userId = req.user!.userId;
+
+    const game = await ChickenRoadGame.findById(gameId);
+    if (!game) throw new NotFoundError('Game not found.');
+    if (game.userId.toString() !== userId) throw new BadRequestError('Not your game.');
+    if (game.status !== 'IN_PROGRESS') throw new BadRequestError('Game is already finished.');
+
+    const config = CHICKEN_ROAD_DIFFICULTY_DATA[game.difficulty];
+    const currentRowIndex = game.currentRow;
+
+    if (currentRowIndex >= 10) {
+      throw new BadRequestError('You have already crossed all lanes.');
     }
 
-    const { gameId } = req.body;
+    const targetTileIndex = typeof tileIndex === 'number' && tileIndex >= 0 && tileIndex < config.tilesPerRow
+      ? tileIndex
+      : 0;
 
-    const game = await ChickenRoadGame.findOne({
-      _id: new mongoose.Types.ObjectId(gameId),
-      userId: new mongoose.Types.ObjectId(userId),
-      status: 'IN_PROGRESS',
+    const rowLayout = game.fullLayout[currentRowIndex];
+    const pickedTile = rowLayout[targetTileIndex];
+
+    game.revealedRows.push({
+      rowIndex: currentRowIndex,
+      tiles: rowLayout,
+      selectedTileIndex: targetTileIndex,
     });
 
-    if (!game) {
-      res.status(404).json({ success: false, message: 'Active game not found.' });
-      return;
-    }
+    const userWallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+    if (!userWallet) throw new NotFoundError('Wallet not found');
 
-    const targetRoadIdx = game.currentRoad; // 0 for Road 1
-    if (targetRoadIdx >= 25) {
-      res.status(400).json({ success: false, message: 'You have already reached the finish line!' });
-      return;
-    }
-
-    const isRoadSafe = game.fullRoadLayout[targetRoadIdx];
-
-    game.revealedRoads.push({
-      roadIndex: targetRoadIdx + 1,
-      isSafe: isRoadSafe,
-    });
-
-    if (!isRoadSafe) {
-      // CAR CRASH!
-      game.status = 'CRASHED';
+    if (pickedTile === 'CAR') {
+      game.status = 'CRUSHED';
       game.payoutAmount = 0;
-      await game.save();
+    } else {
+      const nextMultiplier = config.multipliers[currentRowIndex];
+      game.currentMultiplier = nextMultiplier;
+      game.currentRow += 1;
 
-      res.status(200).json({
-        success: true,
-        game: formatChickenRoadDTO(game),
-        outcome: 'CRASHED',
-      });
-      return;
-    }
-
-    // SAFE HOP!
-    const newRoadNumber = targetRoadIdx + 1;
-    const newMultiplier = PROGRESSIVE_ROAD_MULTIPLIERS[newRoadNumber];
-    game.currentRoad = newRoadNumber;
-    game.currentMultiplier = newMultiplier;
-    game.stageTheme = getStageThemeForRoad(newRoadNumber);
-
-    // Auto-Stop check or Ultimate Finish (Road 25)
-    const shouldAutoCollect =
-      (game.autoStopMultiplier && newMultiplier >= game.autoStopMultiplier) ||
-      newRoadNumber === 25;
-
-    if (shouldAutoCollect) {
-      const totalPayout = Math.floor(game.betAmount * newMultiplier * 100) / 100;
-      game.status = 'CASHED_OUT';
-      game.payoutAmount = totalPayout;
-      await game.save();
-
-      // Settle Payout
-      const userWallet = await Wallet.findOne({ userId: game.userId });
-      if (userWallet) {
-        const userBalBefore = userWallet.availableBalance;
-        userWallet.availableBalance += totalPayout;
+      if (game.currentRow === 10) {
+        // Reached end of the road
+        game.status = 'CASHED_OUT';
+        game.payoutAmount = game.betAmount * game.currentMultiplier;
+        
+        const balBefore = userWallet.availableBalance;
+        userWallet.availableBalance += game.payoutAmount;
         await userWallet.save();
 
         await WalletTransaction.create({
+          userId: new mongoose.Types.ObjectId(userId),
           walletId: userWallet._id,
-          userId: game.userId,
           type: 'PRIZE',
-          amount: totalPayout,
-          balanceBefore: userBalBefore,
+          amount: game.payoutAmount,
+          balanceBefore: balBefore,
           balanceAfter: userWallet.availableBalance,
-          currency: 'ETB',
-          status: 'COMPLETED',
-          description: `Chicken Road Auto Collect (${newMultiplier}x on Road ${newRoadNumber})`,
           referenceId: game._id.toString(),
+          description: `Chicken Road Win: ${game.currentMultiplier}x`,
+          status: 'COMPLETED',
         });
-
-        // House Admin Debit
-        const adminUser = await User.findOne({ role: 'ADMIN' });
-        if (adminUser) {
-          const adminWallet = await Wallet.findOne({ userId: adminUser._id });
-          if (adminWallet) {
-            const adminBalBefore = adminWallet.availableBalance;
-            adminWallet.availableBalance -= totalPayout;
-            await adminWallet.save();
-
-            await WalletTransaction.create({
-              walletId: adminWallet._id,
-              userId: adminUser._id,
-              type: 'WITHDRAWAL',
-              amount: totalPayout,
-              balanceBefore: adminBalBefore,
-              balanceAfter: adminWallet.availableBalance,
-              currency: 'ETB',
-              status: 'COMPLETED',
-              description: `House Chicken Road Payout to ${game.username}`,
-              referenceId: game._id.toString(),
-            });
-          }
-        }
-
-        res.status(200).json({
-          success: true,
-          game: formatChickenRoadDTO(game),
-          outcome: newRoadNumber === 25 ? 'FINISH_LINE_VICTORY' : 'AUTO_COLLECT_WIN',
-          newBalance: userWallet.availableBalance,
-        });
-        return;
       }
     }
 
     await game.save();
 
-    res.status(200).json({
-      success: true,
-      game: formatChickenRoadDTO(game),
-      outcome: 'SAFE',
+    res.json({
+      game: mapGameToDTO(game),
+      newBalance: userWallet.availableBalance,
     });
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * POST /api/chickenroad/cashout
- */
-export const cashoutChickenRoadGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const cashoutChickenRoad = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Authentication required' });
-      return;
-    }
-
     const { gameId } = req.body;
+    const userId = req.user!.userId;
 
-    const game = await ChickenRoadGame.findOne({
-      _id: new mongoose.Types.ObjectId(gameId),
+    const game = await ChickenRoadGame.findById(gameId);
+    if (!game) throw new NotFoundError('Game not found.');
+    if (game.userId.toString() !== userId) throw new BadRequestError('Not your game.');
+    if (game.status !== 'IN_PROGRESS') throw new BadRequestError('Game is already finished.');
+
+    if (game.currentRow === 0) {
+      throw new BadRequestError('Cannot cash out without taking at least one step.');
+    }
+
+    game.status = 'CASHED_OUT';
+    game.payoutAmount = game.betAmount * game.currentMultiplier;
+
+    const userWallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+    if (!userWallet) throw new NotFoundError('Wallet not found');
+
+    const balBefore = userWallet.availableBalance;
+    userWallet.availableBalance += game.payoutAmount;
+    await userWallet.save();
+
+    await WalletTransaction.create({
       userId: new mongoose.Types.ObjectId(userId),
-      status: 'IN_PROGRESS',
+      walletId: userWallet._id,
+      type: 'PRIZE',
+      amount: game.payoutAmount,
+      balanceBefore: balBefore,
+      balanceAfter: userWallet.availableBalance,
+      referenceId: game._id.toString(),
+      description: `Chicken Road Cashout: ${game.currentMultiplier}x`,
+      status: 'COMPLETED',
     });
 
-    if (!game) {
-      res.status(404).json({ success: false, message: 'Active game not found.' });
-      return;
-    }
-
-    if (game.currentMultiplier <= 1.0) {
-      res.status(400).json({ success: false, message: 'You must cross at least one road before collecting.' });
-      return;
-    }
-
-    const payoutAmount = Math.floor(game.betAmount * game.currentMultiplier * 100) / 100;
-    game.status = 'CASHED_OUT';
-    game.payoutAmount = payoutAmount;
     await game.save();
 
-    // Settle Player Wallet
-    const userWallet = await Wallet.findOne({ userId: game.userId });
-    let newBalance = 0;
-    if (userWallet) {
-      const userBalBefore = userWallet.availableBalance;
-      userWallet.availableBalance += payoutAmount;
-      await userWallet.save();
-      newBalance = userWallet.availableBalance;
-
-      await WalletTransaction.create({
-        walletId: userWallet._id,
-        userId: game.userId,
-        type: 'PRIZE',
-        amount: payoutAmount,
-        balanceBefore: userBalBefore,
-        balanceAfter: userWallet.availableBalance,
-        currency: 'ETB',
-        status: 'COMPLETED',
-        description: `Chicken Road Collect (${game.currentMultiplier}x, Road ${game.currentRoad})`,
-        referenceId: game._id.toString(),
-      });
-
-      // House Admin Debit
-      const adminUser = await User.findOne({ role: 'ADMIN' });
-      if (adminUser) {
-        const adminWallet = await Wallet.findOne({ userId: adminUser._id });
-        if (adminWallet) {
-          const adminBalBefore = adminWallet.availableBalance;
-          adminWallet.availableBalance -= payoutAmount;
-          await adminWallet.save();
-
-          await WalletTransaction.create({
-            walletId: adminWallet._id,
-            userId: adminUser._id,
-            type: 'WITHDRAWAL',
-            amount: payoutAmount,
-            balanceBefore: adminBalBefore,
-            balanceAfter: adminWallet.availableBalance,
-            currency: 'ETB',
-            status: 'COMPLETED',
-            description: `House Chicken Road Payout to ${game.username}`,
-            referenceId: game._id.toString(),
-          });
-        }
-      }
-    }
-
-    res.status(200).json({
-      success: true,
-      game: formatChickenRoadDTO(game),
-      newBalance,
+    res.json({
+      game: mapGameToDTO(game),
+      newBalance: userWallet.availableBalance,
     });
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * GET /api/chickenroad/active
- */
-export const getActiveChickenRoadGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getActiveChickenRoadGame = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user?.userId;
-    if (!userId) {
-      res.status(200).json({ success: true, game: null });
-      return;
-    }
+    const userId = req.user!.userId;
+    const activeGame = await ChickenRoadGame.findOne({ userId: new mongoose.Types.ObjectId(userId), status: 'IN_PROGRESS' });
 
-    const game = await ChickenRoadGame.findOne({
-      userId: new mongoose.Types.ObjectId(userId),
-      status: 'IN_PROGRESS',
-    });
-
-    res.status(200).json({
-      success: true,
-      game: game ? formatChickenRoadDTO(game) : null,
+    res.json({
+      game: activeGame ? mapGameToDTO(activeGame) : null,
     });
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * GET /api/chickenroad/live-runs
- */
-export const getChickenLiveRuns = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getMyChickenRoadHistory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Return recent outcomes and simulated active players
-    const recentGames = await ChickenRoadGame.find({
-      status: { $in: ['CASHED_OUT', 'CRASHED'] },
-    })
-      .sort({ createdAt: -1 })
-      .limit(10);
+    const userId = req.user!.userId;
+    const limit = parseInt(req.query.limit as string) || 20;
 
-    const liveRuns: ChickenLiveRunDTO[] = recentGames.map((g) => ({
-      id: g._id.toString(),
-      username: g.username,
-      skin: g.skin,
-      currentRoad: g.currentRoad,
-      multiplier: g.currentMultiplier,
-      status: g.status === 'CASHED_OUT' ? 'WON' : 'CRASHED',
-      payoutAmount: g.payoutAmount,
-      timestamp: g.updatedAt.toISOString(),
-    }));
-
-    // Add lively community demo runners if list is small
-    const simulatedDemoRunners: ChickenLiveRunDTO[] = [
-      { id: 'sim_1', username: 'Alex', skin: 'ROYAL', currentRoad: 5, multiplier: 3.20, status: 'WON', payoutAmount: 64.0, timestamp: new Date().toISOString() },
-      { id: 'sim_2', username: 'Daniel', skin: 'NINJA', currentRoad: 8, multiplier: 10.0, status: 'WON', payoutAmount: 250.0, timestamp: new Date(Date.now() - 15000).toISOString() },
-      { id: 'sim_3', username: 'Sarah', skin: 'COWBOY', currentRoad: 3, multiplier: 1.80, status: 'WON', payoutAmount: 36.0, timestamp: new Date(Date.now() - 32000).toISOString() },
-      { id: 'sim_4', username: 'Michael', skin: 'GOLDEN', currentRoad: 10, multiplier: 25.0, status: 'WON', payoutAmount: 500.0, timestamp: new Date(Date.now() - 48000).toISOString() },
-    ];
-
-    res.status(200).json({
-      success: true,
-      data: [...liveRuns, ...simulatedDemoRunners].slice(0, 10),
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/chickenroad/my-history
- */
-export const getMyChickenRoadHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const userId = (req as any).user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Authentication required' });
-      return;
-    }
-
-    const limit = Number(req.query.limit) || 20;
     const history = await ChickenRoadGame.find({
       userId: new mongoose.Types.ObjectId(userId),
-      status: { $in: ['CASHED_OUT', 'CRASHED'] },
+      status: { $in: ['CASHED_OUT', 'CRUSHED'] },
     })
       .sort({ createdAt: -1 })
-      .limit(Math.min(limit, 100));
+      .limit(limit);
 
-    res.status(200).json({
-      success: true,
-      data: history.map((g) => ({
-        id: g._id.toString(),
-        difficulty: g.difficulty,
-        skin: g.skin,
-        betAmount: g.betAmount,
-        reachedRoad: g.currentRoad,
-        multiplier: g.currentMultiplier,
-        payoutAmount: g.payoutAmount,
-        status: g.status,
-        createdAt: g.createdAt.toISOString(),
+    res.json({
+      data: history.map((game) => ({
+        id: game._id.toString(),
+        difficulty: game.difficulty,
+        betAmount: game.betAmount,
+        reachedRow: game.currentRow,
+        multiplier: game.currentMultiplier,
+        payoutAmount: game.payoutAmount,
+        status: game.status,
+        createdAt: game.createdAt.toISOString(),
       })),
     });
   } catch (error) {

@@ -1,15 +1,20 @@
-export type ChickenRoadDifficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'DAREDEVIL';
-export type ChickenRoadGameStatus = 'IN_PROGRESS' | 'CASHED_OUT' | 'CRASHED';
-export type ChickenSkinType = 'CLASSIC' | 'BABY' | 'ROYAL' | 'NINJA' | 'COWBOY' | 'SPACE' | 'GOLDEN';
-export type ChickenStageTheme = 'COUNTRY' | 'HIGHWAY' | 'CITY' | 'NIGHT' | 'SPEEDWAY';
+export type ChickenRoadDifficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'EXTREME' | 'NIGHTMARE';
+export type ChickenRoadGameStatus = 'IN_PROGRESS' | 'CASHED_OUT' | 'CRUSHED';
+export type ChickenRoadTileType = 'SAFE' | 'CAR' | 'HIDDEN';
 
-export interface IChickenSkinConfig {
-  id: ChickenSkinType;
-  name: string;
-  emoji: string;
-  description: string;
-  color: string;
-  unlockedAtMultiplier: number;
+export interface IChickenRoadDifficultyConfig {
+  name: ChickenRoadDifficulty;
+  label: string;
+  tilesPerRow: number; // e.g. 4 lanes
+  safePerRow: number;
+  carsPerRow: number;
+  multipliers: number[];
+}
+
+export interface IChickenRoadRowState {
+  rowIndex: number;
+  tiles: ChickenRoadTileType[];
+  selectedTileIndex?: number;
 }
 
 export interface IChickenRoadGameDTO {
@@ -17,58 +22,40 @@ export interface IChickenRoadGameDTO {
   userId: string;
   username: string;
   difficulty: ChickenRoadDifficulty;
-  skin: ChickenSkinType;
   betAmount: number;
-  currentRoad: number; // 0 to 25
+  currentRow: number; // 0 to 9 (10 total roads)
   currentMultiplier: number;
-  autoStopMultiplier?: number;
   status: ChickenRoadGameStatus;
   payoutAmount: number;
-  stageTheme: ChickenStageTheme;
-  revealedRoads: {
-    roadIndex: number;
-    isSafe: boolean;
-  }[];
+  rows: IChickenRoadRowState[];
   hash: string;
   serverSeed?: string;
+  clientSeed?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface IChickenRoadStartRequest {
-  difficulty?: ChickenRoadDifficulty;
-  skin?: ChickenSkinType;
+  difficulty: ChickenRoadDifficulty;
   betAmount: number;
-  autoStopMultiplier?: number;
 }
 
 export interface IChickenRoadStepRequest {
   gameId: string;
+  tileIndex: number;
 }
 
 export interface IChickenRoadCashoutRequest {
   gameId: string;
 }
 
-export interface ChickenRoadHistoryDTO {
+export interface IChickenRoadHistoryDTO {
   id: string;
   difficulty: ChickenRoadDifficulty;
-  skin: ChickenSkinType;
   betAmount: number;
-  reachedRoad: number;
+  reachedRow: number;
   multiplier: number;
   payoutAmount: number;
   status: ChickenRoadGameStatus;
   createdAt: string;
-}
-
-export interface ChickenLiveRunDTO {
-  id: string;
-  username: string;
-  skin: ChickenSkinType;
-  currentRoad: number;
-  multiplier: number;
-  status: 'ACTIVE' | 'WON' | 'CRASHED';
-  payoutAmount: number;
-  timestamp: string;
 }
