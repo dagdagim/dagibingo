@@ -18,7 +18,7 @@ export class AviatorEngine {
   private countdownTimer: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
 
-  private bettingDurationSeconds = 6;
+  private bettingDurationSeconds = 8;
   private cooldownDurationSeconds = 3;
 
   private constructor() {}
@@ -82,17 +82,21 @@ export class AviatorEngine {
         crashMultiplier = 1.0; // 3% instant crash
       }
 
-      const round = await AviatorRound.create({
+      // Check if there are already bets placed ahead for this round
+      const existingBets = await AviatorBet.find({ roundNumber: nextRoundNumber, status: 'ACTIVE' });
+      const totalBetsAhead = existingBets.reduce((acc, b) => acc + b.betAmount, 0);
+
+      const round = (await AviatorRound.create({
         roundNumber: nextRoundNumber,
         status: 'BETTING',
         crashMultiplier,
         hash,
         seed,
         startedAt: new Date(),
-        totalBets: 0,
+        totalBets: totalBetsAhead,
         totalPayout: 0,
         countdownSeconds: this.bettingDurationSeconds,
-      });
+      })) as unknown as IAviatorRound;
 
       return round;
     } catch (err) {
@@ -102,7 +106,7 @@ export class AviatorEngine {
   }
 
   /**
-   * Phase 1: Betting Countdown (6s)
+   * Phase 1: Betting Countdown (8s)
    */
   private runBettingCountdown(secondsRemaining: number): void {
     try {
@@ -146,6 +150,7 @@ export class AviatorEngine {
       this.flightStartTime = Date.now();
       this.currentMultiplier = 1.0;
 
+      // Broadcast flight started event
       this.io?.to('room:aviator').emit('aviator:flight_started' as any, {
         roundNumber: this.currentRound.roundNumber,
         status: 'FLYING',
@@ -377,11 +382,27 @@ export class AviatorEngine {
   }
 
   /**
-   * Place Bet from player
+   * Place Bet from player (Allowed anytime: current round if BETTING, next round if FLYING/CRASHED)
    */
   public async placeBet(userId: string, username: string, panelIndex: 0 | 1, betAmount: number, autoCashoutMultiplier?: number): Promise<IAviatorBet> {
-    if (!this.currentRound || this.currentRound.status !== 'BETTING') {
-      throw new Error('Betting is closed for this flight. Please wait for next round countdown.');
+    if (!this.currentRound) {
+      throw new Error('Aviator game is starting. Please try again.');
+    }
+
+    const targetRoundNumber = this.currentRound.status === 'BETTING'
+      ? this.currentRound.roundNumber
+      : this.currentRound.roundNumber + 1;
+
+    // Check if user already placed a bet for this round & panel
+    const existingBet = await AviatorBet.findOne({
+      roundNumber: targetRoundNumber,
+      userId: new mongoose.Types.ObjectId(userId),
+      panelIndex,
+      status: { $in: ['ACTIVE', 'CASHED_OUT'] },
+    });
+
+    if (existingBet) {
+      throw new Error(`You already have a bet placed on Panel ${panelIndex + 1} for ${targetRoundNumber === this.currentRound.roundNumber ? 'this flight' : 'the next flight'}.`);
     }
 
     // Deduct player wallet
@@ -395,7 +416,7 @@ export class AviatorEngine {
 
     // Create bet record
     const bet = await AviatorBet.create({
-      roundNumber: this.currentRound.roundNumber,
+      roundNumber: targetRoundNumber,
       userId: new mongoose.Types.ObjectId(userId),
       username,
       panelIndex,
@@ -412,11 +433,11 @@ export class AviatorEngine {
       amount: betAmount,
       balanceAfter: userWallet.availableBalance,
       status: 'COMPLETED',
-      description: `Aviator Bet Round #${this.currentRound.roundNumber} (Panel ${panelIndex + 1})`,
+      description: `Aviator Bet Round #${targetRoundNumber} (Panel ${panelIndex + 1})`,
       referenceId: bet._id.toString(),
       metadata: {
         gameType: 'AVIATOR',
-        roundNumber: this.currentRound.roundNumber,
+        roundNumber: targetRoundNumber,
         panelIndex,
       },
     });
@@ -436,48 +457,49 @@ export class AviatorEngine {
           amount: betAmount,
           balanceAfter: adminWallet.availableBalance,
           status: 'COMPLETED',
-          description: `House Stake from ${username} (Aviator Round #${this.currentRound.roundNumber})`,
+          description: `House Stake from ${username} (Aviator Round #${targetRoundNumber})`,
           referenceId: bet._id.toString(),
           metadata: {
             gameType: 'AVIATOR',
-            roundNumber: this.currentRound.roundNumber,
+            roundNumber: targetRoundNumber,
             playerUserId: userId,
           },
         });
       }
     }
 
-    // Update Round aggregate
-    await AviatorRound.updateOne(
-      { roundNumber: this.currentRound.roundNumber },
-      { $inc: { totalBets: betAmount } }
-    );
+    // If current round, update round aggregate and broadcast
+    if (targetRoundNumber === this.currentRound.roundNumber) {
+      await AviatorRound.updateOne(
+        { roundNumber: this.currentRound.roundNumber },
+        { $inc: { totalBets: betAmount } }
+      );
 
-    // Broadcast bet placed
-    this.io?.to('room:aviator').emit('aviator:bet_placed' as any, {
-      id: bet._id.toString(),
-      roundNumber: bet.roundNumber,
-      userId: bet.userId.toString(),
-      username: bet.username,
-      panelIndex: bet.panelIndex,
-      betAmount: bet.betAmount,
-      autoCashoutMultiplier: bet.autoCashoutMultiplier,
-      status: 'ACTIVE',
-    });
+      this.io?.to('room:aviator').emit('aviator:bet_placed' as any, {
+        id: bet._id.toString(),
+        roundNumber: bet.roundNumber,
+        userId: bet.userId.toString(),
+        username: bet.username,
+        panelIndex: bet.panelIndex,
+        betAmount: bet.betAmount,
+        autoCashoutMultiplier: bet.autoCashoutMultiplier,
+        status: 'ACTIVE',
+      });
+    }
 
     return bet;
   }
 
   /**
-   * Cancel Bet during countdown
+   * Cancel Bet (during countdown or before next flight)
    */
   public async cancelBet(userId: string, panelIndex: 0 | 1): Promise<{ success: boolean; refundedAmount: number; newBalance: number }> {
-    if (!this.currentRound || this.currentRound.status !== 'BETTING') {
-      throw new Error('Bets can only be cancelled during the countdown phase.');
+    if (!this.currentRound) {
+      throw new Error('Game not active.');
     }
 
     const bet = await AviatorBet.findOne({
-      roundNumber: this.currentRound.roundNumber,
+      roundNumber: { $in: [this.currentRound.roundNumber, this.currentRound.roundNumber + 1] },
       userId: new mongoose.Types.ObjectId(userId),
       panelIndex,
       status: 'ACTIVE',
@@ -485,6 +507,10 @@ export class AviatorEngine {
 
     if (!bet) {
       throw new Error('No active bet found on this panel to cancel.');
+    }
+
+    if (bet.roundNumber === this.currentRound.roundNumber && this.currentRound.status === 'FLYING') {
+      throw new Error('Flight has already taken off. Please use Cash Out instead!');
     }
 
     bet.status = 'CANCELLED';
@@ -505,7 +531,7 @@ export class AviatorEngine {
         amount: bet.betAmount,
         balanceAfter: userWallet.availableBalance,
         status: 'COMPLETED',
-        description: `Aviator Bet Cancellation Refund (Round #${this.currentRound.roundNumber})`,
+        description: `Aviator Bet Cancellation Refund (Round #${bet.roundNumber})`,
         referenceId: bet._id.toString(),
       });
     }
@@ -546,7 +572,7 @@ export class AviatorEngine {
       let myBets: any[] = [];
       if (userId && mongoose.Types.ObjectId.isValid(userId)) {
         myBets = await AviatorBet.find({
-          roundNumber: this.currentRound.roundNumber,
+          roundNumber: { $in: [this.currentRound.roundNumber, this.currentRound.roundNumber + 1] },
           userId: new mongoose.Types.ObjectId(userId),
           status: { $in: ['ACTIVE', 'CASHED_OUT'] },
         });

@@ -53,7 +53,7 @@ export const useAviatorStore = create<AviatorState>((set, get) => ({
   currentRound: null,
   flightStatus: 'BETTING',
   currentMultiplier: 1.0,
-  countdownSeconds: 6,
+  countdownSeconds: 8,
   lastCrashMultiplier: null,
   recentMultipliers: [],
   panels: [
@@ -122,7 +122,7 @@ export const useAviatorStore = create<AviatorState>((set, get) => ({
   },
 
   placeBet: async (panelIndex) => {
-    const { panels, flightStatus } = get();
+    const { panels } = get();
     const panel = panels[panelIndex];
 
     if (panel.isProcessing || panel.activeBet) {
@@ -135,17 +135,7 @@ export const useAviatorStore = create<AviatorState>((set, get) => ({
       return;
     }
 
-    if (flightStatus !== 'BETTING') {
-      // Queue for next round
-      set((state) => {
-        const newPanels = [...state.panels] as [PanelBetState, PanelBetState];
-        newPanels[panelIndex] = { ...newPanels[panelIndex], queuedForNextRound: true };
-        return { panels: newPanels, error: null };
-      });
-      return;
-    }
-
-    // Set processing and un-queue immediately
+    // Set processing
     set((state) => {
       const newPanels = [...state.panels] as [PanelBetState, PanelBetState];
       newPanels[panelIndex] = {
@@ -189,19 +179,10 @@ export const useAviatorStore = create<AviatorState>((set, get) => ({
   },
 
   cancelBet: async (panelIndex) => {
-    const { panels, flightStatus } = get();
+    const { panels } = get();
     const panel = panels[panelIndex];
 
-    if (panel.queuedForNextRound) {
-      set((state) => {
-        const newPanels = [...state.panels] as [PanelBetState, PanelBetState];
-        newPanels[panelIndex] = { ...newPanels[panelIndex], queuedForNextRound: false };
-        return { panels: newPanels };
-      });
-      return;
-    }
-
-    if (!panel.activeBet || flightStatus !== 'BETTING') return;
+    if (!panel.activeBet) return;
 
     set((state) => {
       const newPanels = [...state.panels] as [PanelBetState, PanelBetState];
@@ -324,7 +305,7 @@ export const useAviatorStore = create<AviatorState>((set, get) => ({
           currentRound: response.round,
           flightStatus: response.round.status,
           currentMultiplier: response.currentMultiplier || 1.0,
-          countdownSeconds: response.round.countdownSeconds || 6,
+          countdownSeconds: response.round.countdownSeconds || 8,
           recentMultipliers: response.recentMultipliers || [],
           liveBets: response.activeBets || [],
         });
@@ -349,7 +330,7 @@ export const useAviatorStore = create<AviatorState>((set, get) => ({
       set((state) => {
         // Clear finished bets on new round countdown
         const newPanels = [...state.panels] as [PanelBetState, PanelBetState];
-        if (data.countdownSeconds >= 5) {
+        if (data.countdownSeconds >= 7) {
           newPanels.forEach((p, idx) => {
             if (p.activeBet && (p.activeBet.status === 'CASHED_OUT' || p.activeBet.status === 'CRASHED' || p.activeBet.status === 'CANCELLED')) {
               newPanels[idx] = { ...p, activeBet: null };
@@ -367,28 +348,33 @@ export const useAviatorStore = create<AviatorState>((set, get) => ({
             : null,
         };
       });
-
-      // Trigger queued bets exactly once on initial countdown seconds
-      const { panels, placeBet } = get();
-      if (data.countdownSeconds === 6 || data.countdownSeconds === 5) {
-        if (panels[0].queuedForNextRound && !panels[0].activeBet && !panels[0].isProcessing) {
-          placeBet(0);
-        }
-        if (panels[1].queuedForNextRound && !panels[1].activeBet && !panels[1].isProcessing) {
-          placeBet(1);
-        }
-      }
     };
 
     // 2. Flight Started
     const handleFlightStarted = (data: { roundNumber: number; status: AviatorRoundStatus }) => {
-      set((state) => ({
-        flightStatus: 'FLYING',
-        currentMultiplier: 1.0,
-        currentRound: state.currentRound
-          ? { ...state.currentRound, roundNumber: data.roundNumber, status: 'FLYING' }
-          : null,
-      }));
+      set((state) => {
+        const newPanels = [...state.panels] as [PanelBetState, PanelBetState];
+        newPanels.forEach((p, idx) => {
+          if (p.activeBet && p.activeBet.status === 'ACTIVE') {
+            newPanels[idx] = {
+              ...p,
+              activeBet: {
+                ...p.activeBet,
+                roundNumber: data.roundNumber,
+              },
+            };
+          }
+        });
+
+        return {
+          flightStatus: 'FLYING',
+          currentMultiplier: 1.0,
+          panels: newPanels,
+          currentRound: state.currentRound
+            ? { ...state.currentRound, roundNumber: data.roundNumber, status: 'FLYING' }
+            : null,
+        };
+      });
     };
 
     // 3. Flight Tick
