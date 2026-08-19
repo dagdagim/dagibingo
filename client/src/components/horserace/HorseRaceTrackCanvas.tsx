@@ -39,14 +39,68 @@ interface Confetti {
   vAngle: number;
 }
 
-// 8-phase skeletal galloping thoroughbred model
-const HORSE_COLORS = [
-  { body: '#4a2810', dark: '#2b1406', highlight: '#7a421d', mane: '#1a0d05' }, // Chestnut / Bay
-  { body: '#242424', dark: '#121212', highlight: '#404040', mane: '#050505' }, // Black Stallion
-  { body: '#8c5828', dark: '#523012', highlight: '#b87537', mane: '#241407' }, // Sorrel / Amber
-  { body: '#614126', dark: '#382312', highlight: '#8c5f38', mane: '#1f1308' }, // Dark Bay
-  { body: '#96826c', dark: '#5e5041', highlight: '#c4b099', mane: '#3d3429' }, // Roan / Gray
-  { body: '#542616', dark: '#33150b', highlight: '#873e24', mane: '#1c0a04' }, // Mahogany
+// High-fidelity anatomically shaded Thoroughbred coat palettes
+const THOROUGHBRED_COATS = [
+  // 1. Thunder Bolt: Radiant Deep Mahogany Bay
+  {
+    primary: '#451a03',
+    secondary: '#290f01',
+    highlight: '#78350f',
+    specular: '#b45309',
+    mane: '#0a0502',
+    hoof: '#1c1917',
+    sock: true,
+  },
+  // 2. Solar Flare: Golden Copper Chestnut
+  {
+    primary: '#7c2d12',
+    secondary: '#431407',
+    highlight: '#c2410c',
+    specular: '#ea580c',
+    mane: '#1e0a03',
+    hoof: '#292524',
+    sock: false,
+  },
+  // 3. Royal Crown: Noble Dappled Palomino Gold
+  {
+    primary: '#854d0e',
+    secondary: '#533005',
+    highlight: '#ca8a04',
+    specular: '#eab308',
+    mane: '#422006',
+    hoof: '#1f2937',
+    sock: true,
+  },
+  // 4. Desert Storm: Powerful Dark Seal Brown Stallion
+  {
+    primary: '#262626',
+    secondary: '#171717',
+    highlight: '#404040',
+    specular: '#525252',
+    mane: '#0a0a0a',
+    hoof: '#0f172a',
+    sock: false,
+  },
+  // 5. Diamond Dash: Shimmering Blue-Roan / Dapple Gray
+  {
+    primary: '#475569',
+    secondary: '#334155',
+    highlight: '#64748b',
+    specular: '#94a3b8',
+    mane: '#1e293b',
+    hoof: '#0f172a',
+    sock: true,
+  },
+  // 6. Red Comet: Deep Midnight Black Stallion
+  {
+    primary: '#18181b',
+    secondary: '#09090b',
+    highlight: '#27272a',
+    specular: '#3f3f46',
+    mane: '#000000',
+    hoof: '#020617',
+    sock: false,
+  },
 ];
 
 export const HorseRaceTrackCanvas: React.FC<HorseRaceTrackCanvasProps> = ({
@@ -70,16 +124,16 @@ export const HorseRaceTrackCanvas: React.FC<HorseRaceTrackCanvasProps> = ({
   // Confetti trigger on finish
   useEffect(() => {
     if (raceStatus === 'FINISHED' && winner) {
-      const colors = ['#f59e0b', '#ec4899', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#ffffff'];
-      confettiList.current = Array.from({ length: 120 }, () => ({
-        x: Math.random() * 900 + 50,
-        y: Math.random() * 100 + 50,
-        vx: (Math.random() - 0.5) * 8,
-        vy: -Math.random() * 6 - 2,
+      const colors = ['#f59e0b', '#ec4899', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#ffffff', '#eab308'];
+      confettiList.current = Array.from({ length: 150 }, () => ({
+        x: Math.random() * 950 + 25,
+        y: Math.random() * 120 + 30,
+        vx: (Math.random() - 0.5) * 10,
+        vy: -Math.random() * 8 - 2,
         color: colors[Math.floor(Math.random() * colors.length)],
-        size: Math.random() * 6 + 4,
+        size: Math.random() * 7 + 4,
         angle: Math.random() * Math.PI * 2,
-        vAngle: (Math.random() - 0.5) * 0.2,
+        vAngle: (Math.random() - 0.5) * 0.25,
       }));
     } else {
       confettiList.current = [];
@@ -101,84 +155,83 @@ export const HorseRaceTrackCanvas: React.FC<HorseRaceTrackCanvasProps> = ({
       const width = canvas.width;
       const height = canvas.height;
 
-      // Update gallop cycle
+      // Update stride phase
       if (raceStatus === 'RACING') {
-        gallopPhase.current += dt * 14; // High-speed galloping strides
-        trackScroll.current = (trackScroll.current + dt * 450) % 80;
+        gallopPhase.current += dt * 15.5; // Natural 60fps gallop speed
+        trackScroll.current = (trackScroll.current + dt * 500) % 80;
       } else {
-        gallopPhase.current += dt * 3; // Idle breathing
+        gallopPhase.current += dt * 2.5; // Idle breathing
       }
 
-      // Smooth interpolation for horse positions
+      // Smooth position interpolation
       roster.forEach((h) => {
         const target = positions[h.number] || 0;
         const curr = smoothedPositions.current[h.number] || 0;
-        smoothedPositions.current[h.number] += (target - curr) * Math.min(1, dt * 10);
+        smoothedPositions.current[h.number] += (target - curr) * Math.min(1, dt * 12);
       });
 
       // -----------------------------------------------------------------------
-      // 1. STADIUM BACKGROUND & GRANDSTAND CROWD WITH GODRAYS & LIGHTS
+      // 1. SKY, STADIUM GRANDSTAND & VOLUMETRIC LIGHTING
       // -----------------------------------------------------------------------
       ctx.clearRect(0, 0, width, height);
 
-      // Sky gradient (Sunset twilight gold & deep indigo)
+      // Sunset twilight stadium sky
       const skyGrad = ctx.createLinearGradient(0, 0, 0, height * 0.3);
-      skyGrad.addColorStop(0, '#0f172a');
-      skyGrad.addColorStop(0.6, '#1e1b4b');
-      skyGrad.addColorStop(1, '#31103f');
+      skyGrad.addColorStop(0, '#090d16');
+      skyGrad.addColorStop(0.5, '#1e1b4b');
+      skyGrad.addColorStop(0.85, '#3b0764');
+      skyGrad.addColorStop(1, '#581c87');
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, width, height * 0.28);
 
-      // Distant Stadium Grandstand Structure
-      ctx.fillStyle = '#1e162a';
-      ctx.beginPath();
-      ctx.moveTo(0, height * 0.22);
-      ctx.lineTo(width, height * 0.22);
-      ctx.lineTo(width, height * 0.28);
-      ctx.lineTo(0, height * 0.28);
-      ctx.fill();
+      // Stadium Grandstand Tier Structure
+      ctx.fillStyle = '#181124';
+      ctx.fillRect(0, height * 0.2, width, height * 0.08);
 
-      // Cheering Crowd Silhouette in Grandstand
-      ctx.fillStyle = '#2d1f3d';
-      for (let x = 10; x < width; x += 8) {
-        const cheerOffset = Math.sin(time * 0.008 + x) * (raceStatus === 'RACING' ? 3 : 1);
-        const headH = 5 + Math.sin(x * 123) * 2;
+      // Animated Cheering Crowd
+      ctx.fillStyle = '#2e1c47';
+      for (let x = 8; x < width; x += 7) {
+        const cheerOffset = Math.sin(time * 0.009 + x) * (raceStatus === 'RACING' ? 4 : 1);
+        const torsoH = 6 + Math.sin(x * 99) * 2.5;
         ctx.beginPath();
-        ctx.arc(x, height * 0.24 + cheerOffset, 2.5, 0, Math.PI * 2);
+        ctx.arc(x, height * 0.23 + cheerOffset, 2.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillRect(x - 2, height * 0.24 + cheerOffset + 2, 4, headH);
+        ctx.fillRect(x - 2, height * 0.23 + cheerOffset + 2, 4, torsoH);
       }
 
-      // Stadium Floodlight Towers & Cones
-      const floodlights = [width * 0.15, width * 0.5, width * 0.85];
+      // Stadium Floodlight Towers
+      const floodlights = [width * 0.12, width * 0.5, width * 0.88];
       floodlights.forEach((fx) => {
-        // Light Beam Cone
-        const beamGrad = ctx.createRadialGradient(fx, 0, 5, fx, height * 0.6, 260);
-        beamGrad.addColorStop(0, 'rgba(253, 230, 138, 0.25)');
-        beamGrad.addColorStop(0.5, 'rgba(245, 158, 11, 0.08)');
+        // Volumetric Light Cone
+        const beamGrad = ctx.createRadialGradient(fx, 0, 8, fx, height * 0.7, 300);
+        beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.35)');
+        beamGrad.addColorStop(0.45, 'rgba(245, 158, 11, 0.1)');
         beamGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = beamGrad;
         ctx.beginPath();
         ctx.moveTo(fx, 0);
-        ctx.lineTo(fx - 140, height);
-        ctx.lineTo(fx + 140, height);
+        ctx.lineTo(fx - 160, height);
+        ctx.lineTo(fx + 160, height);
         ctx.closePath();
         ctx.fill();
 
-        // Tower Lamp
-        ctx.fillStyle = '#fef08a';
+        // Tower Lamp Bulb
+        ctx.fillStyle = '#fffbeb';
+        ctx.shadowColor = '#fef08a';
+        ctx.shadowBlur = 12;
         ctx.beginPath();
-        ctx.arc(fx, 6, 4, 0, Math.PI * 2);
+        ctx.arc(fx, 6, 4.5, 0, Math.PI * 2);
         ctx.fill();
+        ctx.shadowBlur = 0;
       });
 
-      // Random Paparazzi Camera Flashes in Crowd
-      if (raceStatus === 'RACING' && Math.random() < 0.15) {
+      // Paparazzi Camera Flashes
+      if (raceStatus === 'RACING' && Math.random() < 0.2) {
         flashes.current.push({
           x: Math.random() * width,
-          y: height * 0.21 + Math.random() * 15,
+          y: height * 0.21 + Math.random() * 16,
           alpha: 1.0,
-          radius: Math.random() * 12 + 6,
+          radius: Math.random() * 14 + 6,
         });
       }
 
@@ -187,7 +240,7 @@ export const HorseRaceTrackCanvas: React.FC<HorseRaceTrackCanvasProps> = ({
         ctx.beginPath();
         ctx.arc(flash.x, flash.y, flash.radius, 0, Math.PI * 2);
         ctx.fill();
-        flash.alpha -= dt * 4;
+        flash.alpha -= dt * 4.5;
       });
       flashes.current = flashes.current.filter((f) => f.alpha > 0);
 
@@ -199,48 +252,47 @@ export const HorseRaceTrackCanvas: React.FC<HorseRaceTrackCanvasProps> = ({
       const trackHeight = trackBottom - trackTop;
       const laneHeight = trackHeight / 6;
 
-      // Track grass lush gradient
+      // Realistic Turf Grass Gradient
       const turfGrad = ctx.createLinearGradient(0, trackTop, 0, trackBottom);
       turfGrad.addColorStop(0, '#064e3b');
-      turfGrad.addColorStop(0.3, '#047857');
-      turfGrad.addColorStop(0.7, '#059669');
+      turfGrad.addColorStop(0.25, '#047857');
+      turfGrad.addColorStop(0.65, '#059669');
       turfGrad.addColorStop(1, '#064e3b');
       ctx.fillStyle = turfGrad;
       ctx.fillRect(0, trackTop, width, trackHeight);
 
       // Moving grass texture lines
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-      ctx.lineWidth = 2;
-      for (let x = -trackScroll.current; x < width; x += 60) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 2.5;
+      for (let x = -trackScroll.current; x < width; x += 55) {
         ctx.beginPath();
         ctx.moveTo(x, trackTop);
         ctx.lineTo(x, trackBottom);
         ctx.stroke();
       }
 
-      // Wooden White Rail Fence (Top & Bottom)
+      // Wooden White Rail Fence
       ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(0, trackTop - 3, width, 4);
-      ctx.fillRect(0, trackBottom - 1, width, 4);
+      ctx.fillRect(0, trackTop - 3, width, 4.5);
+      ctx.fillRect(0, trackBottom - 1.5, width, 4.5);
 
-      // Rail Posts
-      for (let x = 0; x < width; x += 40) {
+      for (let x = 0; x < width; x += 38) {
         ctx.fillStyle = '#cbd5e1';
         ctx.fillRect(x, trackTop - 8, 3, 10);
         ctx.fillRect(x, trackBottom - 4, 3, 10);
       }
 
-      // Distance Marker Lines (START, 300m, 600m, 900m, FINISH)
+      // Distance Markers
       const markers = [
-        { label: 'START', x: 70 },
+        { label: 'START', x: 75 },
         { label: '300m', x: width * 0.3 },
         { label: '600m', x: width * 0.52 },
         { label: '900m', x: width * 0.74 },
-        { label: 'FINISH 🏁', x: width - 80 },
+        { label: 'FINISH 🏁', x: width - 85 },
       ];
 
       markers.forEach((m) => {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
@@ -249,12 +301,11 @@ export const HorseRaceTrackCanvas: React.FC<HorseRaceTrackCanvasProps> = ({
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Label Badge
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
-        ctx.fillRect(m.x - 22, trackTop + 4, 44, 14);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.fillRect(m.x - 24, trackTop + 3, 48, 15);
         ctx.strokeStyle = '#f59e0b';
         ctx.lineWidth = 1;
-        ctx.strokeRect(m.x - 22, trackTop + 4, 44, 14);
+        ctx.strokeRect(m.x - 24, trackTop + 3, 48, 15);
 
         ctx.fillStyle = '#fef08a';
         ctx.font = 'bold 9px monospace';
@@ -263,7 +314,7 @@ export const HorseRaceTrackCanvas: React.FC<HorseRaceTrackCanvasProps> = ({
       });
 
       // Finish Line Checkered Banner
-      const finishX = width - 80;
+      const finishX = width - 85;
       const checkW = 6;
       for (let y = trackTop; y < trackBottom; y += checkW * 2) {
         ctx.fillStyle = '#ffffff';
@@ -277,19 +328,19 @@ export const HorseRaceTrackCanvas: React.FC<HorseRaceTrackCanvasProps> = ({
       // -----------------------------------------------------------------------
       // 3. DRAW 6 RACING LANES & THOROUGHBREDS
       // -----------------------------------------------------------------------
-      const startX = 65;
-      const raceTrackWidth = width - 150;
+      const startX = 70;
+      const raceTrackWidth = width - 165;
 
       roster.forEach((horse, idx) => {
         const laneY = trackTop + idx * laneHeight;
         const horseCenterY = laneY + laneHeight * 0.58;
-        const horseColorTheme = HORSE_COLORS[(horse.number - 1) % HORSE_COLORS.length];
+        const coat = THOROUGHBRED_COATS[(horse.number - 1) % THOROUGHBRED_COATS.length];
         const isSelected = selectedHorse === horse.number;
         const isWinner = winner === horse.number;
         const posPercent = smoothedPositions.current[horse.number] || 0;
         const horseX = startX + (posPercent / 100) * raceTrackWidth;
 
-        // Lane Separator Lines
+        // Lane Separators
         if (idx > 0) {
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
           ctx.lineWidth = 1;
@@ -299,269 +350,383 @@ export const HorseRaceTrackCanvas: React.FC<HorseRaceTrackCanvasProps> = ({
           ctx.stroke();
         }
 
-        // Selection / Highlight lane aura
+        // Selection Highlight Aura
         if (isSelected) {
-          ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
+          ctx.fillStyle = 'rgba(245, 158, 11, 0.14)';
           ctx.fillRect(0, laneY, width, laneHeight);
         }
 
-        // Starting Gate Box (at startX - 35)
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(startX - 45, laneY + 4, 35, laneHeight - 8);
-        ctx.strokeStyle = '#64748b';
+        // Starting Gate Box
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(startX - 50, laneY + 3, 38, laneHeight - 6);
+        ctx.strokeStyle = '#475569';
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(startX - 45, laneY + 4, 35, laneHeight - 8);
+        ctx.strokeRect(startX - 50, laneY + 3, 38, laneHeight - 6);
 
-        // Gate Number badge
         ctx.fillStyle = horse.color;
         ctx.beginPath();
-        ctx.roundRect(startX - 40, laneY + 7, 24, laneHeight - 14, 4);
+        ctx.roundRect(startX - 44, laneY + 6, 26, laneHeight - 12, 4);
         ctx.fill();
         ctx.fillStyle = '#ffffff';
         ctx.font = '900 12px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(`${horse.number}`, startX - 28, laneY + laneHeight * 0.55);
+        ctx.fillText(`${horse.number}`, startX - 31, laneY + laneHeight * 0.56);
 
         // Gate Swing Door
         if (raceStatus === 'RACING') {
           ctx.strokeStyle = '#94a3b8';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(startX - 10, laneY + 4);
-          ctx.lineTo(startX - 3, laneY + laneHeight * 0.2);
+          ctx.moveTo(startX - 12, laneY + 4);
+          ctx.lineTo(startX - 4, laneY + laneHeight * 0.2);
           ctx.stroke();
         } else {
           ctx.strokeStyle = '#ef4444';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(startX - 10, laneY + 4);
-          ctx.lineTo(startX - 10, laneY + laneHeight - 4);
+          ctx.moveTo(startX - 12, laneY + 4);
+          ctx.lineTo(startX - 12, laneY + laneHeight - 4);
           ctx.stroke();
         }
 
-        // Spawn Dirt Particles during race
-        if (raceStatus === 'RACING' && Math.random() < 0.45) {
+        // Realistic Dirt & Turf Clumps Physics Emitter
+        if (raceStatus === 'RACING' && Math.random() < 0.5) {
           particles.current.push({
-            x: horseX - 25,
-            y: horseCenterY + 12 + (Math.random() - 0.5) * 4,
-            vx: -Math.random() * 4 - 2,
-            vy: (Math.random() - 0.5) * 2 - 1,
+            x: horseX - 28,
+            y: horseCenterY + 12 + (Math.random() - 0.5) * 5,
+            vx: -Math.random() * 5 - 3,
+            vy: (Math.random() - 0.5) * 3 - 1.5,
             size: Math.random() * 3.5 + 1.5,
-            color: Math.random() > 0.5 ? '#78350f' : '#92400e',
-            alpha: 0.8,
-            decay: 0.04,
+            color: Math.random() > 0.4 ? '#78350f' : '#92400e',
+            alpha: 0.9,
+            decay: 0.035,
           });
         }
 
-        // Leader Slipstream Glow
-        if (posPercent > 10 && raceStatus === 'RACING') {
-          const streamGrad = ctx.createLinearGradient(horseX - 50, horseCenterY, horseX, horseCenterY);
+        // Leader Aerodynamic Slipstream Glow
+        if (posPercent > 12 && raceStatus === 'RACING') {
+          const streamGrad = ctx.createLinearGradient(horseX - 60, horseCenterY, horseX, horseCenterY);
           streamGrad.addColorStop(0, 'rgba(245, 158, 11, 0)');
-          streamGrad.addColorStop(1, `${horse.color}33`);
+          streamGrad.addColorStop(1, `${horse.color}44`);
           ctx.fillStyle = streamGrad;
-          ctx.fillRect(horseX - 50, horseCenterY - 14, 45, 28);
+          ctx.fillRect(horseX - 60, horseCenterY - 16, 55, 32);
         }
 
         // -------------------------------------------------------------------
-        // 4. PHOTOREALISTIC PROCEDURAL GALLOPING THOROUGHBRED & JOCKEY
+        // 4. ANATOMICALLY REALISTIC THOROUGHBRED & JOCKEY RENDERING
         // -------------------------------------------------------------------
         ctx.save();
         ctx.translate(horseX, horseCenterY);
 
-        // Horse Ground Drop Shadow
-        const shadowScale = 1 + Math.sin(gallopPhase.current + idx) * 0.2;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.beginPath();
-        ctx.ellipse(-5, 16, 26 * shadowScale, 5 * shadowScale, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Natural Gallop Cycle Math
+        const phase = gallopPhase.current + idx * 0.75;
+        const bobY = Math.sin(phase) * (raceStatus === 'RACING' ? 4 : 1.2);
+        const pitchAngle = Math.cos(phase) * (raceStatus === 'RACING' ? 0.09 : 0.02);
 
-        // Galloping body bob & inclination
-        const phase = gallopPhase.current + idx * 0.8;
-        const bobY = Math.sin(phase) * (raceStatus === 'RACING' ? 3.5 : 1);
-        const pitchAngle = Math.cos(phase) * (raceStatus === 'RACING' ? 0.08 : 0.02);
+        // Ground Drop Shadow (dynamically breathes with suspension)
+        const shadowScale = 1 + Math.sin(phase) * 0.25;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.48)';
+        ctx.beginPath();
+        ctx.ellipse(-6, 17, 30 * shadowScale, 6 * shadowScale, 0, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.translate(0, bobY);
         ctx.rotate(pitchAngle);
 
-        // 1) TAIL (Flowing strands)
-        ctx.strokeStyle = horseColorTheme.mane;
+        // 1) VOLUMETRIC MULTI-STRAND TAIL
         ctx.lineWidth = 3.5;
         ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(-24, -2);
-        const tailWave1 = Math.sin(phase * 1.5) * 6 - 8;
-        const tailWave2 = Math.cos(phase * 1.5) * 8 - 14;
-        ctx.quadraticCurveTo(-36, tailWave1, -46, tailWave2);
-        ctx.stroke();
+        const tailColors = [coat.mane, coat.secondary, coat.mane];
+        tailColors.forEach((tc, tIdx) => {
+          ctx.strokeStyle = tc;
+          ctx.beginPath();
+          ctx.moveTo(-28, -2 + tIdx);
+          const tw1 = Math.sin(phase * 1.4 + tIdx * 0.4) * 8 - 10;
+          const tw2 = Math.cos(phase * 1.4 + tIdx * 0.4) * 11 - 18;
+          ctx.bezierCurveTo(-38, tw1, -48, tw2, -56, tw2 + 6);
+          ctx.stroke();
+        });
 
-        // 2) HIND LEGS (Quadruped Kinematics)
-        const hindPhase = phase + Math.PI;
+        // 2) DOUBLE-JOINTED HIND LEGS (Hip -> Stifle -> Hock -> Fetlock -> Hoof)
+        const hindPhaseFar = phase + Math.PI + 0.4;
+        const hindPhaseNear = phase + Math.PI;
+
         // Far Hind Leg
-        const farHindX = -18 + Math.sin(hindPhase) * 12;
-        const farHindY = 8 + Math.max(0, Math.cos(hindPhase)) * 14;
-        ctx.strokeStyle = horseColorTheme.dark;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(-16, 2);
-        ctx.lineTo(-20, 10);
-        ctx.lineTo(farHindX, farHindY);
-        ctx.stroke();
+        const farStifleX = -20 + Math.sin(hindPhaseFar) * 6;
+        const farHockX = -22 + Math.sin(hindPhaseFar) * 14;
+        const farHockY = 10 + Math.max(0, Math.cos(hindPhaseFar)) * 10;
+        const farHoofX = farHockX + Math.sin(hindPhaseFar) * 8;
+        const farHoofY = farHockY + 12 + Math.max(0, Math.sin(hindPhaseFar)) * 6;
 
-        // Near Hind Leg
-        const nearHindX = -14 + Math.sin(phase) * 14;
-        const nearHindY = 8 + Math.max(0, Math.cos(phase)) * 14;
-        ctx.strokeStyle = horseColorTheme.body;
+        ctx.strokeStyle = coat.secondary;
         ctx.lineWidth = 3.5;
         ctx.beginPath();
-        ctx.moveTo(-12, 2);
-        ctx.lineTo(-14, 10);
-        ctx.lineTo(nearHindX, nearHindY);
+        ctx.moveTo(-18, 0);
+        ctx.lineTo(farStifleX, 6);
+        ctx.lineTo(farHockX, farHockY);
+        ctx.lineTo(farHoofX, farHoofY);
         ctx.stroke();
-        // Hoof
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(nearHindX - 1, nearHindY, 3, 2);
 
-        // 3) THOROUGHBRED TORSO / MUSCULAR FLANK
-        ctx.fillStyle = horseColorTheme.body;
+        // Far Hoof
+        ctx.fillStyle = coat.hoof;
+        ctx.fillRect(farHoofX - 1.5, farHoofY - 1, 3.5, 2.5);
+
+        // Near Hind Leg (Leading/Foreground)
+        const nearStifleX = -15 + Math.sin(hindPhaseNear) * 7;
+        const nearHockX = -16 + Math.sin(hindPhaseNear) * 16;
+        const nearHockY = 10 + Math.max(0, Math.cos(hindPhaseNear)) * 10;
+        const nearHoofX = nearHockX + Math.sin(hindPhaseNear) * 9;
+        const nearHoofY = nearHockY + 12 + Math.max(0, Math.sin(hindPhaseNear)) * 7;
+
+        ctx.strokeStyle = coat.primary;
+        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.ellipse(0, 0, 24, 10, -0.05, 0, Math.PI * 2);
+        ctx.moveTo(-14, 0);
+        ctx.lineTo(nearStifleX, 6);
+        ctx.lineTo(nearHockX, nearHockY);
+        ctx.lineTo(nearHoofX, nearHoofY);
+        ctx.stroke();
+
+        // White Pastern Sock
+        if (coat.sock) {
+          ctx.strokeStyle = '#f8fafc';
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.moveTo(nearHockX + (nearHoofX - nearHockX) * 0.7, nearHockY + (nearHoofY - nearHockY) * 0.7);
+          ctx.lineTo(nearHoofX, nearHoofY);
+          ctx.stroke();
+        }
+
+        // Near Hoof (Dark Keratin + Silver Shoe)
+        ctx.fillStyle = coat.hoof;
+        ctx.fillRect(nearHoofX - 1.5, nearHoofY - 1, 4, 3);
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(nearHoofX - 1.5, nearHoofY + 1.5, 4, 1);
+
+        // 3) THOROUGHBRED MUSCULAR TORSO & BARREL
+        // Deep Chest & Withers
+        ctx.fillStyle = coat.primary;
+        ctx.beginPath();
+        ctx.moveTo(-28, -2);
+        ctx.bezierCurveTo(-26, -12, -8, -14, 6, -12); // Withers
+        ctx.bezierCurveTo(16, -10, 22, -4, 24, 2); // Shoulder
+        ctx.bezierCurveTo(20, 12, 6, 14, -8, 12); // Deep Barrel / Ribcage
+        ctx.bezierCurveTo(-20, 10, -28, 6, -28, -2); // Flank & Croup
+        ctx.closePath();
         ctx.fill();
 
-        // Muscle Shading / Highlight
-        const muscleGrad = ctx.createLinearGradient(-10, -8, 10, 8);
-        muscleGrad.addColorStop(0, horseColorTheme.highlight);
-        muscleGrad.addColorStop(0.6, horseColorTheme.body);
-        muscleGrad.addColorStop(1, horseColorTheme.dark);
-        ctx.fillStyle = muscleGrad;
+        // Specular Muscle Highlights (Shoulder blade & Rump gluteals)
+        const muscleShine = ctx.createRadialGradient(2, -4, 2, 0, 0, 22);
+        muscleShine.addColorStop(0, coat.specular);
+        muscleShine.addColorStop(0.4, coat.highlight);
+        muscleShine.addColorStop(0.85, coat.primary);
+        muscleShine.addColorStop(1, coat.secondary);
+        ctx.fillStyle = muscleShine;
         ctx.beginPath();
-        ctx.ellipse(-2, -1, 20, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, 22, 9.5, -0.05, 0, Math.PI * 2);
         ctx.fill();
 
-        // 4) SADDLE CLOTH WITH JOCKEY SILK & NUMBER
+        // 4) NUMBERED SADDLE CLOTH WITH GOLD PIPING
         ctx.fillStyle = horse.color;
         ctx.beginPath();
-        ctx.roundRect(-8, -9, 16, 12, 2);
+        ctx.roundRect(-9, -11, 18, 14, 2.5);
         ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 1.2;
         ctx.stroke();
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = '900 8px monospace';
+        ctx.font = '900 9px monospace';
         ctx.textAlign = 'center';
         ctx.fillText(`${horse.number}`, 0, 0);
 
-        // 5) JOCKEY IN CROUCH HOLDING REINS
+        // Girth Leather Strap
+        ctx.strokeStyle = '#1c1917';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-2, 3);
+        ctx.lineTo(-2, 11);
+        ctx.stroke();
+
+        // 5) JOCKEY IN AERODYNAMIC CROUCH
         // Jockey Body & Silk
         ctx.fillStyle = horse.color;
         ctx.beginPath();
-        ctx.moveTo(-2, -9);
-        ctx.lineTo(8, -18);
-        ctx.lineTo(13, -13);
-        ctx.lineTo(4, -6);
+        ctx.moveTo(-4, -10);
+        ctx.lineTo(8, -20);
+        ctx.lineTo(14, -15);
+        ctx.lineTo(4, -7);
         ctx.closePath();
         ctx.fill();
 
-        // Jockey White Pants & Boot
-        ctx.fillStyle = '#ffffff';
+        // White Riding Breeches & Black Boot with Stirrup
+        ctx.fillStyle = '#f8fafc';
         ctx.beginPath();
-        ctx.moveTo(-2, -9);
+        ctx.moveTo(-4, -10);
         ctx.lineTo(2, -4);
-        ctx.lineTo(0, -2);
-        ctx.lineTo(-4, -7);
+        ctx.lineTo(-1, -1);
+        ctx.lineTo(-6, -7);
         ctx.closePath();
         ctx.fill();
         ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, -3, 3, 3);
+        ctx.fillRect(-1, -2, 4, 3.5);
 
-        // Jockey Helmet & Goggles
+        // Metal Stirrup Iron
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-2, -3, 5, 5);
+
+        // Jockey Helmet & Visor
         ctx.fillStyle = horse.color;
         ctx.beginPath();
-        ctx.arc(10, -20, 4.5, 0, Math.PI * 2);
+        ctx.arc(10, -22, 5, 0, Math.PI * 2);
         ctx.fill();
-        // Helmet Visor
+
         ctx.fillStyle = '#0f172a';
-        ctx.fillRect(12, -21, 4, 1.8);
+        ctx.fillRect(12, -23.5, 4.5, 2); // Visor
+
         // Goggles
         ctx.fillStyle = '#e2e8f0';
-        ctx.fillRect(8, -20, 5, 2);
+        ctx.fillRect(8, -22.5, 5.5, 2.2);
 
-        // 6) HORSE NECK & NOBLE HEAD
-        ctx.fillStyle = horseColorTheme.body;
+        // Jockey Arm with Whip in Final Stretch
+        ctx.strokeStyle = horse.color;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(14, -4);
-        ctx.lineTo(26, -18);
-        ctx.lineTo(34, -15);
-        ctx.lineTo(38, -11);
-        ctx.lineTo(32, -4);
-        ctx.lineTo(18, 4);
+        ctx.moveTo(9, -17);
+        const whipAngle = raceStatus === 'RACING' && posPercent > 60 ? Math.sin(phase * 2) * 6 : 0;
+        ctx.lineTo(16, -15 + whipAngle);
+        ctx.stroke();
+
+        // Whip
+        if (raceStatus === 'RACING') {
+          ctx.strokeStyle = '#18181b';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(16, -15 + whipAngle);
+          ctx.lineTo(24, -10 + whipAngle * 1.5);
+          ctx.stroke();
+        }
+
+        // 6) ARMORED ARCHING NECK & NOBLE HEAD
+        ctx.fillStyle = coat.primary;
+        ctx.beginPath();
+        ctx.moveTo(16, -6);
+        ctx.bezierCurveTo(22, -18, 28, -20, 36, -16); // Crest & Poll
+        ctx.lineTo(44, -11); // Muzzle
+        ctx.lineTo(42, -5); // Chin
+        ctx.bezierCurveTo(34, -2, 26, 4, 18, 5); // Throatlatch
         ctx.closePath();
         ctx.fill();
 
-        // Mane
-        ctx.fillStyle = horseColorTheme.mane;
+        // Neck Specular Shading
+        const neckShine = ctx.createLinearGradient(18, -16, 32, -4);
+        neckShine.addColorStop(0, coat.highlight);
+        neckShine.addColorStop(1, coat.primary);
+        ctx.fillStyle = neckShine;
         ctx.beginPath();
-        ctx.moveTo(15, -6);
-        ctx.lineTo(24, -19);
-        ctx.lineTo(20, -12);
-        ctx.lineTo(16, -2);
+        ctx.moveTo(18, -8);
+        ctx.lineTo(28, -17);
+        ctx.lineTo(34, -13);
+        ctx.lineTo(24, -1);
         ctx.closePath();
         ctx.fill();
 
-        // Ears
-        ctx.fillStyle = horseColorTheme.dark;
+        // Flowing Mane Tufts
+        ctx.fillStyle = coat.mane;
+        for (let m = 0; m < 4; m++) {
+          ctx.beginPath();
+          ctx.moveTo(18 + m * 3.5, -8 - m * 2.5);
+          const mw = Math.sin(phase * 1.2 + m) * 3;
+          ctx.lineTo(14 + m * 3.5 + mw, -15 - m * 2.5);
+          ctx.lineTo(20 + m * 3.5, -12 - m * 2.5);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Expressive Pricked Ears
+        ctx.fillStyle = coat.secondary;
         ctx.beginPath();
-        ctx.moveTo(27, -19);
-        ctx.lineTo(29, -24);
-        ctx.lineTo(31, -18);
+        ctx.moveTo(29, -20);
+        ctx.lineTo(32, -26);
+        ctx.lineTo(34, -19);
         ctx.closePath();
         ctx.fill();
 
-        // Bridle & Reins connecting to Jockey
+        // Bridle, Bit & Reins connecting to Jockey Hands
         ctx.strokeStyle = '#cbd5e1';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(33, -11);
-        ctx.lineTo(8, -12);
+        ctx.moveTo(41, -7); // Bit
+        ctx.lineTo(34, -16); // Headstall
+        ctx.moveTo(41, -7);
+        ctx.lineTo(16, -15); // Reins to Jockey
         ctx.stroke();
 
-        // 7) FORELEGS (Quadruped Kinematics)
-        const forePhase = phase;
+        // 7) DOUBLE-JOINTED FORELEGS (Shoulder -> Elbow -> Knee -> Fetlock -> Hoof)
+        const forePhaseFar = phase + 0.4;
+        const forePhaseNear = phase + Math.PI;
+
         // Far Foreleg
-        const farForeX = 16 + Math.cos(forePhase) * 14;
-        const farForeY = 8 + Math.max(0, Math.sin(forePhase)) * 14;
-        ctx.strokeStyle = horseColorTheme.dark;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(14, 2);
-        ctx.lineTo(18, 8);
-        ctx.lineTo(farForeX, farForeY);
-        ctx.stroke();
+        const farKneeX = 22 + Math.cos(forePhaseFar) * 8;
+        const farKneeY = 8 + Math.max(0, Math.sin(forePhaseFar)) * 6;
+        const farForeHoofX = farKneeX + Math.cos(forePhaseFar) * 12;
+        const farForeHoofY = farKneeY + 12 + Math.max(0, Math.cos(forePhaseFar)) * 8;
 
-        // Near Foreleg
-        const nearForeX = 20 + Math.cos(forePhase + Math.PI) * 14;
-        const nearForeY = 8 + Math.max(0, Math.sin(forePhase + Math.PI)) * 14;
-        ctx.strokeStyle = horseColorTheme.body;
+        ctx.strokeStyle = coat.secondary;
         ctx.lineWidth = 3.5;
         ctx.beginPath();
-        ctx.moveTo(18, 2);
-        ctx.lineTo(22, 8);
-        ctx.lineTo(nearForeX, nearForeY);
+        ctx.moveTo(16, 2);
+        ctx.lineTo(19, 7);
+        ctx.lineTo(farKneeX, farKneeY);
+        ctx.lineTo(farForeHoofX, farForeHoofY);
         ctx.stroke();
-        // Hoof
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(nearForeX - 1, nearForeY, 3, 2);
 
-        // 8) 1ST PLACE WINNER CROWN & GLOW AURA
+        // Far Forehoof
+        ctx.fillStyle = coat.hoof;
+        ctx.fillRect(farForeHoofX - 1.5, farForeHoofY - 1, 3.5, 2.5);
+
+        // Near Foreleg (Leading/Foreground)
+        const nearKneeX = 25 + Math.cos(forePhaseNear) * 9;
+        const nearKneeY = 8 + Math.max(0, Math.sin(forePhaseNear)) * 6;
+        const nearForeHoofX = nearKneeX + Math.cos(forePhaseNear) * 14;
+        const nearForeHoofY = nearKneeY + 12 + Math.max(0, Math.cos(forePhaseNear)) * 8;
+
+        ctx.strokeStyle = coat.primary;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(19, 2);
+        ctx.lineTo(23, 7);
+        ctx.lineTo(nearKneeX, nearKneeY);
+        ctx.lineTo(nearForeHoofX, nearForeHoofY);
+        ctx.stroke();
+
+        // White Pastern Sock
+        if (coat.sock) {
+          ctx.strokeStyle = '#f8fafc';
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.moveTo(nearKneeX + (nearForeHoofX - nearKneeX) * 0.7, nearKneeY + (nearForeHoofY - nearKneeY) * 0.7);
+          ctx.lineTo(nearForeHoofX, nearForeHoofY);
+          ctx.stroke();
+        }
+
+        // Near Forehoof
+        ctx.fillStyle = coat.hoof;
+        ctx.fillRect(nearForeHoofX - 1.5, nearForeHoofY - 1, 4, 3);
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(nearForeHoofX - 1.5, nearForeHoofY + 1.5, 4, 1);
+
+        // 8) 1ST PLACE GOLDEN WINNER CROWN
         if (isWinner) {
           ctx.fillStyle = '#fbbf24';
-          ctx.font = '16px sans-serif';
+          ctx.font = '18px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('👑', 0, -28);
+          ctx.fillText('👑', 0, -32);
 
           ctx.fillStyle = '#fef08a';
-          ctx.font = 'bold 9px monospace';
-          ctx.fillText('1ST', 0, -38);
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText('1ST PLACE', 0, -42);
         }
 
         ctx.restore();
@@ -597,7 +762,7 @@ export const HorseRaceTrackCanvas: React.FC<HorseRaceTrackCanvasProps> = ({
 
         c.x += c.vx;
         c.y += c.vy;
-        c.vy += 0.12; // Gravity
+        c.vy += 0.12;
         c.angle += c.vAngle;
       });
 
