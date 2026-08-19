@@ -393,37 +393,46 @@ export class AviatorEngine {
       ? this.currentRound.roundNumber
       : this.currentRound.roundNumber + 1;
 
-    // Check if user already placed a bet for this round & panel
-    const existingBet = await AviatorBet.findOne({
-      roundNumber: targetRoundNumber,
-      userId: new mongoose.Types.ObjectId(userId),
-      panelIndex,
-      status: { $in: ['ACTIVE', 'CASHED_OUT'] },
-    });
-
-    if (existingBet) {
-      throw new Error(`You already have a bet placed on Panel ${panelIndex + 1} for ${targetRoundNumber === this.currentRound.roundNumber ? 'this flight' : 'the next flight'}.`);
-    }
-
     // Deduct player wallet
     const userWallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) });
     if (!userWallet || userWallet.availableBalance < betAmount) {
-      throw new Error('Insufficient wallet balance to place bet.');
+      throw new Error(`Insufficient wallet balance. You have ${userWallet?.availableBalance || 0} ETB, but bet amount is ${betAmount} ETB.`);
+    }
+
+    // Check if user already placed an active bet or cancelled bet on this panel
+    let bet = await AviatorBet.findOne({
+      roundNumber: targetRoundNumber,
+      userId: new mongoose.Types.ObjectId(userId),
+      panelIndex,
+    });
+
+    if (bet) {
+      if (bet.status === 'ACTIVE') {
+        throw new Error(`You already have an active bet placed on Panel ${panelIndex + 1} for ${targetRoundNumber === this.currentRound.roundNumber ? 'this flight' : 'the next flight'}.`);
+      }
+      // Re-activate and update existing record (prevents MongoDB E11000 duplicate key error)
+      bet.username = username;
+      bet.betAmount = betAmount;
+      bet.autoCashoutMultiplier = autoCashoutMultiplier && autoCashoutMultiplier > 1.0 ? autoCashoutMultiplier : undefined;
+      bet.status = 'ACTIVE';
+      bet.cashedOutMultiplier = undefined;
+      bet.payoutAmount = 0;
+      bet.cashedOutAt = undefined;
+      await bet.save();
+    } else {
+      bet = await AviatorBet.create({
+        roundNumber: targetRoundNumber,
+        userId: new mongoose.Types.ObjectId(userId),
+        username,
+        panelIndex,
+        betAmount,
+        autoCashoutMultiplier: autoCashoutMultiplier && autoCashoutMultiplier > 1.0 ? autoCashoutMultiplier : undefined,
+        status: 'ACTIVE',
+      });
     }
 
     userWallet.availableBalance -= betAmount;
     await userWallet.save();
-
-    // Create bet record
-    const bet = await AviatorBet.create({
-      roundNumber: targetRoundNumber,
-      userId: new mongoose.Types.ObjectId(userId),
-      username,
-      panelIndex,
-      betAmount,
-      autoCashoutMultiplier: autoCashoutMultiplier && autoCashoutMultiplier > 1.0 ? autoCashoutMultiplier : undefined,
-      status: 'ACTIVE',
-    });
 
     // Record player deduction transaction
     await WalletTransaction.create({

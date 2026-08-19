@@ -26,9 +26,12 @@ class AviatorAudioEngine {
   private ctx: AudioContext | null = null;
   private flightOsc: OscillatorNode | null = null;
   private flightGain: GainNode | null = null;
+  private hasUserInteracted: boolean = false;
 
   public init() {
-    if (!this.ctx && typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return;
+    this.hasUserInteracted = true;
+    if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
@@ -41,8 +44,9 @@ class AviatorAudioEngine {
 
   public startFlightSound() {
     try {
+      if (!this.hasUserInteracted) return;
       this.init();
-      if (!this.ctx) return;
+      if (!this.ctx || this.ctx.state !== 'running') return;
 
       this.stopFlightSound();
 
@@ -200,8 +204,14 @@ export const AviatorPage: React.FC = () => {
     if (token) {
       fetchMyHistory();
     }
+    const handleFirstInteraction = () => {
+      audioSynth.init();
+    };
+    window.addEventListener('pointerdown', handleFirstInteraction, { once: true });
+
     const cleanup = initSocketListeners();
     return () => {
+      window.removeEventListener('pointerdown', handleFirstInteraction);
       cleanup();
       audioSynth.stopFlightSound();
     };
