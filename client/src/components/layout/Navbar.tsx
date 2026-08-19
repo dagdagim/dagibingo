@@ -43,7 +43,7 @@ export const Navbar: React.FC = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Close dropdowns when clicking outside
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
@@ -63,79 +63,98 @@ export const Navbar: React.FC = () => {
     navigate('/');
   };
 
-  const instantGames = [
+  const gameCategories = [
     {
-      path: '/towers',
-      label: 'Dagi Towers',
-      badge: '97% RTP',
-      badgeColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      icon: <span className="text-lg">🏰</span>,
-      desc: '9-floor tower climb, avoid skulls and multiply your stake',
-      multiplier: 'Up to 258k×',
+      category: '⚡ Instant Arcade',
+      games: [
+        {
+          path: '/towers',
+          label: 'Dagi Towers',
+          badge: '97% RTP',
+          badgeColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+          icon: <span className="text-lg">🏰</span>,
+          desc: 'Climb 9 floors, avoid skulls and cash out anytime',
+          multiplier: 'Up to 258k×',
+        },
+        {
+          path: '/limbo',
+          label: 'Dagi Limbo',
+          badge: '98% RTP',
+          badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+          icon: <Rocket className="w-5 h-5 text-rose-500" />,
+          desc: 'Instant multiplier target game with auto bot',
+          multiplier: 'Up to 1.0M×',
+        },
+        {
+          path: '/mines',
+          label: 'Dagi Mines',
+          badge: '97% RTP',
+          badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+          icon: <Bomb className="w-5 h-5 text-emerald-400" />,
+          desc: '5×5 Provably Fair grid, safe diamonds & cashouts',
+          multiplier: 'Up to 5.1M×',
+        },
+        {
+          path: '/plinko',
+          label: 'Plinko Arcade',
+          badge: 'PHYSICS',
+          badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+          icon: <Flame className="w-5 h-5 text-orange-400" />,
+          desc: 'Drop physics balls down the pegboard pyramid',
+          multiplier: 'Up to 1000×',
+        },
+      ],
     },
     {
-      path: '/limbo',
-      label: 'Dagi Limbo',
-      badge: '98% RTP',
-      badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-      icon: <Rocket className="w-5 h-5 text-rose-500" />,
-      desc: 'Instant multiplier target game with custom odds',
-      multiplier: 'Up to 1.0M×',
+      category: '🏁 Virtual Racing & Multiplayer',
+      games: [
+        {
+          path: '/greyhound',
+          label: 'Dagi Hounds',
+          badge: 'SAND TURF',
+          badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+          icon: <span className="text-lg">🐕</span>,
+          desc: 'Greyhound racing & mechanical lure chasing',
+          multiplier: 'Up to 250×',
+        },
+        {
+          path: '/horserace',
+          label: 'Dagi Derby',
+          badge: 'LIVE TURF',
+          badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+          icon: <span className="text-lg">🐎</span>,
+          desc: 'Multiplayer thoroughbred horse racing simulation',
+          multiplier: 'Up to 250×',
+        },
+        {
+          path: '/aviator',
+          label: 'Aviator Crash',
+          badge: 'MULTIPLAYER',
+          badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+          icon: <Play className="w-5 h-5 text-rose-500 fill-rose-500/20" />,
+          desc: 'Cash out before the rocket plane flies away',
+          multiplier: 'Up to 1000×',
+        },
+        {
+          path: '/keno',
+          label: 'Keno 80',
+          badge: 'LOTTERY',
+          badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+          icon: <Sparkles className="w-5 h-5 text-amber-400" />,
+          desc: 'Pick your lucky numbers in rapid 80-ball draws',
+          multiplier: 'Up to 10,000×',
+        },
+      ],
     },
-    {
-      path: '/greyhound',
-      label: 'Dagi Hounds',
-      badge: 'HOT DOGS',
-      badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      icon: <span className="text-lg">🐕</span>,
-      desc: 'High-speed virtual greyhound racing & mechanical lure chase',
-      multiplier: 'Up to 250×',
-    },
-    {
-      path: '/horserace',
-      label: 'Dagi Derby',
-      badge: 'LIVE TURF',
-      badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-      icon: <span className="text-lg">🐎</span>,
-      desc: 'Live virtual horse racing with dynamic photo finishes',
-      multiplier: 'Up to 250×',
-    },
-    {
-      path: '/mines',
-      label: 'Dagi Mines',
-      badge: '97% RTP',
-      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      icon: <Bomb className="w-5 h-5 text-emerald-400" />,
-      desc: '5×5 Provably Fair grid, safe diamonds & cashouts',
-      multiplier: 'Up to 5.1M×',
-    },
-    {
-      path: '/aviator',
-      label: 'Aviator Crash',
-      badge: 'MULTIPLAYER',
-      badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-      icon: <Play className="w-5 h-5 text-rose-500 fill-rose-500/20" />,
-      desc: 'Watch the multiplier soar and cash out before the crash',
-      multiplier: 'Up to 1000×',
-    },
-    {
-      path: '/keno',
-      label: 'Keno 80',
-      badge: 'LOTTERY',
-      badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-      icon: <Sparkles className="w-5 h-5 text-amber-400" />,
-      desc: 'Pick your lucky numbers in rapid 80-ball draws',
-      multiplier: 'Up to 10,000×',
-    },
-    {
-      path: '/plinko',
-      label: 'Plinko Arcade',
-      badge: 'ARCADE',
-      badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      icon: <Flame className="w-5 h-5 text-orange-400" />,
-      desc: 'Drop physics balls down the pegboard pyramid',
-      multiplier: 'Up to 1000×',
-    },
+  ];
+
+  const quickChips = [
+    { path: '/towers', label: 'Towers', icon: <span>🏰</span>, activeColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' },
+    { path: '/limbo', label: 'Limbo', icon: <Rocket className="w-3.5 h-3.5 text-rose-500" />, activeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/40' },
+    { path: '/greyhound', label: 'Hounds', icon: <span>🐕</span>, activeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/40' },
+    { path: '/horserace', label: 'Derby', icon: <span>🐎</span>, activeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/40' },
+    { path: '/mines', label: 'Mines', icon: <Bomb className="w-3.5 h-3.5 text-emerald-400" />, activeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' },
+    { path: '/aviator', label: 'Aviator', icon: <Play className="w-3.5 h-3.5 text-rose-500 fill-rose-500/20" />, activeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/40' },
   ];
 
   return (
@@ -167,34 +186,34 @@ export const Navbar: React.FC = () => {
               </div>
             </Link>
 
-            {/* 2. DESKTOP NAVIGATION LINKS */}
+            {/* 2. DESKTOP NAVIGATION */}
             <nav className="hidden lg:flex items-center gap-1.5">
-              {/* Lobby Link */}
+              {/* Lobby */}
               <Link
                 to="/lobby"
-                className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
                   isActive('/lobby')
                     ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm'
                     : 'text-arena-muted hover:text-arena-text hover:bg-arena-surface'
                 }`}
               >
-                <Gamepad2 className="w-4 h-4 text-indigo-400" />
+                <Gamepad2 className="w-3.5 h-3.5 text-indigo-400" />
                 Lobby
               </Link>
 
-              {/* Games Mega-Dropdown Menu */}
+              {/* Games Categorized Mega Dropdown */}
               <div className="relative" ref={gamesDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setIsGamesDropdownOpen(!isGamesDropdownOpen)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    ['/horserace', '/mines', '/aviator', '/keno', '/plinko'].includes(location.pathname)
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                    ['/towers', '/limbo', '/greyhound', '/horserace', '/mines', '/aviator', '/keno', '/plinko'].includes(location.pathname)
                       ? 'bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/30'
                       : 'text-arena-muted hover:text-arena-text hover:bg-arena-surface'
                   }`}
                 >
-                  <Layers className="w-4 h-4 text-amber-400" />
-                  <span>Instant Games</span>
+                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                  <span>All Games (8)</span>
                   <ChevronDown
                     className={`w-3.5 h-3.5 transition-transform duration-200 ${
                       isGamesDropdownOpen ? 'rotate-180 text-amber-400' : 'text-arena-muted'
@@ -202,53 +221,62 @@ export const Navbar: React.FC = () => {
                   />
                 </button>
 
-                {/* Dropdown Card */}
+                {/* Categorized Mega Menu Popover */}
                 {isGamesDropdownOpen && (
-                  <div className="absolute left-0 mt-3 w-80 sm:w-96 glass-panel-elevated rounded-3xl p-3 border border-arena-border shadow-2xl animate-pop-in z-50 space-y-1.5">
-                    <div className="px-3 py-2 border-b border-arena-border/60 flex items-center justify-between">
+                  <div className="absolute left-0 mt-3 w-[650px] glass-panel-elevated rounded-3xl p-4 border border-arena-border shadow-2xl animate-pop-in z-50 space-y-3">
+                    <div className="px-2 py-1 border-b border-arena-border/60 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-widest text-arena-muted font-display">
-                        FEATURED PROVABLY FAIR GAMES
+                        OFFICIAL PROVABLY FAIR CATALOG
                       </span>
-                      <span className="text-[10px] font-mono text-emerald-400 font-bold">5 LIVE</span>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold">8 LIVE GAMES</span>
                     </div>
 
-                    <div className="space-y-1">
-                      {instantGames.map((game) => (
-                        <Link
-                          key={game.path}
-                          to={game.path}
-                          onClick={() => setIsGamesDropdownOpen(false)}
-                          className={`flex items-center justify-between p-2.5 rounded-2xl transition-all duration-200 group ${
-                            isActive(game.path)
-                              ? 'bg-amber-500/15 border border-amber-500/30'
-                              : 'hover:bg-arena-surface border border-transparent'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-arena-surface border border-arena-border flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-                              {game.icon}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-black font-display text-arena-text group-hover:text-amber-400 transition-colors">
-                                  {game.label}
-                                </span>
-                                <span
-                                  className={`px-1.5 py-0.2 rounded-md text-[9px] font-black font-mono border ${game.badgeColor}`}
-                                >
-                                  {game.badge}
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-arena-muted line-clamp-1 block">
-                                {game.desc}
-                              </span>
-                            </div>
-                          </div>
-
-                          <span className="text-[10px] font-mono font-black text-amber-400 group-hover:translate-x-0.5 transition-transform">
-                            {game.multiplier}
+                    <div className="grid grid-cols-2 gap-4">
+                      {gameCategories.map((cat) => (
+                        <div key={cat.category} className="space-y-1.5">
+                          <span className="text-[11px] font-black uppercase font-display text-arena-text block px-2">
+                            {cat.category}
                           </span>
-                        </Link>
+                          <div className="space-y-1">
+                            {cat.games.map((game) => (
+                              <Link
+                                key={game.path}
+                                to={game.path}
+                                onClick={() => setIsGamesDropdownOpen(false)}
+                                className={`flex items-center justify-between p-2 rounded-2xl transition-all duration-200 group ${
+                                  isActive(game.path)
+                                    ? 'bg-amber-500/15 border border-amber-500/30'
+                                    : 'hover:bg-arena-surface border border-transparent'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-xl bg-arena-surface border border-arena-border flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+                                    {game.icon}
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-black font-display text-arena-text group-hover:text-amber-400 transition-colors">
+                                        {game.label}
+                                      </span>
+                                      <span
+                                        className={`px-1.5 py-0.2 rounded-md text-[8.5px] font-black font-mono border ${game.badgeColor}`}
+                                      >
+                                        {game.badge}
+                                      </span>
+                                    </div>
+                                    <span className="text-[9.5px] text-arena-muted line-clamp-1 block">
+                                      {game.desc}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <span className="text-[9.5px] font-mono font-black text-amber-400">
+                                  {game.multiplier}
+                                </span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
 
@@ -266,82 +294,27 @@ export const Navbar: React.FC = () => {
               </div>
 
               {/* Direct Quick-Access Chips */}
-              <Link
-                to="/towers"
-                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
-                  isActive('/towers')
-                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 shadow-sm'
-                    : 'text-arena-muted hover:text-yellow-400 hover:bg-yellow-500/10'
-                }`}
-              >
-                <span>🏰</span>
-                <span>Towers</span>
-              </Link>
-
-              <Link
-                to="/limbo"
-                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
-                  isActive('/limbo')
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm'
-                    : 'text-arena-muted hover:text-rose-400 hover:bg-rose-500/10'
-                }`}
-              >
-                <Rocket className="w-3.5 h-3.5 text-rose-500" />
-                <span>Limbo</span>
-              </Link>
-
-              <Link
-                to="/greyhound"
-                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
-                  isActive('/greyhound')
-                    ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40 shadow-sm'
-                    : 'text-arena-muted hover:text-orange-400 hover:bg-orange-500/10'
-                }`}
-              >
-                <span>🐕</span>
-                <span>Hounds</span>
-              </Link>
-
-              <Link
-                to="/horserace"
-                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
-                  isActive('/horserace')
-                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm'
-                    : 'text-arena-muted hover:text-amber-400 hover:bg-amber-500/10'
-                }`}
-              >
-                <span>🐎</span>
-                <span>Derby</span>
-              </Link>
-
-              <Link
-                to="/mines"
-                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
-                  isActive('/mines')
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
-                    : 'text-arena-muted hover:text-emerald-400 hover:bg-emerald-500/10'
-                }`}
-              >
-                <Bomb className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Mines</span>
-              </Link>
-
-              <Link
-                to="/aviator"
-                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
-                  isActive('/aviator')
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm'
-                    : 'text-arena-muted hover:text-rose-400 hover:bg-rose-500/10'
-                }`}
-              >
-                <Play className="w-3.5 h-3.5 text-rose-500 fill-rose-500/20" />
-                <span>Aviator</span>
-              </Link>
+              <div className="hidden xl:flex items-center gap-1">
+                {quickChips.map((chip) => (
+                  <Link
+                    key={chip.path}
+                    to={chip.path}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
+                      isActive(chip.path)
+                        ? `${chip.activeColor} shadow-sm`
+                        : 'text-arena-muted hover:text-arena-text hover:bg-arena-surface'
+                    }`}
+                  >
+                    {chip.icon}
+                    <span>{chip.label}</span>
+                  </Link>
+                ))}
+              </div>
 
               {/* Leaderboard */}
               <Link
                 to="/leaderboard"
-                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
+                className={`px-2.5 py-1 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
                   isActive('/leaderboard')
                     ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
                     : 'text-arena-muted hover:text-arena-text hover:bg-arena-surface'
@@ -351,10 +324,10 @@ export const Navbar: React.FC = () => {
                 Rankings
               </Link>
 
-              {/* Rules & Guide */}
+              {/* Guide */}
               <Link
                 to="/how-it-works"
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
+                className={`px-2.5 py-1 rounded-xl text-xs font-bold uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
                   isActive('/how-it-works')
                     ? 'bg-arena-surface text-arena-text border border-arena-border'
                     : 'text-arena-muted hover:text-arena-text hover:bg-arena-surface'
@@ -364,25 +337,25 @@ export const Navbar: React.FC = () => {
                 Guide
               </Link>
 
-              {/* Admin Badge */}
+              {/* Admin Hub */}
               {user?.role === 'ADMIN' && (
                 <Link
                   to="/admin"
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
                     location.pathname.startsWith('/admin')
                       ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-gold-glow'
                       : 'text-amber-400 hover:bg-amber-500/10 border border-amber-500/20'
                   }`}
                 >
                   <Shield className="w-3.5 h-3.5 text-amber-400" />
-                  Admin Suite
+                  Admin
                 </Link>
               )}
             </nav>
 
-            {/* 3. RIGHT ACTION CONTROLS (Wallet, Theme, Profile) */}
+            {/* 3. RIGHT ACTION CONTROLS */}
             <div className="flex items-center gap-2.5">
-              {/* Theme Switcher Button */}
+              {/* Theme Switcher */}
               <button
                 type="button"
                 onClick={toggleTheme}
