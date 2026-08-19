@@ -303,6 +303,7 @@ export class AviatorEngine {
       // Double-Entry Wallet Accounting: Credit Player, Debit Admin
       const userWallet = await Wallet.findOne({ userId: bet.userId });
       if (userWallet) {
+        const userBalBefore = userWallet.availableBalance;
         userWallet.availableBalance += payoutAmount;
         await userWallet.save();
 
@@ -311,7 +312,9 @@ export class AviatorEngine {
           userId: bet.userId,
           type: 'PRIZE',
           amount: payoutAmount,
+          balanceBefore: userBalBefore,
           balanceAfter: userWallet.availableBalance,
+          currency: 'ETB',
           status: 'COMPLETED',
           description: `Aviator Win #${bet.roundNumber} (${mult}x Multiplier)`,
           referenceId: bet._id.toString(),
@@ -328,6 +331,7 @@ export class AviatorEngine {
         if (adminUser) {
           const adminWallet = await Wallet.findOne({ userId: adminUser._id });
           if (adminWallet) {
+            const adminBalBefore = adminWallet.availableBalance;
             adminWallet.availableBalance -= payoutAmount;
             await adminWallet.save();
 
@@ -336,7 +340,9 @@ export class AviatorEngine {
               userId: adminUser._id,
               type: 'WITHDRAWAL',
               amount: payoutAmount,
+              balanceBefore: adminBalBefore,
               balanceAfter: adminWallet.availableBalance,
+              currency: 'ETB',
               status: 'COMPLETED',
               description: `House Aviator Payout to ${bet.username} (Round #${bet.roundNumber}, ${mult}x)`,
               referenceId: bet._id.toString(),
@@ -431,6 +437,7 @@ export class AviatorEngine {
       });
     }
 
+    const userBalBefore = userWallet.availableBalance;
     userWallet.availableBalance -= betAmount;
     await userWallet.save();
 
@@ -440,7 +447,9 @@ export class AviatorEngine {
       userId: new mongoose.Types.ObjectId(userId),
       type: 'GAME_ENTRY',
       amount: betAmount,
+      balanceBefore: userBalBefore,
       balanceAfter: userWallet.availableBalance,
+      currency: 'ETB',
       status: 'COMPLETED',
       description: `Aviator Bet Round #${targetRoundNumber} (Panel ${panelIndex + 1})`,
       referenceId: bet._id.toString(),
@@ -456,6 +465,7 @@ export class AviatorEngine {
     if (adminUser) {
       const adminWallet = await Wallet.findOne({ userId: adminUser._id });
       if (adminWallet) {
+        const adminBalBefore = adminWallet.availableBalance;
         adminWallet.availableBalance += betAmount;
         await adminWallet.save();
 
@@ -464,7 +474,9 @@ export class AviatorEngine {
           userId: adminUser._id,
           type: 'DEPOSIT',
           amount: betAmount,
+          balanceBefore: adminBalBefore,
           balanceAfter: adminWallet.availableBalance,
+          currency: 'ETB',
           status: 'COMPLETED',
           description: `House Stake from ${username} (Aviator Round #${targetRoundNumber})`,
           referenceId: bet._id.toString(),
@@ -529,6 +541,7 @@ export class AviatorEngine {
     const userWallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) });
     let newBalance = 0;
     if (userWallet) {
+      const userBalBefore = userWallet.availableBalance;
       userWallet.availableBalance += bet.betAmount;
       await userWallet.save();
       newBalance = userWallet.availableBalance;
@@ -538,7 +551,9 @@ export class AviatorEngine {
         userId: new mongoose.Types.ObjectId(userId),
         type: 'REFUND',
         amount: bet.betAmount,
+        balanceBefore: userBalBefore,
         balanceAfter: userWallet.availableBalance,
+        currency: 'ETB',
         status: 'COMPLETED',
         description: `Aviator Bet Cancellation Refund (Round #${bet.roundNumber})`,
         referenceId: bet._id.toString(),
