@@ -109,6 +109,7 @@ export class AviatorEngine {
       if (!this.currentRound) return;
 
       this.currentRound.status = 'BETTING';
+      this.currentRound.countdownSeconds = secondsRemaining;
       this.currentMultiplier = 1.0;
 
       this.io?.to('room:aviator').emit('aviator:countdown' as any, {

@@ -27,7 +27,7 @@ class AviatorAudioEngine {
   private flightOsc: OscillatorNode | null = null;
   private flightGain: GainNode | null = null;
 
-  private init() {
+  public init() {
     if (!this.ctx && typeof window !== 'undefined') {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
@@ -103,16 +103,17 @@ class AviatorAudioEngine {
 
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(587.33, this.ctx.currentTime); // D5
-      osc.frequency.setValueAtTime(880, this.ctx.currentTime + 0.08); // A5
+      osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.15); // A5
+      osc.frequency.exponentialRampToValueAtTime(1174.66, this.ctx.currentTime + 0.3); // D6
 
-      gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+      gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.45);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
 
       osc.start();
-      osc.stop(this.ctx.currentTime + 0.35);
+      osc.stop(this.ctx.currentTime + 0.45);
     } catch {
       // Silent
     }
@@ -122,7 +123,6 @@ class AviatorAudioEngine {
     try {
       this.init();
       if (!this.ctx) return;
-
       this.stopFlightSound();
 
       const osc = this.ctx.createOscillator();
@@ -130,9 +130,9 @@ class AviatorAudioEngine {
 
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(140, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.4);
+      osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.4);
 
-      gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
 
       osc.connect(gain);
@@ -174,6 +174,7 @@ export const AviatorPage: React.FC = () => {
     stats,
     soundEnabled,
     error,
+    setError,
     setPanelAmount,
     setPanelAutoCashout,
     setPanelAutoMultiplier,
@@ -187,7 +188,7 @@ export const AviatorPage: React.FC = () => {
   } = useAviatorStore();
 
   const { fetchBalance } = useWalletStore();
-  const { token, isAuthenticated } = useAuthStore();
+  const { token } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<'all_bets' | 'my_bets' | 'stats'>('all_bets');
   const [showProvablyFairModal, setShowProvablyFairModal] = useState(false);
@@ -227,6 +228,18 @@ export const AviatorPage: React.FC = () => {
       audioSynth.updateFlightPitch(currentMultiplier);
     }
   }, [currentMultiplier, flightStatus, soundEnabled]);
+
+  const handlePlaceBet = async (panelIdx: 0 | 1) => {
+    audioSynth.init();
+    await placeBet(panelIdx);
+  };
+
+  const handleCashout = async (panelIdx: 0 | 1) => {
+    if (soundEnabled) {
+      audioSynth.playCashoutChime();
+    }
+    await cashout(panelIdx);
+  };
 
   // -------------------------------------------------------------
   // HIGH-FPS CANVAS FLIGHT PHYSICS & JET RENDERING
@@ -381,7 +394,7 @@ export const AviatorPage: React.FC = () => {
           ctx.fillStyle = '#b91c1c';
           ctx.fill();
 
-          // Propeller Blade
+          // Propeller Blade (safeguard radius against negative values)
           const propAngle = (Date.now() / 20) % (Math.PI * 2);
           ctx.beginPath();
           ctx.ellipse(22, 0, 2, Math.max(0.5, Math.abs(9 * Math.sin(propAngle))), 0, 0, Math.PI * 2);
@@ -479,6 +492,29 @@ export const AviatorPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Error Alert Banner */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="p-3.5 bg-rose-500/15 border border-rose-500/40 rounded-2xl flex items-center justify-between gap-3 text-rose-400 text-sm font-bold shadow-lg"
+          >
+            <div className="flex items-center gap-2.5">
+              <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
+              <span>{error}</span>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="p-1 hover:bg-rose-500/20 rounded-lg text-rose-300 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Aviator Center Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* ========================================================= */}
@@ -569,64 +605,65 @@ export const AviatorPage: React.FC = () => {
                 >
                   {/* Panel Header */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-wider text-arena-muted flex items-center gap-1.5 font-display">
-                      <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+                    <span className="text-xs font-black uppercase tracking-wider text-arena-muted flex items-center gap-1 font-display">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
                       Bet Panel {panelIdx + 1}
                     </span>
 
-                    {/* Auto Cashout Toggle */}
+                    {/* Auto Cashout Switch */}
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-arena-subtle uppercase">Auto Cashout</span>
+                      <label className="text-[11px] font-bold text-arena-muted">Auto Cashout</label>
                       <button
                         type="button"
                         onClick={() => setPanelAutoCashout(panelIdx as 0 | 1, !p.autoCashout)}
-                        className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer p-0.5 ${
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
                           p.autoCashout ? 'bg-emerald-500' : 'bg-arena-surface border border-arena-border'
                         }`}
                       >
-                        <motion.div
-                          className="w-4 h-4 rounded-full bg-white shadow-sm"
-                          animate={{ x: p.autoCashout ? 16 : 0 }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        <div
+                          className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                            p.autoCashout ? 'translate-x-4' : 'translate-x-0'
+                          }`}
                         />
                       </button>
                     </div>
                   </div>
 
-                  {/* Inputs Grid */}
+                  {/* Bet Amount Stepper & Auto Multiplier Inputs */}
                   <div className="grid grid-cols-2 gap-2">
-                    {/* Wager Amount */}
+                    {/* Amount Stepper */}
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-arena-subtle">Wager (ETB)</label>
+                      <label className="text-[10px] font-bold uppercase text-arena-subtle">Amount (ETB)</label>
                       <div className="flex items-center bg-arena-surface border border-arena-border rounded-xl p-1">
                         <button
                           type="button"
                           disabled={isPanelActive || flightStatus === 'FLYING'}
                           onClick={() => setPanelAmount(panelIdx as 0 | 1, Math.max(0.5, p.betAmount - 5))}
-                          className="w-7 h-7 rounded-lg bg-arena-elevated hover:bg-arena-highlight text-arena-muted flex items-center justify-center disabled:opacity-40 cursor-pointer"
+                          className="p-1 hover:bg-arena-highlight rounded-lg text-arena-muted disabled:opacity-40"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
                         <input
                           type="number"
+                          step="1"
                           min="0.5"
                           disabled={isPanelActive || flightStatus === 'FLYING'}
                           value={p.betAmount}
                           onChange={(e) => setPanelAmount(panelIdx as 0 | 1, Number(e.target.value))}
-                          className="w-full text-center bg-transparent font-black text-sm text-arena-text outline-none font-mono"
+                          className="w-full bg-transparent text-center font-black text-sm font-mono outline-none text-arena-text"
                         />
                         <button
                           type="button"
                           disabled={isPanelActive || flightStatus === 'FLYING'}
                           onClick={() => setPanelAmount(panelIdx as 0 | 1, p.betAmount + 5)}
-                          className="w-7 h-7 rounded-lg bg-arena-elevated hover:bg-arena-highlight text-arena-muted flex items-center justify-center disabled:opacity-40 cursor-pointer"
+                          className="p-1 hover:bg-arena-highlight rounded-lg text-arena-muted disabled:opacity-40"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
 
-                    {/* Auto Multiplier (If enabled) */}
+                    {/* Auto Cashout Multiplier */}
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold uppercase text-arena-subtle">Auto Multiplier</label>
                       <input
@@ -665,8 +702,8 @@ export const AviatorPage: React.FC = () => {
                         <button
                           type="button"
                           disabled={p.isProcessing}
-                          onClick={() => placeBet(panelIdx as 0 | 1)}
-                          className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 active:scale-[0.98] text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display"
+                          onClick={() => handlePlaceBet(panelIdx as 0 | 1)}
+                          className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 active:scale-[0.98] text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display disabled:opacity-50"
                         >
                           <Play className="w-5 h-5 fill-slate-950" />
                           <span>BET {p.betAmount} ETB</span>
@@ -681,7 +718,7 @@ export const AviatorPage: React.FC = () => {
                             type="button"
                             disabled={p.isProcessing}
                             onClick={() => cancelBet(panelIdx as 0 | 1)}
-                            className="px-4 py-3.5 bg-rose-600/80 hover:bg-rose-500 active:scale-[0.98] text-white font-black text-xs uppercase rounded-2xl transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            className="px-4 py-3.5 bg-rose-600/80 hover:bg-rose-500 active:scale-[0.98] text-white font-black text-xs uppercase rounded-2xl transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                             title="Cancel Bet"
                           >
                             <X className="w-4 h-4" />
@@ -698,8 +735,8 @@ export const AviatorPage: React.FC = () => {
                           disabled={p.isProcessing}
                           animate={{ scale: [1, 1.02, 1] }}
                           transition={{ repeat: Infinity, duration: 0.5 }}
-                          onClick={() => cashout(panelIdx as 0 | 1)}
-                          className="w-full py-4 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-400 active:scale-[0.97] text-slate-950 font-black rounded-2xl shadow-2xl shadow-amber-500/40 transition-all flex flex-col items-center justify-center cursor-pointer border-2 border-amber-300"
+                          onClick={() => handleCashout(panelIdx as 0 | 1)}
+                          className="w-full py-4 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-400 active:scale-[0.97] text-slate-950 font-black rounded-2xl shadow-2xl shadow-amber-500/40 transition-all flex flex-col items-center justify-center cursor-pointer border-2 border-amber-300 disabled:opacity-50"
                         >
                           <div className="flex items-center gap-2 text-lg sm:text-xl uppercase tracking-wider font-display font-black">
                             <Sparkles className="w-5 h-5 fill-slate-950" />
@@ -731,7 +768,7 @@ export const AviatorPage: React.FC = () => {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => placeBet(panelIdx as 0 | 1)}
+                          onClick={() => handlePlaceBet(panelIdx as 0 | 1)}
                           className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-400 hover:to-indigo-500 text-white font-black text-sm uppercase rounded-2xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
                         >
                           <Play className="w-4 h-4 fill-white" />
@@ -753,7 +790,7 @@ export const AviatorPage: React.FC = () => {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => placeBet(panelIdx as 0 | 1)}
+                          onClick={() => handlePlaceBet(panelIdx as 0 | 1)}
                           className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm uppercase rounded-2xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-2 font-display"
                         >
                           <Play className="w-4 h-4 fill-slate-950" />
@@ -774,163 +811,200 @@ export const AviatorPage: React.FC = () => {
         <div className="lg:col-span-4 space-y-4">
           <div className="glass-panel-elevated rounded-3xl p-4 border border-arena-border shadow-lg">
             {/* Tabs */}
-            <div className="flex items-center justify-between border-b border-arena-border pb-3 mb-3">
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setActiveTab('all_bets')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 cursor-pointer font-display ${
-                    activeTab === 'all_bets'
-                      ? 'bg-rose-500 text-white shadow-sm'
-                      : 'text-arena-muted hover:text-arena-text'
-                  }`}
-                >
-                  <Radio className="w-3.5 h-3.5" />
-                  <span>All Bets ({liveBets.length})</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('my_bets')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 cursor-pointer font-display ${
-                    activeTab === 'my_bets'
-                      ? 'bg-rose-500 text-white shadow-sm'
-                      : 'text-arena-muted hover:text-arena-text'
-                  }`}
-                >
-                  <History className="w-3.5 h-3.5" />
-                  <span>My History</span>
-                </button>
-              </div>
+            <div className="grid grid-cols-3 gap-1 p-1 bg-arena-surface rounded-2xl mb-4 border border-arena-border">
+              <button
+                onClick={() => setActiveTab('all_bets')}
+                className={`py-2 text-xs font-black uppercase rounded-xl transition-all ${
+                  activeTab === 'all_bets'
+                    ? 'bg-rose-500 text-white shadow-md'
+                    : 'text-arena-muted hover:text-arena-text'
+                }`}
+              >
+                All Bets
+              </button>
+              <button
+                onClick={() => setActiveTab('my_bets')}
+                className={`py-2 text-xs font-black uppercase rounded-xl transition-all ${
+                  activeTab === 'my_bets'
+                    ? 'bg-rose-500 text-white shadow-md'
+                    : 'text-arena-muted hover:text-arena-text'
+                }`}
+              >
+                My Bets
+              </button>
+              <button
+                onClick={() => setActiveTab('stats')}
+                className={`py-2 text-xs font-black uppercase rounded-xl transition-all ${
+                  activeTab === 'stats'
+                    ? 'bg-rose-500 text-white shadow-md'
+                    : 'text-arena-muted hover:text-arena-text'
+                }`}
+              >
+                Top / Stats
+              </button>
             </div>
 
-            {/* TAB 1: Live Arena Bets Table */}
-            {activeTab === 'all_bets' && (
-              <div className="space-y-1 max-h-[460px] overflow-y-auto pr-1">
-                {liveBets.length === 0 ? (
-                  <div className="py-12 text-center text-arena-subtle text-xs">
-                    No active bets in this flight yet.
+            {/* Tab Contents */}
+            <div className="min-h-[380px] max-h-[460px] overflow-y-auto scrollbar-thin pr-1">
+              {activeTab === 'all_bets' && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-arena-subtle px-2 pb-1 border-b border-arena-border">
+                    <span>PILOT</span>
+                    <span>BET</span>
+                    <span>X</span>
+                    <span>CASH OUT</span>
                   </div>
-                ) : (
-                  liveBets.map((b) => {
-                    const isWin = b.status === 'CASHED_OUT';
-                    return (
+                  {liveBets.length === 0 ? (
+                    <div className="text-center py-12 text-xs text-arena-subtle">
+                      No active bets in this round yet.
+                    </div>
+                  ) : (
+                    liveBets.map((b) => (
                       <div
                         key={b.id}
-                        className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
-                          isWin
-                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                            : 'bg-arena-surface/80 border-arena-border text-arena-muted'
+                        className={`flex items-center justify-between text-xs py-2 px-2.5 rounded-xl border transition-all ${
+                          b.status === 'CASHED_OUT'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                            : 'bg-arena-surface border-arena-border text-arena-muted'
                         }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${isWin ? 'bg-emerald-400' : 'bg-rose-500 animate-pulse'}`} />
-                          <span className="text-xs font-bold text-arena-text">{b.username}</span>
-                        </div>
-
-                        <div className="flex items-center gap-3 font-mono text-xs">
-                          <span className="font-bold text-arena-muted">{b.betAmount} ETB</span>
-                          {isWin ? (
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-black text-[11px]">
-                              {b.cashedOutMultiplier?.toFixed(2)}× (+{b.payoutAmount?.toLocaleString()})
-                            </span>
-                          ) : (
-                            <span className="text-arena-subtle text-[11px]">In Flight</span>
-                          )}
-                        </div>
+                        <span className="font-bold truncate max-w-[90px]">{b.username}</span>
+                        <span className="font-mono">{b.betAmount} ETB</span>
+                        <span className="font-mono font-black">
+                          {b.cashedOutMultiplier ? `${b.cashedOutMultiplier.toFixed(2)}×` : '-'}
+                        </span>
+                        <span className="font-mono font-black">
+                          {b.payoutAmount ? `+${b.payoutAmount.toFixed(2)}` : '-'}
+                        </span>
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
+                    ))
+                  )}
+                </div>
+              )}
 
-            {/* TAB 2: Personal My History */}
-            {activeTab === 'my_bets' && (
-              <div className="space-y-1 max-h-[460px] overflow-y-auto pr-1">
-                {myHistory.length === 0 ? (
-                  <div className="py-12 text-center text-arena-subtle text-xs">
-                    No past Aviator flights yet.
+              {activeTab === 'my_bets' && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-arena-subtle px-2 pb-1 border-b border-arena-border">
+                    <span>ROUND</span>
+                    <span>BET</span>
+                    <span>MULT</span>
+                    <span>PAYOUT</span>
                   </div>
-                ) : (
-                  myHistory.map((h) => (
-                    <div
-                      key={h.id}
-                      className="p-2.5 rounded-xl bg-arena-surface border border-arena-border flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <span className="text-arena-subtle text-[10px] block">Flight #{h.roundNumber}</span>
-                        <span className="font-bold text-arena-text font-mono">{h.betAmount} ETB</span>
-                      </div>
-                      <div className="text-right">
-                        {h.status === 'CASHED_OUT' ? (
-                          <span className="text-emerald-400 font-black font-mono block">
-                            +{h.payoutAmount.toLocaleString()} ETB ({h.cashedOutMultiplier?.toFixed(2)}×)
-                          </span>
-                        ) : (
-                          <span className="text-rose-500 font-bold font-mono block">0.00 ETB</span>
-                        )}
-                        <span className="text-[10px] text-arena-subtle">{new Date(h.createdAt).toLocaleTimeString()}</span>
-                      </div>
+                  {myHistory.length === 0 ? (
+                    <div className="text-center py-12 text-xs text-arena-subtle">
+                      No personal flight history yet.
                     </div>
-                  ))
-                )}
-              </div>
-            )}
+                  ) : (
+                    myHistory.map((h) => (
+                      <div
+                        key={h.id}
+                        className={`flex items-center justify-between text-xs py-2 px-2.5 rounded-xl border ${
+                          h.status === 'CASHED_OUT'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                            : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                        }`}
+                      >
+                        <span className="font-mono font-bold">#{h.roundNumber}</span>
+                        <span className="font-mono">{h.betAmount} ETB</span>
+                        <span className="font-mono font-black">
+                          {h.cashedOutMultiplier ? `${h.cashedOutMultiplier.toFixed(2)}×` : 'Crashed'}
+                        </span>
+                        <span className="font-mono font-black">
+                          {h.payoutAmount ? `+${h.payoutAmount.toFixed(2)}` : '0 ETB'}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'stats' && (
+                <div className="space-y-4 py-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-arena-surface p-3 rounded-2xl border border-arena-border text-center">
+                      <span className="text-[10px] font-bold uppercase text-arena-subtle block">Total Rounds</span>
+                      <span className="text-xl font-black font-mono text-arena-text">
+                        {stats?.totalRounds || 0}
+                      </span>
+                    </div>
+                    <div className="bg-arena-surface p-3 rounded-2xl border border-arena-border text-center">
+                      <span className="text-[10px] font-bold uppercase text-arena-subtle block">Total Bets</span>
+                      <span className="text-xl font-black font-mono text-arena-text">
+                        {stats?.totalBets || 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 bg-gradient-to-r from-amber-500/15 to-rose-500/15 border border-amber-500/30 rounded-2xl space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-400">Highest Multiplier</span>
+                      <span className="text-lg font-black font-mono text-amber-400">
+                        {stats?.highestMultiplier ? `${stats.highestMultiplier.toFixed(2)}×` : '1.00×'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-400">Biggest Single Payout</span>
+                      <span className="text-lg font-black font-mono text-emerald-400">
+                        {stats?.highestPayout ? `${stats.highestPayout.toLocaleString()} ETB` : '0 ETB'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Provably Fair Info Modal */}
-      <AnimatePresence>
-        {showProvablyFairModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="relative max-w-md w-full bg-arena-surface border border-arena-border rounded-3xl p-6 shadow-2xl space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-emerald-500" />
-                  <h3 className="text-lg font-black font-display text-arena-text">Provably Fair System</h3>
-                </div>
-                <button
-                  onClick={() => setShowProvablyFairModal(false)}
-                  className="p-1.5 rounded-full bg-arena-elevated text-arena-muted hover:text-arena-text"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+      {/* Provably Fair Verifier Modal */}
+      {showProvablyFairModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="glass-panel-elevated rounded-3xl p-6 border border-arena-border max-w-md w-full shadow-2xl space-y-4"
+          >
+            <div className="flex items-center justify-between border-b border-arena-border pb-3">
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-emerald-500" />
+                <h3 className="text-lg font-black font-display">Provably Fair Algorithm</h3>
               </div>
-
-              <p className="text-xs text-arena-muted leading-relaxed">
-                Every Aviator round result is cryptographically predetermined using SHA-256 before the flight begins. The crash point cannot be altered during the flight.
-              </p>
-
-              {currentRound && (
-                <div className="space-y-2 bg-arena-elevated p-3.5 rounded-2xl border border-arena-border text-xs font-mono">
-                  <div>
-                    <span className="text-arena-subtle text-[10px] block uppercase font-bold">Current Flight #</span>
-                    <span className="text-arena-text font-black">{currentRound.roundNumber}</span>
-                  </div>
-                  <div>
-                    <span className="text-arena-subtle text-[10px] block uppercase font-bold">SHA-256 Hash</span>
-                    <span className="text-amber-500 text-[10px] break-all block">{currentRound.hash}</span>
-                  </div>
-                </div>
-              )}
-
               <button
                 onClick={() => setShowProvablyFairModal(false)}
-                className="w-full py-3 bg-arena-elevated hover:bg-arena-highlight text-arena-text font-black rounded-xl text-xs uppercase"
+                className="p-1 rounded-lg hover:bg-arena-surface text-arena-muted hover:text-arena-text"
               >
-                Close Verifier
+                <X className="w-5 h-5" />
               </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+            </div>
+
+            <p className="text-xs text-arena-muted leading-relaxed">
+              Every Aviator round result is cryptographically predetermined using SHA-256 server seed hashing before flight takeoff. The multiplier cannot be altered during flight.
+            </p>
+
+            <div className="space-y-2 text-xs">
+              <div className="bg-arena-surface p-3 rounded-xl border border-arena-border">
+                <span className="text-[10px] font-bold text-arena-subtle block uppercase">Round #{currentRound?.roundNumber || '-'} SHA-256 Hash</span>
+                <span className="font-mono text-emerald-400 break-all select-all text-[11px]">
+                  {currentRound?.hash || 'Generating hash...'}
+                </span>
+              </div>
+              <div className="bg-arena-surface p-3 rounded-xl border border-arena-border">
+                <span className="text-[10px] font-bold text-arena-subtle block uppercase">Server Seed</span>
+                <span className="font-mono text-arena-muted text-[11px]">
+                  {currentRound?.seed || '*** Hidden until crash ***'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowProvablyFairModal(false)}
+              className="w-full py-3 bg-arena-surface hover:bg-arena-highlight border border-arena-border rounded-xl text-xs font-black uppercase text-arena-text transition-colors"
+            >
+              Close
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
-
-export default AviatorPage;
