@@ -384,7 +384,7 @@ export const AviatorPage: React.FC = () => {
           // Propeller Blade
           const propAngle = (Date.now() / 20) % (Math.PI * 2);
           ctx.beginPath();
-          ctx.ellipse(22, 0, 2, 9 * Math.sin(propAngle), 0, 0, Math.PI * 2);
+          ctx.ellipse(22, 0, 2, Math.max(0.5, Math.abs(9 * Math.sin(propAngle))), 0, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
           ctx.fill();
 
@@ -406,9 +406,9 @@ export const AviatorPage: React.FC = () => {
 
         ctx.save();
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, Math.max(0.2, p.size), 0, Math.PI * 2);
         ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.alpha;
+        ctx.globalAlpha = Math.max(0, p.alpha);
         ctx.shadowColor = p.color;
         ctx.shadowBlur = 6;
         ctx.fill();
