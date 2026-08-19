@@ -9,7 +9,6 @@ import {
   PlinkoRows,
   PlinkoDropResult,
   PlinkoStats,
-  PLINKO_PAYTABLES,
 } from '../shared';
 
 export interface VisualBall {
@@ -149,8 +148,11 @@ export const usePlinkoStore = create<PlinkoState>()(
 
           const drop: PlinkoDropResult = res?.data || res;
           if (drop && drop.path) {
-            // Update user wallet if returned
-            if (token && typeof drop.newBalance === 'number') {
+            // Update user wallet balance immediately
+            if (typeof drop.newBalance === 'number') {
+              useWalletStore.getState().updateBalanceLocally(drop.newBalance);
+            }
+            if (token) {
               useWalletStore.getState().fetchBalance();
             }
 
@@ -219,7 +221,10 @@ export const usePlinkoStore = create<PlinkoState>()(
           const drops: PlinkoDropResult[] = data?.drops || [];
 
           if (drops.length > 0) {
-            if (token && typeof data.newBalance === 'number') {
+            if (typeof data?.newBalance === 'number') {
+              useWalletStore.getState().updateBalanceLocally(data.newBalance);
+            }
+            if (token) {
               useWalletStore.getState().fetchBalance();
             }
 

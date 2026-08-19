@@ -9,16 +9,11 @@ import {
   Square,
   History,
   TrendingUp,
-  Award,
   Layers,
   Shield,
   Radio,
-  Trophy,
   DollarSign,
   Info,
-  ChevronRight,
-  Flame,
-  CheckCircle2,
   X,
 } from 'lucide-react';
 import {
@@ -161,7 +156,7 @@ export const PlinkoPage: React.FC = () => {
     triggerBucketPulse,
   } = usePlinkoStore();
 
-  const { balance, fetchBalance } = useWalletStore();
+  const { fetchBalance } = useWalletStore();
   const { token } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<'my_drops' | 'live_feed' | 'paytable'>('my_drops');
@@ -241,8 +236,8 @@ export const PlinkoPage: React.FC = () => {
       // 1. Ambient Background Grid & Funnel Glow
       ctx.save();
       const funnelGrad = ctx.createLinearGradient(0, topPadding, 0, topPadding + boardHeight);
-      funnelGrad.addColorStop(0, 'rgba(56, 189, 248, 0.04)');
-      funnelGrad.addColorStop(1, 'rgba(168, 85, 247, 0.08)');
+      funnelGrad.addColorStop(0, 'rgba(99, 102, 241, 0.05)');
+      funnelGrad.addColorStop(1, 'rgba(168, 85, 247, 0.09)');
 
       ctx.beginPath();
       ctx.moveTo(width / 2 - startWidth / 2 - 10, topPadding);
@@ -253,8 +248,7 @@ export const PlinkoPage: React.FC = () => {
       ctx.fillStyle = funnelGrad;
       ctx.fill();
 
-      // Guide Border Lines
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.restore();
@@ -271,7 +265,7 @@ export const PlinkoPage: React.FC = () => {
 
         ctx.save();
         const beamGrad = ctx.createLinearGradient(0, topPadding + boardHeight, 0, topPadding);
-        beamGrad.addColorStop(0, 'rgba(245, 158, 11, 0.25)');
+        beamGrad.addColorStop(0, 'rgba(245, 158, 11, 0.28)');
         beamGrad.addColorStop(1, 'rgba(245, 158, 11, 0.0)');
         ctx.fillStyle = beamGrad;
         ctx.fillRect(bucketCenterX - 18, topPadding, 36, boardHeight + 10);
@@ -381,7 +375,6 @@ export const PlinkoPage: React.FC = () => {
 
           pegPulses.push({ x: x1, y: y1, radius: 4, alpha: 0.8 });
 
-          // Spawn 5 sparkle particles
           for (let p = 0; p < 5; p++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 1.2 + Math.random() * 2.5;
@@ -406,7 +399,6 @@ export const PlinkoPage: React.FC = () => {
         ctx.shadowBlur = 18;
         ctx.fill();
 
-        // White 3D Specular Highlight
         ctx.beginPath();
         ctx.arc(ballX - 2, ballY - 2, 2.4, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
@@ -421,7 +413,6 @@ export const PlinkoPage: React.FC = () => {
             audioSynth.playBucketLanding(ball.multiplier);
           }
 
-          // Trigger Big Win popup for high multipliers (>= 10x)
           if (ball.multiplier >= 10) {
             setBigWinResult({
               id: ball.dropId,
@@ -437,7 +428,6 @@ export const PlinkoPage: React.FC = () => {
             });
           }
 
-          // Landing spark burst
           for (let p = 0; p < 12; p++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 2 + Math.random() * 4;
@@ -461,7 +451,7 @@ export const PlinkoPage: React.FC = () => {
         const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.08; // subtle gravity
+        p.vy += 0.08;
         p.alpha -= 0.035;
 
         if (p.alpha <= 0) {
@@ -513,67 +503,62 @@ export const PlinkoPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100 py-6 px-3 sm:px-6 lg:px-8">
-      {/* Top Banner */}
-      <div className="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900/90 via-indigo-950/40 to-slate-900/90 border border-indigo-500/20 rounded-3xl p-5 shadow-2xl backdrop-blur-2xl">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 p-0.5 shadow-xl shadow-amber-500/20">
-            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-2xl font-black">
-              🎯
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6 text-arena-text">
+      {/* Top Banner (Single clean header without duplicate wallet) */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-500/15 via-purple-500/10 to-indigo-500/15 border border-rose-500/30 p-5 sm:p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-500 via-amber-500 to-indigo-600 p-0.5 shadow-lg shadow-rose-500/20">
+              <div className="w-full h-full bg-arena-surface rounded-[14px] flex items-center justify-center text-2xl font-black">
+                🎯
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight font-display text-arena-text">
+                  DAGI <span className="bg-gradient-to-r from-rose-500 via-amber-500 to-indigo-500 bg-clip-text text-transparent">PLINKO</span>
+                </h1>
+                <span className="px-2.5 py-0.5 text-[10px] font-black uppercase rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                  PROVABLY FAIR
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-arena-muted mt-0.5 font-medium">
+                Up to <span className="text-amber-500 font-bold">1,000x Max Multiplier</span> • Instant Physics Drops • Live ETB Payouts
+              </p>
             </div>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white font-display">
-                DAGI <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-400 to-indigo-400">PLINKO</span>
-              </h1>
-              <span className="px-2.5 py-0.5 text-[10px] font-black uppercase rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                PROVABLY FAIR
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-400 mt-0.5 font-medium">
-              Up to <span className="text-amber-400 font-bold">1,000x Max Multiplier</span> • Instant Physics Drops • Live ETB Payouts
-            </p>
-          </div>
-        </div>
 
-        {/* Live Wallet & Sound Quick Controls */}
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-          <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-inner">
-            <span className="text-[11px] text-slate-400 font-bold uppercase">Balance</span>
-            <span className="text-base sm:text-lg font-black text-emerald-400 font-mono">
-              {token ? `${(balance?.availableBalance || 0).toLocaleString()} ETB` : 'Demo 10,000 ETB'}
-            </span>
+          {/* Sound & Audio Control */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleSound}
+              className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                soundEnabled
+                  ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                  : 'bg-arena-surface border-arena-border text-arena-muted hover:text-arena-text'
+              }`}
+              title={soundEnabled ? 'Mute Audio' : 'Unmute Audio'}
+            >
+              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            </button>
           </div>
-
-          <button
-            onClick={toggleSound}
-            className={`p-3 rounded-2xl border transition-all cursor-pointer ${
-              soundEnabled
-                ? 'bg-indigo-600/20 border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 shadow-md shadow-indigo-600/10'
-                : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-400'
-            }`}
-            title={soundEnabled ? 'Mute Audio' : 'Unmute Audio'}
-          >
-            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-          </button>
         </div>
       </div>
 
       {/* Main Grid: Controls + Board */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ========================================================= */}
         {/* LEFT COLUMN: LUXURY BET CONTROLS & RISK PANEL (4 cols) */}
         {/* ========================================================= */}
-        <div className="lg:col-span-4 space-y-5 bg-slate-900/80 border border-slate-800/90 rounded-3xl p-5 shadow-2xl backdrop-blur-2xl">
+        <div className="lg:col-span-4 space-y-5 glass-panel-elevated rounded-3xl p-5 border border-arena-border shadow-lg">
           {/* Bet Amount Input & Presets */}
           <div>
             <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 font-display">
-                <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+              <label className="text-xs font-bold uppercase tracking-wider text-arena-muted flex items-center gap-1.5 font-display">
+                <DollarSign className="w-3.5 h-3.5 text-amber-500" />
                 Wager Amount (ETB)
               </label>
-              <span className="text-xs font-bold text-slate-500">Min: 0.5 ETB</span>
+              <span className="text-xs font-bold text-arena-subtle">Min: 0.5 ETB</span>
             </div>
 
             <div className="relative mb-3">
@@ -583,10 +568,10 @@ export const PlinkoPage: React.FC = () => {
                 step="1"
                 value={betAmount}
                 onChange={(e) => setBetAmount(Number(e.target.value))}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-2xl px-4 py-3 text-xl font-black text-white outline-none transition-all font-mono"
+                className="w-full bg-arena-surface border border-arena-border focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-2xl px-4 py-3 text-xl font-black text-arena-text outline-none transition-all font-mono"
                 placeholder="10"
               />
-              <span className="absolute right-4 top-3.5 text-xs font-black text-amber-400 uppercase">
+              <span className="absolute right-4 top-3.5 text-xs font-black text-amber-500 uppercase">
                 ETB
               </span>
             </div>
@@ -595,19 +580,19 @@ export const PlinkoPage: React.FC = () => {
             <div className="grid grid-cols-3 gap-2 mb-3">
               <button
                 onClick={() => setBetAmount(Math.max(0.5, Math.floor(betAmount / 2)))}
-                className="py-2 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 rounded-xl text-xs font-black text-slate-300 transition-all active:scale-95 cursor-pointer"
+                className="py-2 bg-arena-surface hover:bg-arena-highlight border border-arena-border rounded-xl text-xs font-black text-arena-text transition-all active:scale-95 cursor-pointer"
               >
                 ½ Half
               </button>
               <button
                 onClick={() => setBetAmount(betAmount * 2)}
-                className="py-2 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 rounded-xl text-xs font-black text-slate-300 transition-all active:scale-95 cursor-pointer"
+                className="py-2 bg-arena-surface hover:bg-arena-highlight border border-arena-border rounded-xl text-xs font-black text-arena-text transition-all active:scale-95 cursor-pointer"
               >
                 2× Double
               </button>
               <button
-                onClick={() => setBetAmount(Math.min(balance?.availableBalance || 500, 500))}
-                className="py-2 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 rounded-xl text-xs font-black text-amber-400 transition-all active:scale-95 cursor-pointer"
+                onClick={() => setBetAmount(500)}
+                className="py-2 bg-arena-surface hover:bg-arena-highlight border border-arena-border rounded-xl text-xs font-black text-amber-500 transition-all active:scale-95 cursor-pointer"
               >
                 Max Wager
               </button>
@@ -621,8 +606,8 @@ export const PlinkoPage: React.FC = () => {
                   onClick={() => setBetAmount(amt)}
                   className={`py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                     betAmount === amt
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md shadow-amber-500/30 scale-105'
-                      : 'bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-slate-300'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/30 scale-105 font-display'
+                      : 'bg-arena-surface hover:bg-arena-highlight border border-arena-border text-arena-text'
                   }`}
                 >
                   {amt}
@@ -631,12 +616,12 @@ export const PlinkoPage: React.FC = () => {
             </div>
           </div>
 
-          <hr className="border-slate-800/80" />
+          <hr className="border-arena-border" />
 
           {/* Risk Level Selector */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-2.5 font-display">
-              <Shield className="w-3.5 h-3.5 text-indigo-400" />
+            <label className="text-xs font-bold uppercase tracking-wider text-arena-muted flex items-center gap-1.5 mb-2.5 font-display">
+              <Shield className="w-3.5 h-3.5 text-indigo-500" />
               Risk Level
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -648,11 +633,11 @@ export const PlinkoPage: React.FC = () => {
                   className={`py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex flex-col items-center gap-0.5 cursor-pointer ${
                     risk === r
                       ? r === 'HIGH'
-                        ? 'bg-gradient-to-b from-rose-500 to-red-600 text-white shadow-xl shadow-rose-500/30 scale-105 border border-rose-400'
+                        ? 'bg-gradient-to-b from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/30 scale-105 border border-rose-400'
                         : r === 'MEDIUM'
-                        ? 'bg-gradient-to-b from-amber-500 to-orange-600 text-slate-950 shadow-xl shadow-amber-500/30 scale-105 border border-amber-300'
-                        : 'bg-gradient-to-b from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/30 scale-105 border border-emerald-400'
-                      : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
+                        ? 'bg-gradient-to-b from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/30 scale-105 border border-amber-300'
+                        : 'bg-gradient-to-b from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30 scale-105 border border-emerald-400'
+                      : 'bg-arena-surface border border-arena-border text-arena-muted hover:text-arena-text'
                   }`}
                 >
                   <span>{r}</span>
@@ -666,8 +651,8 @@ export const PlinkoPage: React.FC = () => {
 
           {/* Rows Selector */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-2.5 font-display">
-              <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <label className="text-xs font-bold uppercase tracking-wider text-arena-muted flex items-center gap-1.5 mb-2.5 font-display">
+              <Layers className="w-3.5 h-3.5 text-cyan-500" />
               Pin Pyramid Rows
             </label>
             <div className="grid grid-cols-5 gap-1.5">
@@ -678,8 +663,8 @@ export const PlinkoPage: React.FC = () => {
                   onClick={() => setRows(rowCount)}
                   className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                     rows === rowCount
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-400 scale-105'
-                      : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 border border-indigo-400 scale-105'
+                      : 'bg-arena-surface border border-arena-border text-arena-muted hover:text-arena-text'
                   }`}
                 >
                   {rowCount}
@@ -688,7 +673,7 @@ export const PlinkoPage: React.FC = () => {
             </div>
           </div>
 
-          <hr className="border-slate-800/80" />
+          <hr className="border-arena-border" />
 
           {/* Action Buttons: Drop Ball & Volleys */}
           <div className="space-y-2.5">
@@ -724,14 +709,14 @@ export const PlinkoPage: React.FC = () => {
           </div>
 
           {/* Auto-Play Mode Drawer */}
-          <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5">
+          <div className="bg-arena-surface border border-arena-border rounded-2xl p-3.5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase text-slate-400 flex items-center gap-1.5 font-display">
-                <Radio className="w-3.5 h-3.5 text-rose-400" />
+              <span className="text-xs font-bold uppercase text-arena-muted flex items-center gap-1.5 font-display">
+                <Radio className="w-3.5 h-3.5 text-rose-500" />
                 Auto-Drop Mode
               </span>
               {isAutoPlaying && (
-                <span className="text-xs font-black text-amber-400 animate-pulse font-mono">
+                <span className="text-xs font-black text-amber-500 animate-pulse font-mono">
                   {autoPlayCountRemaining} left
                 </span>
               )}
@@ -742,7 +727,7 @@ export const PlinkoPage: React.FC = () => {
                 <select
                   value={autoCountSelect}
                   onChange={(e) => setAutoCountSelect(Number(e.target.value))}
-                  className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none cursor-pointer"
+                  className="bg-arena-elevated border border-arena-border rounded-xl px-3 py-2 text-xs font-bold text-arena-text outline-none cursor-pointer"
                 >
                   <option value={10}>10 Drops</option>
                   <option value={50}>50 Drops</option>
@@ -775,14 +760,14 @@ export const PlinkoPage: React.FC = () => {
         {/* ========================================================= */}
         <div className="lg:col-span-8 space-y-4">
           {/* Recent Multipliers Ribbon */}
-          <div className="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-3 backdrop-blur-2xl flex items-center gap-2 overflow-x-auto scrollbar-none shadow-xl">
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 shrink-0 flex items-center gap-1 font-display">
-              <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+          <div className="glass-panel rounded-2xl p-3 border border-arena-border flex items-center gap-2 overflow-x-auto scrollbar-none shadow-md">
+            <span className="text-[11px] font-black uppercase tracking-wider text-arena-muted shrink-0 flex items-center gap-1 font-display">
+              <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
               Recent Hits:
             </span>
             <div className="flex items-center gap-1.5 shrink-0">
               {lastHitMultipliers.length === 0 ? (
-                <span className="text-xs text-slate-500 italic">No drops yet in this session</span>
+                <span className="text-xs text-arena-subtle italic">No drops yet in this session</span>
               ) : (
                 lastHitMultipliers.map((item, idx) => (
                   <motion.span
@@ -791,10 +776,10 @@ export const PlinkoPage: React.FC = () => {
                     animate={{ scale: 1, opacity: 1 }}
                     className={`px-2.5 py-1 rounded-lg text-xs font-black shrink-0 font-mono shadow-sm ${
                       item.multiplier >= 20
-                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                        ? 'bg-rose-500/20 text-rose-500 border border-rose-500/40'
                         : item.multiplier >= 2
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                        : 'bg-slate-800 text-slate-400 border border-slate-700'
+                        ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40'
+                        : 'bg-arena-surface text-arena-muted border border-arena-border'
                     }`}
                   >
                     {item.multiplier}×
@@ -805,10 +790,10 @@ export const PlinkoPage: React.FC = () => {
           </div>
 
           {/* Canvas Board Container */}
-          <div className="relative bg-gradient-to-b from-slate-950 via-slate-900/95 to-slate-950 border border-slate-800/90 rounded-3xl p-4 sm:p-6 shadow-2xl overflow-hidden backdrop-blur-2xl">
+          <div className="relative glass-panel-elevated border border-arena-border rounded-3xl p-4 sm:p-6 shadow-xl overflow-hidden">
             {/* Top Drop Hole Graphic */}
             <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
-              <div className="w-14 h-4 rounded-full bg-slate-900 border border-amber-500/40 shadow-inner flex items-center justify-center">
+              <div className="w-14 h-4 rounded-full bg-arena-surface border border-amber-500/40 shadow-inner flex items-center justify-center">
                 <div className="w-7 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-sm shadow-amber-400/50" />
               </div>
             </div>
@@ -846,15 +831,15 @@ export const PlinkoPage: React.FC = () => {
           </div>
 
           {/* Stats & History Tabs */}
-          <div className="bg-slate-900/80 border border-slate-800/90 rounded-3xl p-5 shadow-2xl backdrop-blur-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+          <div className="glass-panel-elevated rounded-3xl p-5 border border-arena-border shadow-xl">
+            <div className="flex items-center justify-between border-b border-arena-border pb-3 mb-4">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveTab('my_drops')}
                   className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer font-display ${
                     activeTab === 'my_drops'
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                      : 'text-arena-muted hover:text-arena-text'
                   }`}
                 >
                   <History className="w-3.5 h-3.5" />
@@ -865,11 +850,11 @@ export const PlinkoPage: React.FC = () => {
                   onClick={() => setActiveTab('live_feed')}
                   className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer font-display ${
                     activeTab === 'live_feed'
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                      : 'text-arena-muted hover:text-arena-text'
                   }`}
                 >
-                  <Radio className="w-3.5 h-3.5 text-rose-400" />
+                  <Radio className="w-3.5 h-3.5 text-rose-500" />
                   <span>Live Arena Drops</span>
                 </button>
 
@@ -877,8 +862,8 @@ export const PlinkoPage: React.FC = () => {
                   onClick={() => setActiveTab('paytable')}
                   className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer font-display ${
                     activeTab === 'paytable'
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                      : 'text-arena-muted hover:text-arena-text'
                   }`}
                 >
                   <Info className="w-3.5 h-3.5" />
@@ -887,16 +872,16 @@ export const PlinkoPage: React.FC = () => {
               </div>
 
               {stats && (
-                <div className="hidden sm:flex items-center gap-4 text-xs font-semibold text-slate-400 font-mono">
+                <div className="hidden sm:flex items-center gap-4 text-xs font-semibold text-arena-muted font-mono">
                   <span>
                     Highest Win:{' '}
-                    <span className="text-amber-400 font-bold">
+                    <span className="text-amber-500 font-bold">
                       {stats.highestWin.toLocaleString()} ETB
                     </span>
                   </span>
                   <span>
                     Top Multiplier:{' '}
-                    <span className="text-rose-400 font-bold font-mono">
+                    <span className="text-rose-500 font-bold font-mono">
                       {stats.highestMultiplier}×
                     </span>
                   </span>
@@ -908,13 +893,13 @@ export const PlinkoPage: React.FC = () => {
             {activeTab === 'my_drops' && (
               <div className="overflow-x-auto">
                 {myHistory.length === 0 ? (
-                  <div className="py-8 text-center text-slate-500 text-xs">
+                  <div className="py-8 text-center text-arena-subtle text-xs">
                     No drops recorded yet. Drop a ball to start your winning streak!
                   </div>
                 ) : (
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="text-slate-500 border-b border-slate-800/80">
+                      <tr className="text-arena-subtle border-b border-arena-border">
                         <th className="pb-2 font-bold uppercase">Time</th>
                         <th className="pb-2 font-bold uppercase">Wager</th>
                         <th className="pb-2 font-bold uppercase">Rows / Risk</th>
@@ -922,26 +907,26 @@ export const PlinkoPage: React.FC = () => {
                         <th className="pb-2 font-bold text-right uppercase">Payout</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/40">
+                    <tbody className="divide-y divide-arena-border">
                       {myHistory.slice(0, 10).map((h) => (
-                        <tr key={h.id} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="py-2.5 text-slate-400 font-mono">
+                        <tr key={h.id} className="hover:bg-arena-highlight/40 transition-colors">
+                          <td className="py-2.5 text-arena-muted font-mono">
                             {new Date(h.createdAt).toLocaleTimeString()}
                           </td>
-                          <td className="py-2.5 font-bold text-slate-200 font-mono">
+                          <td className="py-2.5 font-bold text-arena-text font-mono">
                             {h.betAmount} ETB
                           </td>
-                          <td className="py-2.5 text-slate-400">
+                          <td className="py-2.5 text-arena-muted">
                             {h.rows} Rows • {h.risk}
                           </td>
                           <td className="py-2.5">
                             <span
                               className={`px-2.5 py-0.5 rounded-md font-black text-xs font-mono ${
                                 h.multiplier >= 20
-                                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                                  ? 'bg-rose-500/20 text-rose-500 border border-rose-500/40'
                                   : h.multiplier >= 2
-                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                                  : 'bg-slate-800 text-slate-400'
+                                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40'
+                                  : 'bg-arena-surface text-arena-muted'
                               }`}
                             >
                               {h.multiplier}×
@@ -949,7 +934,7 @@ export const PlinkoPage: React.FC = () => {
                           </td>
                           <td
                             className={`py-2.5 text-right font-black font-mono ${
-                              h.payoutAmount > 0 ? 'text-emerald-400' : 'text-slate-500'
+                              h.payoutAmount > 0 ? 'text-emerald-500' : 'text-arena-subtle'
                             }`}
                           >
                             {h.payoutAmount > 0
@@ -968,13 +953,13 @@ export const PlinkoPage: React.FC = () => {
             {activeTab === 'live_feed' && (
               <div className="overflow-x-auto">
                 {liveFeed.length === 0 ? (
-                  <div className="py-8 text-center text-slate-500 text-xs">
+                  <div className="py-8 text-center text-arena-subtle text-xs">
                     Watching live spectator feed... Drops will appear as other players play.
                   </div>
                 ) : (
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="text-slate-500 border-b border-slate-800/80">
+                      <tr className="text-arena-subtle border-b border-arena-border">
                         <th className="pb-2 font-bold uppercase">Player</th>
                         <th className="pb-2 font-bold uppercase">Bet</th>
                         <th className="pb-2 font-bold uppercase">Risk</th>
@@ -982,32 +967,32 @@ export const PlinkoPage: React.FC = () => {
                         <th className="pb-2 font-bold text-right uppercase">Won</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/40">
+                    <tbody className="divide-y divide-arena-border">
                       {liveFeed.slice(0, 10).map((drop, idx) => (
-                        <tr key={`${drop.id}_${idx}`} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="py-2.5 font-bold text-indigo-400">
+                        <tr key={`${drop.id}_${idx}`} className="hover:bg-arena-highlight/40 transition-colors">
+                          <td className="py-2.5 font-bold text-indigo-500">
                             {drop.username || 'Spectator'}
                           </td>
-                          <td className="py-2.5 text-slate-200 font-mono">
+                          <td className="py-2.5 text-arena-text font-mono">
                             {drop.betAmount} ETB
                           </td>
-                          <td className="py-2.5 text-slate-400">
+                          <td className="py-2.5 text-arena-muted">
                             {drop.risk}
                           </td>
                           <td className="py-2.5">
                             <span
                               className={`px-2.5 py-0.5 rounded-md font-black text-xs font-mono ${
                                 drop.multiplier >= 20
-                                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                                  ? 'bg-rose-500/20 text-rose-500 border border-rose-500/40'
                                   : drop.multiplier >= 2
-                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                                  : 'bg-slate-800 text-slate-400'
+                                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40'
+                                  : 'bg-arena-surface text-arena-muted'
                               }`}
                             >
                               {drop.multiplier}×
                             </span>
                           </td>
-                          <td className="py-2.5 text-right font-black text-emerald-400 font-mono">
+                          <td className="py-2.5 text-right font-black text-emerald-500 font-mono">
                             {drop.payoutAmount > 0
                               ? `+${drop.payoutAmount.toLocaleString()} ETB`
                               : '0.00 ETB'}
@@ -1023,17 +1008,17 @@ export const PlinkoPage: React.FC = () => {
             {/* TAB 3: Paytable Matrix */}
             {activeTab === 'paytable' && (
               <div className="space-y-3">
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-arena-muted">
                   Full multipliers for current configuration (<strong>{rows} Rows</strong> • <strong>{risk} Risk</strong>). The ball bounces 50% left and 50% right at each pin, generating a binomial distribution with massive edge multipliers.
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {currentPaytable.map((m, i) => (
                     <div
                       key={i}
-                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-center"
+                      className="bg-arena-surface border border-arena-border rounded-xl px-3 py-1.5 text-center"
                     >
-                      <span className="text-[10px] text-slate-500 block font-bold">Bucket {i}</span>
-                      <span className="text-xs font-black text-amber-400 font-mono">{m}×</span>
+                      <span className="text-[10px] text-arena-subtle block font-bold">Bucket {i}</span>
+                      <span className="text-xs font-black text-amber-500 font-mono">{m}×</span>
                     </div>
                   ))}
                 </div>
@@ -1053,12 +1038,11 @@ export const PlinkoPage: React.FC = () => {
               initial={{ scale: 0.7, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.8, opacity: 0, y: 20 }}
-              className="relative max-w-sm w-full bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400/50 rounded-3xl p-6 shadow-2xl shadow-amber-500/30 text-center overflow-hidden"
+              className="relative max-w-sm w-full bg-arena-surface border-2 border-amber-400/50 rounded-3xl p-6 shadow-2xl shadow-amber-500/30 text-center overflow-hidden"
             >
-              {/* Close Button */}
               <button
                 onClick={() => setBigWinResult(null)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-full bg-slate-800/60"
+                className="absolute top-4 right-4 text-arena-muted hover:text-arena-text p-1.5 rounded-full bg-arena-elevated"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1067,26 +1051,26 @@ export const PlinkoPage: React.FC = () => {
                 🏆
               </div>
 
-              <span className="text-xs font-black uppercase tracking-widest text-amber-400 font-display">
+              <span className="text-xs font-black uppercase tracking-widest text-amber-500 font-display">
                 MASSIVE HIT!
               </span>
 
               <div className="my-2">
-                <span className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-500 font-mono">
+                <span className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 font-mono">
                   {bigWinResult.multiplier}×
                 </span>
               </div>
 
-              <p className="text-sm text-slate-300 mb-4">
+              <p className="text-sm text-arena-muted mb-4">
                 You won{' '}
-                <span className="text-emerald-400 font-black text-lg font-mono">
+                <span className="text-emerald-500 font-black text-lg font-mono">
                   +{bigWinResult.payoutAmount.toLocaleString()} ETB
                 </span>
               </p>
 
               <button
                 onClick={() => setBigWinResult(null)}
-                className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/30 transition-transform active:scale-95 cursor-pointer"
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/30 transition-transform active:scale-95 cursor-pointer font-display"
               >
                 Collect Win
               </button>

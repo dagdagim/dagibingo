@@ -10,6 +10,7 @@ interface ThemeState {
 }
 
 const getInitialTheme = (): ThemeMode => {
+  if (typeof window === 'undefined') return 'bright';
   const saved = localStorage.getItem('bingo_theme');
   if (saved === 'dark' || saved === 'bright') {
     return saved;
@@ -18,10 +19,13 @@ const getInitialTheme = (): ThemeMode => {
 };
 
 const applyThemeToDOM = (theme: ThemeMode) => {
+  if (typeof document === 'undefined') return;
   const root = document.documentElement;
+  root.setAttribute('data-theme', theme);
+  
   if (theme === 'dark') {
     root.classList.add('dark');
-    root.classList.remove('bright');
+    root.classList.remove('bright', 'cream');
   } else {
     root.classList.remove('dark');
     root.classList.add('bright');

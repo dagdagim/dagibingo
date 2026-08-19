@@ -397,11 +397,20 @@ export const useKenoStore = create<KenoState>((set, get) => ({
       }
     };
 
+    const handleTicketWon = (data: { newBalance?: number; payoutAmount?: number }) => {
+      if (typeof data?.newBalance === 'number') {
+        useWalletStore.getState().updateBalanceLocally(data.newBalance);
+      }
+      useWalletStore.getState().fetchBalance();
+      get().fetchMyTickets();
+    };
+
     socket.on('keno:countdown' as any, handleCountdown);
     socket.on('keno:draw_started' as any, handleDrawStarted);
     socket.on('keno:ball_drawn' as any, handleBallDrawn);
     socket.on('keno:round_settled' as any, handleRoundSettled);
     socket.on('keno:round_state' as any, handleRoundState);
+    socket.on('keno:ticket_won' as any, handleTicketWon);
 
     return () => {
       (socket as any).emit('keno:leave');
@@ -410,6 +419,7 @@ export const useKenoStore = create<KenoState>((set, get) => ({
       socket.off('keno:ball_drawn' as any, handleBallDrawn);
       socket.off('keno:round_settled' as any, handleRoundSettled);
       socket.off('keno:round_state' as any, handleRoundState);
+      socket.off('keno:ticket_won' as any, handleTicketWon);
     };
   },
 }));
