@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/environment';
 import { GameEngine } from '../game-engine/GameEngine';
 import { KenoEngine } from '../game-engine/KenoEngine';
+import { PlinkoEngine } from '../game-engine/PlinkoEngine';
 import { logger } from '../utils/logger';
 import { ClientToServerEvents, ServerToClientEvents } from '../shared';
 
@@ -22,6 +23,9 @@ export const setupSocketServer = (io: Server<ClientToServerEvents, ServerToClien
   const kenoEngine = KenoEngine.getInstance();
   kenoEngine.setSocketServer(io);
   kenoEngine.start().catch((err) => logger.error('Failed to start Keno engine:', err));
+
+  const plinkoEngine = PlinkoEngine.getInstance();
+  plinkoEngine.setSocketServer(io);
 
   // Authentication Middleware for Sockets
   io.use((socket: AuthenticatedSocket, next) => {
@@ -108,6 +112,16 @@ export const setupSocketServer = (io: Server<ClientToServerEvents, ServerToClien
     // Leave Keno Arena
     socket.on('keno:leave' as any, () => {
       socket.leave('room:keno');
+    });
+
+    // Join Plinko Arena Room
+    socket.on('plinko:join' as any, () => {
+      socket.join('room:plinko');
+    });
+
+    // Leave Plinko Arena Room
+    socket.on('plinko:leave' as any, () => {
+      socket.leave('room:plinko');
     });
 
     // Handle Player Bingo Claim

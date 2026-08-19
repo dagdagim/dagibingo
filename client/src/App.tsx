@@ -26,6 +26,7 @@ import { ProfilePage } from './pages/user/ProfilePage';
 import { LeaderboardPage } from './pages/user/LeaderboardPage';
 import { HistoryPage } from './pages/user/HistoryPage';
 import { KenoPage } from './pages/user/KenoPage';
+import { PlinkoPage } from './pages/user/PlinkoPage';
 
 // Admin Pages
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
@@ -79,6 +80,7 @@ export const App: React.FC = () => {
               {/* Lobby & Game (Accessible to all, enhanced when logged in) */}
               <Route path="/lobby" element={<LobbyPage />} />
               <Route path="/keno" element={<KenoPage />} />
+              <Route path="/plinko" element={<PlinkoPage />} />
               <Route path="/games/:gameId" element={<GameRoomPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/history" element={<HistoryPage />} />

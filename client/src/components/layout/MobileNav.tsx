@@ -7,9 +7,9 @@ export const MobileNav: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
 
   const links = [
-    { label: 'Home', path: '/', icon: <Home className="w-5 h-5" /> },
     { label: 'Lobby', path: '/lobby', icon: <Gamepad2 className="w-5 h-5" /> },
     { label: 'Keno', path: '/keno', icon: <Sparkles className="w-5 h-5 text-amber-500" /> },
+    { label: 'Plinko', path: '/plinko', icon: <Sparkles className="w-5 h-5 text-rose-500" /> },
     { label: 'Wallet', path: isAuthenticated ? '/wallet' : '/login', icon: <Wallet className="w-5 h-5" /> },
     { label: 'Ranks', path: '/leaderboard', icon: <Trophy className="w-5 h-5" /> },
   ];

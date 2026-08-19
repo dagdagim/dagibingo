@@ -15,6 +15,7 @@ import leaderboardRoutes from './modules/leaderboards/leaderboard.routes';
 import notificationsRoutes from './modules/notifications/notifications.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import kenoRoutes from './modules/keno/keno.routes';
+import plinkoRoutes from './modules/plinko/plinko.routes';
 
 const app = express();
 
@@ -87,6 +88,7 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/keno', kenoRoutes);
+app.use('/api/plinko', plinkoRoutes);
 
 // Catch all unmatched routes
 app.use('*', (req, _res, next) => {
