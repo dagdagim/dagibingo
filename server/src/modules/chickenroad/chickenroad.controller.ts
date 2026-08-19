@@ -103,13 +103,14 @@ const mapGameToDTO = (game: any): IChickenRoadGameDTO => {
     rowsToReturn = allRows;
   } else {
     // Inject the current unknown row so UI can render the interactive tiles
-    rowsToReturn = [
-      ...game.revealedRows,
-      {
+    rowsToReturn = [...game.revealedRows];
+    if (game.currentRow < game.fullLayout.length && game.fullLayout[game.currentRow]) {
+      rowsToReturn.push({
         rowIndex: game.currentRow,
         tiles: Array(game.fullLayout[game.currentRow].length).fill('HIDDEN'),
-      },
-    ].sort((a, b) => a.rowIndex - b.rowIndex);
+      });
+    }
+    rowsToReturn.sort((a: any, b: any) => a.rowIndex - b.rowIndex);
   }
 
   return {

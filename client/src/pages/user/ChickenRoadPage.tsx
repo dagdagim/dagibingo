@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import { useWalletStore } from '../../stores/walletStore';
-import { useChickenRoadStore, CHICKEN_ROAD_DIFFICULTY_DATA } from '../../stores/chickenroadStore';
+import { useChickenRoadStore, CHICKEN_ROAD_DIFFICULTY_DATA } from '../../stores/chickenRoadStore';
 import { ChickenRoadDifficulty } from '../../shared';
 import { ChickenRoadCanvas } from '../../components/chickenroad/ChickenRoadCanvas';
 import {
