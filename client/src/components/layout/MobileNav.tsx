@@ -22,9 +22,9 @@ export const MobileNav: React.FC = () => {
 
   const mainLinks = [
     { label: 'Lobby', path: '/lobby', icon: <Gamepad2 className="w-5 h-5" /> },
+    { label: 'Hounds', path: '/greyhound', icon: <span className="text-xl">🐕</span> },
     { label: 'Derby', path: '/horserace', icon: <span className="text-xl">🐎</span> },
     { label: 'Mines', path: '/mines', icon: <Bomb className="w-5 h-5 text-emerald-400" /> },
-    { label: 'Aviator', path: '/aviator', icon: <Play className="w-5 h-5 text-rose-500 fill-rose-500/20" /> },
     { label: 'Wallet', path: isAuthenticated ? '/wallet' : '/login', icon: <Wallet className="w-5 h-5 text-emerald-400" /> },
   ];
 
@@ -81,6 +81,20 @@ export const MobileNav: React.FC = () => {
 
             {/* Instant Games Grid */}
             <div className="grid grid-cols-2 gap-2.5">
+              <Link
+                to="/aviator"
+                onClick={() => setIsMoreOpen(false)}
+                className="p-3 bg-arena-surface rounded-2xl border border-arena-border flex items-center gap-2.5 hover:border-rose-400 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-xl bg-rose-500/20 flex items-center justify-center text-rose-400">
+                  <Play className="w-4 h-4 text-rose-500 fill-rose-500/20" />
+                </div>
+                <div>
+                  <span className="text-xs font-black text-arena-text block">Aviator</span>
+                  <span className="text-[9px] text-arena-muted">Crash Curve</span>
+                </div>
+              </Link>
+
               <Link
                 to="/keno"
                 onClick={() => setIsMoreOpen(false)}

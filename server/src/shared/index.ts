@@ -12,6 +12,7 @@ export * from './types/plinko.types';
 export * from './types/aviator.types';
 export * from './types/mines.types';
 export * from './types/horserace.types';
+export * from './types/greyhound.types';
 
 // Export Schemas
 export * from './schemas/auth.schemas';

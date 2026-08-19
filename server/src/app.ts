@@ -19,6 +19,7 @@ import plinkoRoutes from './modules/plinko/plinko.routes';
 import aviatorRoutes from './modules/aviator/aviator.routes';
 import minesRoutes from './modules/mines/mines.routes';
 import horseraceRoutes from './modules/horserace/horserace.routes';
+import greyhoundRoutes from './modules/greyhound/greyhound.routes';
 
 const app = express();
 
@@ -96,6 +97,7 @@ app.use('/api/plinko', plinkoRoutes);
 app.use('/api/aviator', aviatorRoutes);
 app.use('/api/mines', minesRoutes);
 app.use('/api/horserace', horseraceRoutes);
+app.use('/api/greyhound', greyhoundRoutes);
 
 // Catch all unmatched routes
 app.use('*', (req, _res, next) => {

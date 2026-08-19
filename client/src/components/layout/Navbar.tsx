@@ -64,9 +64,18 @@ export const Navbar: React.FC = () => {
 
   const instantGames = [
     {
+      path: '/greyhound',
+      label: 'Dagi Hounds',
+      badge: 'HOT DOGS',
+      badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      icon: <span className="text-lg">🐕</span>,
+      desc: 'High-speed virtual greyhound racing & mechanical lure chase',
+      multiplier: 'Up to 250×',
+    },
+    {
       path: '/horserace',
       label: 'Dagi Derby',
-      badge: 'HOT TURF',
+      badge: 'LIVE TURF',
       badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
       icon: <span className="text-lg">🐎</span>,
       desc: 'Live virtual horse racing with dynamic photo finishes',
@@ -238,6 +247,18 @@ export const Navbar: React.FC = () => {
               </div>
 
               {/* Direct Quick-Access Chips */}
+              <Link
+                to="/greyhound"
+                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
+                  isActive('/greyhound')
+                    ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40 shadow-sm'
+                    : 'text-arena-muted hover:text-orange-400 hover:bg-orange-500/10'
+                }`}
+              >
+                <span>🐕</span>
+                <span>Hounds</span>
+              </Link>
+
               <Link
                 to="/horserace"
                 className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
