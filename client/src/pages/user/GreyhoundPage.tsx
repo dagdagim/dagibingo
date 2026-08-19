@@ -20,7 +20,7 @@ import {
 import { GreyhoundTrackCanvas } from '../../components/greyhound/GreyhoundTrackCanvas';
 
 /* -------------------------------------------------------------------------- */
-/* Web Audio Synthesizer for Greyhound Racing                                 */
+/* Photorealistic Web Audio Synthesizer for Greyhound Racing                  */
 /* -------------------------------------------------------------------------- */
 class GreyhoundAudioEngine {
   private ctx: AudioContext | null = null;
@@ -41,46 +41,48 @@ class GreyhoundAudioEngine {
     }
   }
 
-  // Mechanical Hare Lure Siren & Trap Buzzer
+  // Mechanical Hare Lure Electric Whine & Pneumatic Trap Clang
   public playHareBuzzer() {
     try {
       if (!this.hasInteracted) return;
       this.init();
       if (!this.ctx) return;
 
-      // 1. Electric Whirr
+      // 1. Electric Motor Whine
       const osc1 = this.ctx.createOscillator();
       const gain1 = this.ctx.createGain();
       osc1.type = 'sawtooth';
-      osc1.frequency.setValueAtTime(320, this.ctx.currentTime);
-      osc1.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.6);
+      osc1.frequency.setValueAtTime(280, this.ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(1100, this.ctx.currentTime + 0.65);
 
-      gain1.gain.setValueAtTime(0.08, this.ctx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.6);
+      gain1.gain.setValueAtTime(0.09, this.ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.65);
 
       osc1.connect(gain1);
       gain1.connect(this.ctx.destination);
       osc1.start();
-      osc1.stop(this.ctx.currentTime + 0.6);
+      osc1.stop(this.ctx.currentTime + 0.65);
 
-      // 2. Start Buzzer
+      // 2. Heavy Metal Pneumatic Trap Door Snap
       const osc2 = this.ctx.createOscillator();
       const gain2 = this.ctx.createGain();
       osc2.type = 'square';
-      osc2.frequency.setValueAtTime(440, this.ctx.currentTime + 0.6);
+      osc2.frequency.setValueAtTime(520, this.ctx.currentTime + 0.6);
+      osc2.frequency.exponentialRampToValueAtTime(90, this.ctx.currentTime + 0.85);
 
-      gain2.gain.setValueAtTime(0.1, this.ctx.currentTime + 0.6);
-      gain2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.0);
+      gain2.gain.setValueAtTime(0.14, this.ctx.currentTime + 0.6);
+      gain2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.95);
 
       osc2.connect(gain2);
       gain2.connect(this.ctx.destination);
       osc2.start(this.ctx.currentTime + 0.6);
-      osc2.stop(this.ctx.currentTime + 1.0);
+      osc2.stop(this.ctx.currentTime + 0.95);
     } catch {
       // Ignore
     }
   }
 
+  // Rapid Multi-Hound Sand Footstep Thuds
   public startPatter() {
     if (!this.hasInteracted) return;
     this.init();
@@ -92,22 +94,23 @@ class GreyhoundAudioEngine {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
 
+        // Low sand thump
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(110, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.04);
+        osc.frequency.setValueAtTime(130, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(32, this.ctx.currentTime + 0.035);
 
-        gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.035);
 
         osc.connect(gain);
         gain.connect(this.ctx.destination);
 
         osc.start();
-        osc.stop(this.ctx.currentTime + 0.04);
+        osc.stop(this.ctx.currentTime + 0.035);
       } catch {
         // Ignore
       }
-    }, 110);
+    }, 95);
   }
 
   public stopPatter() {
@@ -117,28 +120,29 @@ class GreyhoundAudioEngine {
     }
   }
 
+  // Grand Victory Trumpet Fanfare
   public playVictoryFanfare() {
     try {
       if (!this.hasInteracted) return;
       this.init();
       if (!this.ctx) return;
 
-      const chords = [587.33, 739.99, 880.0, 1174.66]; // D Major Triad
+      const chords = [587.33, 739.99, 880.0, 1174.66, 1479.98]; // D Major Arpeggio
       chords.forEach((freq, idx) => {
         const osc = this.ctx!.createOscillator();
         const gain = this.ctx!.createGain();
 
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, this.ctx!.currentTime + idx * 0.09);
+        osc.frequency.setValueAtTime(freq, this.ctx!.currentTime + idx * 0.08);
 
-        gain.gain.setValueAtTime(0.1, this.ctx!.currentTime + idx * 0.09);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + idx * 0.09 + 0.45);
+        gain.gain.setValueAtTime(0.12, this.ctx!.currentTime + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + idx * 0.08 + 0.5);
 
         osc.connect(gain);
         gain.connect(this.ctx!.destination);
 
-        osc.start(this.ctx!.currentTime + idx * 0.09);
-        osc.stop(this.ctx!.currentTime + idx * 0.09 + 0.45);
+        osc.start(this.ctx!.currentTime + idx * 0.08);
+        osc.stop(this.ctx!.currentTime + idx * 0.08 + 0.5);
       });
     } catch {
       // Ignore
