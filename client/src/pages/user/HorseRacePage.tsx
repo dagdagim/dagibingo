@@ -20,6 +20,7 @@ import {
   TrendingUp,
   Award,
 } from 'lucide-react';
+import { GallopingHorse } from '../../components/horserace/GallopingHorse';
 
 /* -------------------------------------------------------------------------- */
 /* Web Audio Synthesizer for Horse Racing                                     */
@@ -355,77 +356,89 @@ export const HorseRacePage: React.FC = () => {
             </div>
           </div>
 
-          {/* 6-LANE TURF RACE TRACK */}
-          <div className="relative rounded-2xl bg-gradient-to-b from-emerald-950 via-emerald-900 to-green-950 p-4 border-2 border-emerald-800/80 shadow-2xl space-y-3.5 overflow-hidden">
-            {/* Distance Markers Rails (200m, 400m, 600m, 800m, 1000m, FINISH) */}
-            <div className="absolute inset-0 flex justify-between pointer-events-none px-6 opacity-20">
+          {/* 6-LANE REAL TURF RACE TRACK */}
+          <div className="relative rounded-3xl bg-gradient-to-b from-emerald-950 via-emerald-900 to-green-950 p-4 sm:p-5 border-2 border-emerald-700/80 shadow-2xl space-y-3.5 overflow-hidden">
+            {/* Animated Turf Grass Lines (Moving background when RACING for high velocity feel) */}
+            <div className="absolute inset-0 pointer-events-none opacity-15 overflow-hidden">
+              <motion.div
+                animate={raceStatus === 'RACING' ? { x: [0, -100] } : {}}
+                transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+                className="w-[200%] h-full flex"
+                style={{
+                  backgroundImage:
+                    'repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.1) 40px, rgba(255,255,255,0.1) 80px)',
+                }}
+              />
+            </div>
+
+            {/* Distance Markers Rails (START, 300m, 600m, 900m, FINISH 🏁) */}
+            <div className="absolute inset-0 flex justify-between pointer-events-none px-6 opacity-30 z-10">
               {['START', '300m', '600m', '900m', 'FINISH 🏁'].map((mark, i) => (
                 <div key={i} className="h-full border-r border-dashed border-white/60 relative flex flex-col justify-between py-1">
-                  <span className="text-[9px] font-mono font-bold text-white uppercase -ml-4">{mark}</span>
+                  <span className="text-[9px] font-mono font-black text-amber-200 uppercase -ml-4 bg-emerald-950/80 px-1 rounded">
+                    {mark}
+                  </span>
                 </div>
               ))}
             </div>
 
-            {/* Finish Line Ribbon */}
-            <div className="absolute right-8 top-0 bottom-0 w-3 bg-gradient-to-b from-white via-red-500 to-white opacity-80 z-10 border-l border-r border-slate-900 shadow-[0_0_15px_rgba(255,255,255,0.6)]" />
+            {/* Finish Line Checkered Ribbon */}
+            <div
+              className="absolute right-12 top-0 bottom-0 w-3 z-15 pointer-events-none border-l-2 border-r-2 border-slate-950 shadow-[0_0_20px_rgba(255,255,255,0.8)]"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(0deg, #ffffff, #ffffff 6px, #0f172a 6px, #0f172a 12px)',
+              }}
+            />
 
             {/* 6 Galloping Lanes */}
             {roster.map((horse) => {
               const pos = positions[horse.number] || 0;
               const isWinner = winner === horse.number;
               const isSelected = selectedHorse === horse.number;
+              const isRacing = raceStatus === 'RACING';
 
               return (
                 <div
                   key={horse.number}
-                  className={`relative flex items-center h-11 sm:h-12 bg-emerald-950/60 rounded-xl px-3 border transition-colors ${
-                    isSelected ? 'border-amber-400/80 bg-emerald-900/60' : 'border-emerald-700/40'
+                  className={`relative flex items-center h-14 sm:h-16 bg-emerald-950/70 rounded-2xl px-3 border transition-all duration-300 ${
+                    isSelected
+                      ? 'border-amber-400 shadow-lg shadow-amber-500/20 bg-emerald-900/80 ring-1 ring-amber-400/50'
+                      : 'border-emerald-800/50 hover:border-emerald-600/60'
                   }`}
                 >
-                  {/* Gate Number & Silk Badge */}
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center font-mono font-black text-xs text-white shadow-md z-10 flex-shrink-0"
-                    style={{ backgroundColor: horse.color }}
-                  >
-                    #{horse.number}
+                  {/* Metal Starting Gate Box with Swing Gate Doors */}
+                  <div className="relative flex items-center z-10 flex-shrink-0">
+                    <div
+                      className="w-8 h-8 rounded-xl flex items-center justify-center font-mono font-black text-xs text-white shadow-md border border-white/30"
+                      style={{ backgroundColor: horse.color }}
+                    >
+                      #{horse.number}
+                    </div>
+
+                    {/* Swing Gate Doors */}
+                    <div
+                      className={`w-3 h-8 bg-slate-700 border-r border-slate-500 ml-1 rounded-r-sm transition-transform duration-300 origin-left ${
+                        isRacing ? '-rotate-45 opacity-40 scale-x-50' : 'rotate-0 opacity-90'
+                      }`}
+                    />
                   </div>
 
-                  <span className="ml-2 text-xs font-bold text-emerald-200 hidden md:inline truncate w-28">
+                  {/* Horse Label (Hidden on small screens) */}
+                  <span className="ml-2 text-xs font-black text-emerald-200 hidden lg:inline truncate w-28">
                     {horse.name}
                   </span>
 
-                  {/* Galloping Horse Sprite & Silk */}
-                  <div className="flex-1 relative h-full flex items-center ml-2">
-                    <motion.div
-                      className="absolute flex items-center gap-1 -translate-y-1/2 top-1/2 z-20 cursor-pointer"
-                      style={{ left: `${Math.min(94, Math.max(0, pos))}%` }}
-                      animate={
-                        raceStatus === 'RACING'
-                          ? { y: ['-50%', '-56%', '-50%'] }
-                          : isWinner
-                          ? { scale: [1, 1.15, 1] }
-                          : {}
-                      }
-                      transition={{ repeat: Infinity, duration: 0.25 }}
-                    >
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-lg shadow-lg border-2 border-white"
-                        style={{ backgroundColor: horse.color }}
-                      >
-                        {horse.avatar}
-                      </div>
-
-                      {/* Winner Crown */}
-                      {isWinner && (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="text-xs font-black bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded-full font-mono shadow-md"
-                        >
-                          1st 👑
-                        </motion.span>
-                      )}
-                    </motion.div>
+                  {/* Galloping Track Lane & Real Horse Animated Sprite */}
+                  <div className="flex-1 relative h-full flex items-center ml-2 overflow-visible">
+                    <GallopingHorse
+                      horseNumber={horse.number}
+                      name={horse.name}
+                      color={horse.color}
+                      isRacing={isRacing}
+                      isWinner={isWinner}
+                      position={pos}
+                    />
                   </div>
                 </div>
               );
