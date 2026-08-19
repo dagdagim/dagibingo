@@ -117,8 +117,39 @@ export const LobbyPage: React.FC = () => {
         )}
       </div>
 
-      {/* Featured Games Showcase: Towers, Limbo, Hounds, Derby, Mines, Aviator, Keno 80, & Plinko */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Featured Games Showcase: Chicken Run, Towers, Limbo, Hounds, Derby, Mines, Aviator, Keno 80, & Plinko */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Dagi Chicken Run Game */}
+        <Link
+          to="/chicken"
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-600/25 via-orange-500/15 to-slate-900/40 border border-amber-500/40 p-5 shadow-arena-glow group hover:scale-[1.02] transition-all flex flex-col justify-between"
+        >
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/30 text-amber-400 text-[10px] font-black uppercase tracking-wider font-display flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-400 animate-spin-slow" />
+                NEW RELEASE
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+                97% RTP
+              </span>
+            </div>
+            <h3 className="text-xl font-black font-display text-arena-text group-hover:text-amber-400 transition-colors">
+              🐔 Dagi Chicken Run
+            </h3>
+            <p className="text-xs text-arena-muted">
+              Dodge highway traffic and roasting grills lane-by-lane to snatch the Golden Egg!
+            </p>
+          </div>
+          <div className="mt-4 flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-400">Up to 995× Win</span>
+            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-xs group-hover:brightness-110 transition-all shadow-md">
+              <span>Run Chicken</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </Link>
+
         {/* Dagi Towers Game */}
         <Link
           to="/towers"

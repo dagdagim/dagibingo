@@ -68,6 +68,15 @@ export const Navbar: React.FC = () => {
       category: '⚡ Instant Arcade',
       games: [
         {
+          path: '/chicken',
+          label: 'Dagi Chicken Run',
+          badge: 'NEW 97%',
+          badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+          icon: <span className="text-lg">🐔</span>,
+          desc: 'Cross highway lanes, avoid barbecue grills & win golden eggs',
+          multiplier: 'Up to 995×',
+        },
+        {
           path: '/towers',
           label: 'Dagi Towers',
           badge: '97% RTP',
@@ -149,12 +158,12 @@ export const Navbar: React.FC = () => {
   ];
 
   const quickChips = [
+    { path: '/chicken', label: 'Chicken', icon: <span>🐔</span>, activeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/40' },
     { path: '/towers', label: 'Towers', icon: <span>🏰</span>, activeColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' },
     { path: '/limbo', label: 'Limbo', icon: <Rocket className="w-3.5 h-3.5 text-rose-500" />, activeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/40' },
     { path: '/greyhound', label: 'Hounds', icon: <span>🐕</span>, activeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/40' },
     { path: '/horserace', label: 'Derby', icon: <span>🐎</span>, activeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/40' },
     { path: '/mines', label: 'Mines', icon: <Bomb className="w-3.5 h-3.5 text-emerald-400" />, activeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' },
-    { path: '/aviator', label: 'Aviator', icon: <Play className="w-3.5 h-3.5 text-rose-500 fill-rose-500/20" />, activeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/40' },
   ];
 
   return (

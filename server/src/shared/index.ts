@@ -15,6 +15,7 @@ export * from './types/horserace.types';
 export * from './types/greyhound.types';
 export * from './types/towers.types';
 export * from './types/limbo.types';
+export * from './types/chicken.types';
 
 // Export Schemas
 export * from './schemas/auth.schemas';
