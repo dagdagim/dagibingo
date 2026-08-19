@@ -18,6 +18,7 @@ import kenoRoutes from './modules/keno/keno.routes';
 import plinkoRoutes from './modules/plinko/plinko.routes';
 import aviatorRoutes from './modules/aviator/aviator.routes';
 import minesRoutes from './modules/mines/mines.routes';
+import horseraceRoutes from './modules/horserace/horserace.routes';
 
 const app = express();
 
@@ -94,6 +95,7 @@ app.use('/api/keno', kenoRoutes);
 app.use('/api/plinko', plinkoRoutes);
 app.use('/api/aviator', aviatorRoutes);
 app.use('/api/mines', minesRoutes);
+app.use('/api/horserace', horseraceRoutes);
 
 // Catch all unmatched routes
 app.use('*', (req, _res, next) => {

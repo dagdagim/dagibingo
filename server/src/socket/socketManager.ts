@@ -5,6 +5,7 @@ import { GameEngine } from '../game-engine/GameEngine';
 import { KenoEngine } from '../game-engine/KenoEngine';
 import { PlinkoEngine } from '../game-engine/PlinkoEngine';
 import { AviatorEngine } from '../game-engine/AviatorEngine';
+import { HorseRaceEngine } from '../game-engine/HorseRaceEngine';
 import { logger } from '../utils/logger';
 import { ClientToServerEvents, ServerToClientEvents } from '../shared';
 
@@ -31,6 +32,10 @@ export const setupSocketServer = (io: Server<ClientToServerEvents, ServerToClien
   const aviatorEngine = AviatorEngine.getInstance();
   aviatorEngine.setSocketServer(io);
   aviatorEngine.start().catch((err) => logger.error('Failed to start Aviator engine:', err));
+
+  const horseRaceEngine = HorseRaceEngine.getInstance();
+  horseRaceEngine.setSocketServer(io);
+  horseRaceEngine.start().catch((err) => logger.error('Failed to start HorseRace engine:', err));
 
   // Authentication Middleware for Sockets
   io.use((socket: AuthenticatedSocket, next) => {
@@ -141,6 +146,20 @@ export const setupSocketServer = (io: Server<ClientToServerEvents, ServerToClien
     // Leave Aviator Arena Room
     socket.on('aviator:leave' as any, () => {
       socket.leave('room:aviator');
+    });
+
+    // Join Horse Race Arena Room
+    socket.on('horserace:join' as any, async (callback: any) => {
+      socket.join('room:horserace');
+      const activeState = await horseRaceEngine.getActiveState(socket.userId);
+      if (callback) {
+        callback({ success: true, ...activeState });
+      }
+    });
+
+    // Leave Horse Race Arena Room
+    socket.on('horserace:leave' as any, () => {
+      socket.leave('room:horserace');
     });
 
     // Handle Player Bingo Claim

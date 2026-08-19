@@ -8,10 +8,10 @@ export const MobileNav: React.FC = () => {
 
   const links = [
     { label: 'Lobby', path: '/lobby', icon: <Gamepad2 className="w-5 h-5" /> },
+    { label: 'Derby', path: '/horserace', icon: <span className="text-lg">🐎</span> },
     { label: 'Mines', path: '/mines', icon: <Bomb className="w-5 h-5 text-emerald-400" /> },
     { label: 'Aviator', path: '/aviator', icon: <Play className="w-5 h-5 text-rose-500 fill-rose-500/20" /> },
     { label: 'Keno', path: '/keno', icon: <Sparkles className="w-5 h-5 text-amber-500" /> },
-    { label: 'Plinko', path: '/plinko', icon: <Flame className="w-5 h-5 text-orange-500" /> },
     { label: 'Wallet', path: isAuthenticated ? '/wallet' : '/login', icon: <Wallet className="w-5 h-5" /> },
   ];
 
