@@ -21,6 +21,7 @@ import {
   Award,
 } from 'lucide-react';
 import { GallopingHorse } from '../../components/horserace/GallopingHorse';
+import { HorseRaceTrackCanvas } from '../../components/horserace/HorseRaceTrackCanvas';
 
 /* -------------------------------------------------------------------------- */
 /* Web Audio Synthesizer for Horse Racing                                     */
@@ -356,93 +357,80 @@ export const HorseRacePage: React.FC = () => {
             </div>
           </div>
 
-          {/* 6-LANE REAL TURF RACE TRACK */}
-          <div className="relative rounded-3xl bg-gradient-to-b from-emerald-950 via-emerald-900 to-green-950 p-4 sm:p-5 border-2 border-emerald-700/80 shadow-2xl space-y-3.5 overflow-hidden">
-            {/* Animated Turf Grass Lines (Moving background when RACING for high velocity feel) */}
-            <div className="absolute inset-0 pointer-events-none opacity-15 overflow-hidden">
-              <motion.div
-                animate={raceStatus === 'RACING' ? { x: [0, -100] } : {}}
-                transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-                className="w-[200%] h-full flex"
-                style={{
-                  backgroundImage:
-                    'repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.1) 40px, rgba(255,255,255,0.1) 80px)',
-                }}
-              />
-            </div>
+          {/* 60FPS HIGH-GRAPHICS TURF TRACK CANVAS */}
+          <HorseRaceTrackCanvas
+            roster={roster}
+            positions={positions}
+            raceStatus={raceStatus}
+            winner={winner}
+            podium={podium}
+            selectedHorse={selectedHorse}
+          />
 
-            {/* Distance Markers Rails (START, 300m, 600m, 900m, FINISH 🏁) */}
-            <div className="absolute inset-0 flex justify-between pointer-events-none px-6 opacity-30 z-10">
-              {['START', '300m', '600m', '900m', 'FINISH 🏁'].map((mark, i) => (
-                <div key={i} className="h-full border-r border-dashed border-white/60 relative flex flex-col justify-between py-1">
-                  <span className="text-[9px] font-mono font-black text-amber-200 uppercase -ml-4 bg-emerald-950/80 px-1 rounded">
-                    {mark}
-                  </span>
-                </div>
-              ))}
-            </div>
+          {/* LIVE RACE DISTANCE LEADERBOARD HUD */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
+            {roster
+              .map((h) => ({
+                ...h,
+                pos: positions[h.number] || 0,
+              }))
+              .sort((a, b) => b.pos - a.pos)
+              .map((horse, rankIdx) => {
+                const isLeader = rankIdx === 0;
+                const isSelected = selectedHorse === horse.number;
 
-            {/* Finish Line Checkered Ribbon */}
-            <div
-              className="absolute right-12 top-0 bottom-0 w-3 z-15 pointer-events-none border-l-2 border-r-2 border-slate-950 shadow-[0_0_20px_rgba(255,255,255,0.8)]"
-              style={{
-                backgroundImage:
-                  'repeating-linear-gradient(0deg, #ffffff, #ffffff 6px, #0f172a 6px, #0f172a 12px)',
-              }}
-            />
-
-            {/* 6 Galloping Lanes */}
-            {roster.map((horse) => {
-              const pos = positions[horse.number] || 0;
-              const isWinner = winner === horse.number;
-              const isSelected = selectedHorse === horse.number;
-              const isRacing = raceStatus === 'RACING';
-
-              return (
-                <div
-                  key={horse.number}
-                  className={`relative flex items-center h-14 sm:h-16 bg-emerald-950/70 rounded-2xl px-3 border transition-all duration-300 ${
-                    isSelected
-                      ? 'border-amber-400 shadow-lg shadow-amber-500/20 bg-emerald-900/80 ring-1 ring-amber-400/50'
-                      : 'border-emerald-800/50 hover:border-emerald-600/60'
-                  }`}
-                >
-                  {/* Metal Starting Gate Box with Swing Gate Doors */}
-                  <div className="relative flex items-center z-10 flex-shrink-0">
-                    <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center font-mono font-black text-xs text-white shadow-md border border-white/30"
-                      style={{ backgroundColor: horse.color }}
-                    >
-                      #{horse.number}
+                return (
+                  <div
+                    key={horse.number}
+                    className={`p-2.5 rounded-2xl border transition-all ${
+                      isSelected
+                        ? 'bg-amber-500/20 border-amber-400 shadow-md ring-1 ring-amber-400/50'
+                        : isLeader && raceStatus === 'RACING'
+                        ? 'bg-rose-500/15 border-rose-400'
+                        : 'bg-arena-surface border-arena-border'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`w-5 h-5 rounded-md flex items-center justify-center font-mono font-black text-[10px] text-white ${
+                            rankIdx === 0
+                              ? 'bg-amber-400 text-slate-950 font-black'
+                              : rankIdx === 1
+                              ? 'bg-slate-400 text-slate-950'
+                              : rankIdx === 2
+                              ? 'bg-amber-700 text-white'
+                              : 'bg-slate-800 text-slate-300'
+                          }`}
+                        >
+                          {rankIdx + 1}
+                        </span>
+                        <span
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: horse.color }}
+                        />
+                        <span className="text-[11px] font-black text-arena-text truncate max-w-[70px]">
+                          #{horse.number} {horse.name.split(' ')[1] || ''}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-mono font-black text-amber-400">
+                        {Math.floor(horse.pos)}%
+                      </span>
                     </div>
 
-                    {/* Swing Gate Doors */}
-                    <div
-                      className={`w-3 h-8 bg-slate-700 border-r border-slate-500 ml-1 rounded-r-sm transition-transform duration-300 origin-left ${
-                        isRacing ? '-rotate-45 opacity-40 scale-x-50' : 'rotate-0 opacity-90'
-                      }`}
-                    />
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-100"
+                        style={{
+                          width: `${Math.min(100, Math.max(0, horse.pos))}%`,
+                          backgroundColor: horse.color,
+                        }}
+                      />
+                    </div>
                   </div>
-
-                  {/* Horse Label (Hidden on small screens) */}
-                  <span className="ml-2 text-xs font-black text-emerald-200 hidden lg:inline truncate w-28">
-                    {horse.name}
-                  </span>
-
-                  {/* Galloping Track Lane & Real Horse Animated Sprite */}
-                  <div className="flex-1 relative h-full flex items-center ml-2 overflow-visible">
-                    <GallopingHorse
-                      horseNumber={horse.number}
-                      name={horse.name}
-                      color={horse.color}
-                      isRacing={isRacing}
-                      isWinner={isWinner}
-                      position={pos}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
 
           {/* Podium Announcement Banner */}
