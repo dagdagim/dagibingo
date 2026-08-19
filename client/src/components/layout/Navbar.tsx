@@ -24,6 +24,7 @@ import {
   History,
   Layers,
   Zap,
+  Rocket,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -63,6 +64,24 @@ export const Navbar: React.FC = () => {
   };
 
   const instantGames = [
+    {
+      path: '/towers',
+      label: 'Dagi Towers',
+      badge: '97% RTP',
+      badgeColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      icon: <span className="text-lg">🏰</span>,
+      desc: '9-floor tower climb, avoid skulls and multiply your stake',
+      multiplier: 'Up to 258k×',
+    },
+    {
+      path: '/limbo',
+      label: 'Dagi Limbo',
+      badge: '98% RTP',
+      badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+      icon: <Rocket className="w-5 h-5 text-rose-500" />,
+      desc: 'Instant multiplier target game with custom odds',
+      multiplier: 'Up to 1.0M×',
+    },
     {
       path: '/greyhound',
       label: 'Dagi Hounds',
@@ -247,6 +266,30 @@ export const Navbar: React.FC = () => {
               </div>
 
               {/* Direct Quick-Access Chips */}
+              <Link
+                to="/towers"
+                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
+                  isActive('/towers')
+                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 shadow-sm'
+                    : 'text-arena-muted hover:text-yellow-400 hover:bg-yellow-500/10'
+                }`}
+              >
+                <span>🏰</span>
+                <span>Towers</span>
+              </Link>
+
+              <Link
+                to="/limbo"
+                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${
+                  isActive('/limbo')
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm'
+                    : 'text-arena-muted hover:text-rose-400 hover:bg-rose-500/10'
+                }`}
+              >
+                <Rocket className="w-3.5 h-3.5 text-rose-500" />
+                <span>Limbo</span>
+              </Link>
+
               <Link
                 to="/greyhound"
                 className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 ${

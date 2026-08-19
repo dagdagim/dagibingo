@@ -20,6 +20,8 @@ import aviatorRoutes from './modules/aviator/aviator.routes';
 import minesRoutes from './modules/mines/mines.routes';
 import horseraceRoutes from './modules/horserace/horserace.routes';
 import greyhoundRoutes from './modules/greyhound/greyhound.routes';
+import towersRoutes from './modules/towers/towers.routes';
+import limboRoutes from './modules/limbo/limbo.routes';
 
 const app = express();
 
@@ -98,6 +100,8 @@ app.use('/api/aviator', aviatorRoutes);
 app.use('/api/mines', minesRoutes);
 app.use('/api/horserace', horseraceRoutes);
 app.use('/api/greyhound', greyhoundRoutes);
+app.use('/api/towers', towersRoutes);
+app.use('/api/limbo', limboRoutes);
 
 // Catch all unmatched routes
 app.use('*', (req, _res, next) => {

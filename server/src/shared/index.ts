@@ -13,6 +13,8 @@ export * from './types/aviator.types';
 export * from './types/mines.types';
 export * from './types/horserace.types';
 export * from './types/greyhound.types';
+export * from './types/towers.types';
+export * from './types/limbo.types';
 
 // Export Schemas
 export * from './schemas/auth.schemas';

@@ -82,6 +82,34 @@ export const MobileNav: React.FC = () => {
             {/* Instant Games Grid */}
             <div className="grid grid-cols-2 gap-2.5">
               <Link
+                to="/towers"
+                onClick={() => setIsMoreOpen(false)}
+                className="p-3 bg-arena-surface rounded-2xl border border-arena-border flex items-center gap-2.5 hover:border-yellow-400 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400">
+                  <span className="text-base">🏰</span>
+                </div>
+                <div>
+                  <span className="text-xs font-black text-arena-text block">Towers</span>
+                  <span className="text-[9px] text-arena-muted">Floor Climb</span>
+                </div>
+              </Link>
+
+              <Link
+                to="/limbo"
+                onClick={() => setIsMoreOpen(false)}
+                className="p-3 bg-arena-surface rounded-2xl border border-arena-border flex items-center gap-2.5 hover:border-rose-400 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-xl bg-rose-500/20 flex items-center justify-center text-rose-400">
+                  <span className="text-base">🚀</span>
+                </div>
+                <div>
+                  <span className="text-xs font-black text-arena-text block">Limbo</span>
+                  <span className="text-[9px] text-arena-muted">Target Roller</span>
+                </div>
+              </Link>
+
+              <Link
                 to="/aviator"
                 onClick={() => setIsMoreOpen(false)}
                 className="p-3 bg-arena-surface rounded-2xl border border-arena-border flex items-center gap-2.5 hover:border-rose-400 transition-colors"
