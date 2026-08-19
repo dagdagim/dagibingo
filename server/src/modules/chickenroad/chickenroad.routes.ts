@@ -5,11 +5,13 @@ import {
   cashoutChickenRoadGame,
   getActiveChickenRoadGame,
   getMyChickenRoadHistory,
+  getChickenLiveRuns,
 } from './chickenroad.controller';
 import { authenticateJwt } from '../../middleware/auth';
 
 const router = Router();
 
+router.get('/live-runs', getChickenLiveRuns);
 router.get('/active', authenticateJwt, getActiveChickenRoadGame);
 router.get('/my-history', authenticateJwt, getMyChickenRoadHistory);
 router.post('/start', authenticateJwt, startChickenRoadGame);

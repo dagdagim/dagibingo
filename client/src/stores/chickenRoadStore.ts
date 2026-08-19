@@ -3,100 +3,160 @@ import { api } from '../services/api';
 import { useAuthStore } from './authStore';
 import { useWalletStore } from './walletStore';
 import {
-  ChickenRoadDifficulty,
+  ChickenSkinType,
+  IChickenSkinConfig,
   IChickenRoadGameDTO,
   ChickenRoadHistoryDTO,
-  IChickenRoadDifficultyConfig,
+  ChickenLiveRunDTO,
 } from '../shared';
 
-export const CHICKEN_ROAD_DIFFICULTY_DATA: Record<ChickenRoadDifficulty, IChickenRoadDifficultyConfig> = {
-  EASY: {
-    name: 'EASY',
-    label: 'Country Road (95% Safe/Lane)',
-    totalLanes: 25,
-    safeProbability: 0.95,
-    multipliers: [
-      1.02, 1.07, 1.13, 1.19, 1.25, 1.32, 1.39, 1.46, 1.54, 1.62,
-      1.71, 1.80, 1.90, 2.00, 2.11, 2.22, 2.34, 2.47, 2.60, 2.74,
-      2.89, 3.05, 3.22, 3.40, 3.59,
-    ],
+export const CHICKEN_SKINS: IChickenSkinConfig[] = [
+  {
+    id: 'CLASSIC',
+    name: 'Classic Rooster',
+    emoji: '🐔',
+    description: 'The legendary plucky bird with classic white feathers and a proud red comb.',
+    color: '#ffffff',
+    unlockedAtMultiplier: 1.0,
   },
-  MEDIUM: {
-    name: 'MEDIUM',
-    label: 'City Avenue (85% Safe/Lane)',
-    totalLanes: 25,
-    safeProbability: 0.85,
-    multipliers: [
-      1.14, 1.34, 1.58, 1.86, 2.19, 2.57, 3.03, 3.56, 4.19, 4.93,
-      5.80, 6.82, 8.03, 9.45, 11.12, 13.08, 15.39, 18.11, 21.31, 25.07,
-      29.49, 34.69, 40.81, 48.01, 56.48,
-    ],
+  {
+    id: 'BABY',
+    name: 'Baby Chick',
+    emoji: '🐥',
+    description: 'A tiny, fluffy golden chick with boundless courage and energetic hops.',
+    color: '#fef08a',
+    unlockedAtMultiplier: 2.0,
   },
-  HARD: {
-    name: 'HARD',
-    label: 'Interstate Highway (70% Safe/Lane)',
-    totalLanes: 25,
-    safeProbability: 0.7,
-    multipliers: [
-      1.38, 1.98, 2.82, 4.04, 5.77, 8.24, 11.77, 16.82, 24.03, 34.33,
-      49.04, 70.06, 100.08, 142.98, 204.25, 291.79, 416.84, 595.49, 850.70, 1215.28,
-      1736.12, 2480.17, 3543.10, 5061.57, 7230.82,
-    ],
+  {
+    id: 'ROYAL',
+    name: 'Royal King Chicken',
+    emoji: '👑',
+    description: 'Adorned with a sparkling golden crown and a regal royal velvet cape.',
+    color: '#a855f7',
+    unlockedAtMultiplier: 3.2,
   },
-  DAREDEVIL: {
-    name: 'DAREDEVIL',
-    label: 'Speedway Rush (50% Safe/Lane)',
-    totalLanes: 20,
-    safeProbability: 0.5,
-    multipliers: [
-      1.94, 3.88, 7.76, 15.52, 31.04, 62.08, 124.16, 248.32, 496.64, 993.28,
-      1986.56, 3973.12, 7946.24, 15892.48, 31784.96, 63569.92, 127139.84, 254279.68, 508559.36, 1017118.72,
-    ],
+  {
+    id: 'NINJA',
+    name: 'Ninja Shadow',
+    emoji: '🥷',
+    description: 'Silent night crosser wearing a stealth black shinobi mask and red headband.',
+    color: '#334155',
+    unlockedAtMultiplier: 5.0,
   },
-};
+  {
+    id: 'COWBOY',
+    name: 'Cowboy Rooster',
+    emoji: '🤠',
+    description: 'Wild west ranger wearing a Stetson leather hat and red bandana.',
+    color: '#d97706',
+    unlockedAtMultiplier: 10.0,
+  },
+  {
+    id: 'SPACE',
+    name: 'Cosmo Clucker',
+    emoji: '🧑‍🚀',
+    description: 'Astronaut chicken with a zero-gravity bubble helmet and blue visor.',
+    color: '#38bdf8',
+    unlockedAtMultiplier: 25.0,
+  },
+  {
+    id: 'GOLDEN',
+    name: 'Golden Phoenix',
+    emoji: '🏆',
+    description: 'Gilded metallic gold with a shimmering celestial sparkle trail.',
+    color: '#fbbf24',
+    unlockedAtMultiplier: 100.0,
+  },
+];
+
+export const ROAD_MULTIPLIERS = [
+  1.0,   // Start (0)
+  1.15,  // Road 1
+  1.40,  // Road 2
+  1.80,  // Road 3
+  2.40,  // Road 4
+  3.20,  // Road 5 (Checkpoint 🏁)
+  4.50,  // Road 6
+  6.80,  // Road 7
+  10.00, // Road 8
+  15.00, // Road 9
+  25.00, // Road 10 (Gold Checkpoint 🏆)
+  35.00, // Road 11
+  50.00, // Road 12
+  75.00, // Road 13
+  110.0, // Road 14
+  165.0, // Road 15
+  250.0, // Road 16
+  380.0, // Road 17
+  580.0, // Road 18
+  900.0, // Road 19
+  1400.0, // Road 20
+  2200.0, // Road 21
+  3500.0, // Road 22
+  5500.0, // Road 23
+  8000.0, // Road 24
+  12500.0, // Road 25 (Ultimate Finish 👑)
+];
 
 interface ChickenRoadState {
   game: IChickenRoadGameDTO | null;
-  difficulty: ChickenRoadDifficulty;
+  skin: ChickenSkinType;
   betAmount: number;
+  autoStopMultiplier: number | null;
   isLoading: boolean;
   isStepping: boolean;
   isCashingOut: boolean;
   history: ChickenRoadHistoryDTO[];
+  liveRuns: ChickenLiveRunDTO[];
   soundEnabled: boolean;
+  isSkinModalOpen: boolean;
   error: string | null;
 
-  setDifficulty: (difficulty: ChickenRoadDifficulty) => void;
+  setSkin: (skin: ChickenSkinType) => void;
   setBetAmount: (amount: number) => void;
+  setAutoStopMultiplier: (mult: number | null) => void;
+  setIsSkinModalOpen: (open: boolean) => void;
   toggleSound: () => void;
   setError: (error: string | null) => void;
 
   fetchActiveGame: () => Promise<void>;
   fetchHistory: () => Promise<void>;
+  fetchLiveRuns: () => Promise<void>;
   startGame: () => Promise<void>;
-  stepForward: () => Promise<'SAFE' | 'CRASHED' | 'FULL_CROSS_WIN' | null>;
+  stepForward: () => Promise<'SAFE' | 'CRASHED' | 'AUTO_COLLECT_WIN' | 'FINISH_LINE_VICTORY' | null>;
   cashout: () => Promise<void>;
 }
 
 export const useChickenRoadStore = create<ChickenRoadState>((set, get) => ({
   game: null,
-  difficulty: 'EASY',
+  skin: 'CLASSIC',
   betAmount: 10,
+  autoStopMultiplier: 3.2,
   isLoading: false,
   isStepping: false,
   isCashingOut: false,
   history: [],
+  liveRuns: [],
   soundEnabled: true,
+  isSkinModalOpen: false,
   error: null,
 
-  setDifficulty: (difficulty) => {
-    if (get().game && get().game?.status === 'IN_PROGRESS') return;
-    set({ difficulty });
+  setSkin: (skin) => {
+    set({ skin });
   },
 
   setBetAmount: (amount) => {
     if (get().game && get().game?.status === 'IN_PROGRESS') return;
     set({ betAmount: Math.max(0.5, Math.min(10000, amount)) });
+  },
+
+  setAutoStopMultiplier: (mult) => {
+    if (get().game && get().game?.status === 'IN_PROGRESS') return;
+    set({ autoStopMultiplier: mult && mult > 1 ? Math.floor(mult * 100) / 100 : null });
+  },
+
+  setIsSkinModalOpen: (open) => {
+    set({ isSkinModalOpen: open });
   },
 
   toggleSound: () => {
@@ -117,8 +177,9 @@ export const useChickenRoadStore = create<ChickenRoadState>((set, get) => ({
       if (data?.game) {
         set({
           game: data.game,
-          difficulty: data.game.difficulty,
+          skin: data.game.skin || 'CLASSIC',
           betAmount: data.game.betAmount,
+          autoStopMultiplier: data.game.autoStopMultiplier || null,
         });
       }
     } catch {
@@ -140,13 +201,25 @@ export const useChickenRoadStore = create<ChickenRoadState>((set, get) => ({
     }
   },
 
+  fetchLiveRuns: async () => {
+    try {
+      const res = await api.get<any>('/chickenroad/live-runs');
+      const data = res?.data?.data || res?.data || res;
+      if (Array.isArray(data)) {
+        set({ liveRuns: data });
+      }
+    } catch {
+      // Ignore
+    }
+  },
+
   startGame: async () => {
-    const { difficulty, betAmount, isLoading } = get();
+    const { skin, betAmount, autoStopMultiplier, isLoading } = get();
     if (isLoading) return;
 
     const token = useAuthStore.getState().token;
     if (!token) {
-      set({ error: 'Please log in to play Chicken Road.' });
+      set({ error: 'Please log in to start a Chicken Road run.' });
       return;
     }
 
@@ -154,8 +227,9 @@ export const useChickenRoadStore = create<ChickenRoadState>((set, get) => ({
 
     try {
       const res = await api.post<any>('/chickenroad/start', {
-        difficulty,
+        skin,
         betAmount,
+        autoStopMultiplier: autoStopMultiplier || undefined,
       });
 
       const data = res?.data || res;
@@ -198,6 +272,7 @@ export const useChickenRoadStore = create<ChickenRoadState>((set, get) => ({
         set({ game: data.game, isStepping: false });
         if (data.game.status !== 'IN_PROGRESS') {
           get().fetchHistory();
+          get().fetchLiveRuns();
         }
         return data.outcome || null;
       } else {
@@ -207,7 +282,7 @@ export const useChickenRoadStore = create<ChickenRoadState>((set, get) => ({
     } catch (err: any) {
       set({
         isStepping: false,
-        error: err?.response?.data?.message || err?.message || 'Failed to step across lane.',
+        error: err?.response?.data?.message || err?.message || 'Failed to cross road.',
       });
       return null;
     }
@@ -233,13 +308,14 @@ export const useChickenRoadStore = create<ChickenRoadState>((set, get) => ({
       if (data?.game) {
         set({ game: data.game, isCashingOut: false });
         get().fetchHistory();
+        get().fetchLiveRuns();
       } else {
         set({ isCashingOut: false });
       }
     } catch (err: any) {
       set({
         isCashingOut: false,
-        error: err?.response?.data?.message || err?.message || 'Failed to cash out.',
+        error: err?.response?.data?.message || err?.message || 'Failed to collect winnings.',
       });
     }
   },

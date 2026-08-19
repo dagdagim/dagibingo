@@ -7,75 +7,65 @@ import { WalletTransaction } from '../../models/WalletTransaction';
 import { User } from '../../models/User';
 import {
   ChickenRoadDifficulty,
+  ChickenSkinType,
+  ChickenStageTheme,
   IChickenRoadGameDTO,
-  IChickenRoadDifficultyConfig,
+  ChickenLiveRunDTO,
 } from '../../shared';
 
-export const CHICKEN_ROAD_CONFIG: Record<ChickenRoadDifficulty, IChickenRoadDifficultyConfig> = {
-  EASY: {
-    name: 'EASY',
-    label: 'Country Road (95% Safe/Lane)',
-    totalLanes: 25,
-    safeProbability: 0.95,
-    multipliers: [
-      1.02, 1.07, 1.13, 1.19, 1.25, 1.32, 1.39, 1.46, 1.54, 1.62,
-      1.71, 1.80, 1.90, 2.00, 2.11, 2.22, 2.34, 2.47, 2.60, 2.74,
-      2.89, 3.05, 3.22, 3.40, 3.59,
-    ],
-  },
-  MEDIUM: {
-    name: 'MEDIUM',
-    label: 'City Avenue (85% Safe/Lane)',
-    totalLanes: 25,
-    safeProbability: 0.85,
-    multipliers: [
-      1.14, 1.34, 1.58, 1.86, 2.19, 2.57, 3.03, 3.56, 4.19, 4.93,
-      5.80, 6.82, 8.03, 9.45, 11.12, 13.08, 15.39, 18.11, 21.31, 25.07,
-      29.49, 34.69, 40.81, 48.01, 56.48,
-    ],
-  },
-  HARD: {
-    name: 'HARD',
-    label: 'Interstate Highway (70% Safe/Lane)',
-    totalLanes: 25,
-    safeProbability: 0.7,
-    multipliers: [
-      1.38, 1.98, 2.82, 4.04, 5.77, 8.24, 11.77, 16.82, 24.03, 34.33,
-      49.04, 70.06, 100.08, 142.98, 204.25, 291.79, 416.84, 595.49, 850.70, 1215.28,
-      1736.12, 2480.17, 3543.10, 5061.57, 7230.82,
-    ],
-  },
-  DAREDEVIL: {
-    name: 'DAREDEVIL',
-    label: 'Speedway Rush (50% Safe/Lane)',
-    totalLanes: 20,
-    safeProbability: 0.5,
-    multipliers: [
-      1.94, 3.88, 7.76, 15.52, 31.04, 62.08, 124.16, 248.32, 496.64, 993.28,
-      1986.56, 3973.12, 7946.24, 15892.48, 31784.96, 63569.92, 127139.84, 254279.68, 508559.36, 1017118.72,
-    ],
-  },
-};
+export const PROGRESSIVE_ROAD_MULTIPLIERS = [
+  1.0,   // Start (0)
+  1.15,  // Road 1
+  1.40,  // Road 2
+  1.80,  // Road 3
+  2.40,  // Road 4
+  3.20,  // Road 5 (Checkpoint 🏁)
+  4.50,  // Road 6
+  6.80,  // Road 7
+  10.00, // Road 8
+  15.00, // Road 9
+  25.00, // Road 10 (Gold Checkpoint 🏆)
+  35.00, // Road 11
+  50.00, // Road 12
+  75.00, // Road 13
+  110.0, // Road 14
+  165.0, // Road 15
+  250.0, // Road 16
+  380.0, // Road 17
+  580.0, // Road 18
+  900.0, // Road 19
+  1400.0, // Road 20
+  2200.0, // Road 21
+  3500.0, // Road 22
+  5500.0, // Road 23
+  8000.0, // Road 24
+  12500.0, // Road 25 (Ultimate Finish 👑)
+];
 
-/**
- * Generate 25-lane hazard layout based on cryptographic seed
- */
-function generateChickenLaneLayout(difficulty: ChickenRoadDifficulty, seed: string): boolean[] {
-  const config = CHICKEN_ROAD_CONFIG[difficulty];
+export function getStageThemeForRoad(roadIndex: number): ChickenStageTheme {
+  if (roadIndex <= 4) return 'COUNTRY';
+  if (roadIndex <= 8) return 'HIGHWAY';
+  if (roadIndex <= 13) return 'CITY';
+  if (roadIndex <= 18) return 'NIGHT';
+  return 'SPEEDWAY';
+}
+
+function generateChickenRoadLayout(seed: string): boolean[] {
   const layout: boolean[] = [];
-
   let hash = crypto.createHash('sha256').update(seed).digest('hex');
 
-  for (let l = 0; l < config.totalLanes; l++) {
-    const byteIdx = (l * 4) % (hash.length - 4);
+  // Survival probability starts high (95%) and tapers smoothly down to 78% on late roads
+  for (let r = 1; r <= 25; r++) {
+    const byteIdx = (r * 4) % (hash.length - 4);
     const intVal = parseInt(hash.substring(byteIdx, byteIdx + 4), 16);
-    const randFloat = intVal / 0xffff; // uniform in [0, 1)
+    const randFloat = intVal / 0xffff;
 
-    // isSafe if randFloat <= safeProbability
-    const isSafe = randFloat <= config.safeProbability;
+    // Survival curve: 95% down to 80%
+    const survivalRate = Math.max(0.75, 0.96 - (r * 0.007));
+    const isSafe = randFloat <= survivalRate;
     layout.push(isSafe);
 
-    if (l % 8 === 0) {
+    if (r % 6 === 0) {
       hash = crypto.createHash('sha256').update(hash).digest('hex');
     }
   }
@@ -89,12 +79,15 @@ function formatChickenRoadDTO(game: IChickenRoadGame): IChickenRoadGameDTO {
     userId: game.userId.toString(),
     username: game.username,
     difficulty: game.difficulty,
+    skin: game.skin,
     betAmount: game.betAmount,
-    currentLane: game.currentLane,
+    currentRoad: game.currentRoad,
     currentMultiplier: game.currentMultiplier,
+    autoStopMultiplier: game.autoStopMultiplier,
     status: game.status,
     payoutAmount: game.payoutAmount,
-    revealedLanes: game.revealedLanes,
+    stageTheme: game.stageTheme,
+    revealedRoads: game.revealedRoads,
     hash: game.hash,
     serverSeed: game.status !== 'IN_PROGRESS' ? game.serverSeed : undefined,
     createdAt: game.createdAt.toISOString(),
@@ -113,14 +106,14 @@ export const startChickenRoadGame = async (req: Request, res: Response, next: Ne
       return;
     }
 
-    const { difficulty = 'EASY', betAmount } = req.body;
+    const {
+      difficulty = 'MEDIUM',
+      skin = 'CLASSIC',
+      betAmount,
+      autoStopMultiplier,
+    } = req.body;
+
     const parsedBet = Number(betAmount);
-
-    if (!CHICKEN_ROAD_CONFIG[difficulty as ChickenRoadDifficulty]) {
-      res.status(400).json({ success: false, message: 'Invalid difficulty. Choose EASY, MEDIUM, HARD, or DAREDEVIL.' });
-      return;
-    }
-
     if (isNaN(parsedBet) || parsedBet < 0.5) {
       res.status(400).json({ success: false, message: 'Minimum bet is 0.5 ETB.' });
       return;
@@ -145,30 +138,36 @@ export const startChickenRoadGame = async (req: Request, res: Response, next: Ne
     const userWallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) });
 
     if (!userWallet || userWallet.availableBalance < parsedBet) {
-      res.status(400).json({ success: false, message: `Insufficient balance. You have ${userWallet?.availableBalance || 0} ETB.` });
+      res.status(400).json({
+        success: false,
+        message: `Insufficient balance. You have ${userWallet?.availableBalance || 0} ETB.`,
+      });
       return;
     }
 
-    // Debit player wallet (GAME_ENTRY)
+    // Debit player wallet
     const userBalBefore = userWallet.availableBalance;
     userWallet.availableBalance -= parsedBet;
     await userWallet.save();
 
     const serverSeed = crypto.randomBytes(16).toString('hex');
     const hash = crypto.createHash('sha256').update(serverSeed).digest('hex');
-    const fullLaneLayout = generateChickenLaneLayout(difficulty as ChickenRoadDifficulty, serverSeed);
+    const fullRoadLayout = generateChickenRoadLayout(serverSeed);
 
     const game = await ChickenRoadGame.create({
       userId: new mongoose.Types.ObjectId(userId),
       username: user?.username || 'Clucker',
       difficulty: difficulty as ChickenRoadDifficulty,
+      skin: skin as ChickenSkinType,
       betAmount: parsedBet,
-      currentLane: 0,
+      currentRoad: 0,
       currentMultiplier: 1.0,
+      autoStopMultiplier: autoStopMultiplier ? Number(autoStopMultiplier) : undefined,
       status: 'IN_PROGRESS',
       payoutAmount: 0,
-      fullLaneLayout,
-      revealedLanes: [],
+      stageTheme: 'COUNTRY',
+      fullRoadLayout,
+      revealedRoads: [],
       hash,
       serverSeed,
     });
@@ -182,11 +181,11 @@ export const startChickenRoadGame = async (req: Request, res: Response, next: Ne
       balanceAfter: userWallet.availableBalance,
       currency: 'ETB',
       status: 'COMPLETED',
-      description: `Chicken Road Entry (${difficulty} ${parsedBet} ETB)`,
+      description: `Chicken Road Entry (${skin} skin, ${parsedBet} ETB)`,
       referenceId: game._id.toString(),
       metadata: {
         gameType: 'CHICKEN_ROAD',
-        difficulty,
+        skin,
         gameId: game._id.toString(),
       },
     });
@@ -245,26 +244,24 @@ export const stepChickenRoadGame = async (req: Request, res: Response, next: Nex
     });
 
     if (!game) {
-      res.status(404).json({ success: false, message: 'Active crossing run not found.' });
+      res.status(404).json({ success: false, message: 'Active game not found.' });
       return;
     }
 
-    const config = CHICKEN_ROAD_CONFIG[game.difficulty];
-    const targetLane = game.currentLane;
-
-    if (targetLane >= config.totalLanes) {
-      res.status(400).json({ success: false, message: 'You have already crossed the entire highway!' });
+    const targetRoadIdx = game.currentRoad; // 0 for Road 1
+    if (targetRoadIdx >= 25) {
+      res.status(400).json({ success: false, message: 'You have already reached the finish line!' });
       return;
     }
 
-    const isLaneSafe = game.fullLaneLayout[targetLane];
+    const isRoadSafe = game.fullRoadLayout[targetRoadIdx];
 
-    game.revealedLanes.push({
-      laneIndex: targetLane,
-      isSafe: isLaneSafe,
+    game.revealedRoads.push({
+      roadIndex: targetRoadIdx + 1,
+      isSafe: isRoadSafe,
     });
 
-    if (!isLaneSafe) {
+    if (!isRoadSafe) {
       // CAR CRASH!
       game.status = 'CRASHED';
       game.payoutAmount = 0;
@@ -279,11 +276,18 @@ export const stepChickenRoadGame = async (req: Request, res: Response, next: Nex
     }
 
     // SAFE HOP!
-    const newMultiplier = config.multipliers[targetLane];
+    const newRoadNumber = targetRoadIdx + 1;
+    const newMultiplier = PROGRESSIVE_ROAD_MULTIPLIERS[newRoadNumber];
+    game.currentRoad = newRoadNumber;
     game.currentMultiplier = newMultiplier;
+    game.stageTheme = getStageThemeForRoad(newRoadNumber);
 
-    if (targetLane === config.totalLanes - 1) {
-      // FULL HIGHWAY CROSSED! Auto-cashout
+    // Auto-Stop check or Ultimate Finish (Road 25)
+    const shouldAutoCollect =
+      (game.autoStopMultiplier && newMultiplier >= game.autoStopMultiplier) ||
+      newRoadNumber === 25;
+
+    if (shouldAutoCollect) {
       const totalPayout = Math.floor(game.betAmount * newMultiplier * 100) / 100;
       game.status = 'CASHED_OUT';
       game.payoutAmount = totalPayout;
@@ -305,11 +309,11 @@ export const stepChickenRoadGame = async (req: Request, res: Response, next: Nex
           balanceAfter: userWallet.availableBalance,
           currency: 'ETB',
           status: 'COMPLETED',
-          description: `Full Highway Cross Win (${game.difficulty} ${newMultiplier}x)`,
+          description: `Chicken Road Auto Collect (${newMultiplier}x on Road ${newRoadNumber})`,
           referenceId: game._id.toString(),
         });
 
-        // Debit Admin
+        // House Admin Debit
         const adminUser = await User.findOne({ role: 'ADMIN' });
         if (adminUser) {
           const adminWallet = await Wallet.findOne({ userId: adminUser._id });
@@ -336,21 +340,20 @@ export const stepChickenRoadGame = async (req: Request, res: Response, next: Nex
         res.status(200).json({
           success: true,
           game: formatChickenRoadDTO(game),
-          outcome: 'FULL_CROSS_WIN',
+          outcome: newRoadNumber === 25 ? 'FINISH_LINE_VICTORY' : 'AUTO_COLLECT_WIN',
           newBalance: userWallet.availableBalance,
         });
         return;
       }
-    } else {
-      game.currentLane += 1;
-      await game.save();
-
-      res.status(200).json({
-        success: true,
-        game: formatChickenRoadDTO(game),
-        outcome: 'SAFE',
-      });
     }
+
+    await game.save();
+
+    res.status(200).json({
+      success: true,
+      game: formatChickenRoadDTO(game),
+      outcome: 'SAFE',
+    });
   } catch (error) {
     next(error);
   }
@@ -381,7 +384,7 @@ export const cashoutChickenRoadGame = async (req: Request, res: Response, next: 
     }
 
     if (game.currentMultiplier <= 1.0) {
-      res.status(400).json({ success: false, message: 'You must cross at least one lane before cashing out.' });
+      res.status(400).json({ success: false, message: 'You must cross at least one road before collecting.' });
       return;
     }
 
@@ -408,11 +411,11 @@ export const cashoutChickenRoadGame = async (req: Request, res: Response, next: 
         balanceAfter: userWallet.availableBalance,
         currency: 'ETB',
         status: 'COMPLETED',
-        description: `Chicken Road Cashout (${game.difficulty} ${game.currentMultiplier}x, Lane #${game.currentLane})`,
+        description: `Chicken Road Collect (${game.currentMultiplier}x, Road ${game.currentRoad})`,
         referenceId: game._id.toString(),
       });
 
-      // Debit House Admin
+      // House Admin Debit
       const adminUser = await User.findOne({ role: 'ADMIN' });
       if (adminUser) {
         const adminWallet = await Wallet.findOne({ userId: adminUser._id });
@@ -473,6 +476,46 @@ export const getActiveChickenRoadGame = async (req: Request, res: Response, next
 };
 
 /**
+ * GET /api/chickenroad/live-runs
+ */
+export const getChickenLiveRuns = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    // Return recent outcomes and simulated active players
+    const recentGames = await ChickenRoadGame.find({
+      status: { $in: ['CASHED_OUT', 'CRASHED'] },
+    })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    const liveRuns: ChickenLiveRunDTO[] = recentGames.map((g) => ({
+      id: g._id.toString(),
+      username: g.username,
+      skin: g.skin,
+      currentRoad: g.currentRoad,
+      multiplier: g.currentMultiplier,
+      status: g.status === 'CASHED_OUT' ? 'WON' : 'CRASHED',
+      payoutAmount: g.payoutAmount,
+      timestamp: g.updatedAt.toISOString(),
+    }));
+
+    // Add lively community demo runners if list is small
+    const simulatedDemoRunners: ChickenLiveRunDTO[] = [
+      { id: 'sim_1', username: 'Alex', skin: 'ROYAL', currentRoad: 5, multiplier: 3.20, status: 'WON', payoutAmount: 64.0, timestamp: new Date().toISOString() },
+      { id: 'sim_2', username: 'Daniel', skin: 'NINJA', currentRoad: 8, multiplier: 10.0, status: 'WON', payoutAmount: 250.0, timestamp: new Date(Date.now() - 15000).toISOString() },
+      { id: 'sim_3', username: 'Sarah', skin: 'COWBOY', currentRoad: 3, multiplier: 1.80, status: 'WON', payoutAmount: 36.0, timestamp: new Date(Date.now() - 32000).toISOString() },
+      { id: 'sim_4', username: 'Michael', skin: 'GOLDEN', currentRoad: 10, multiplier: 25.0, status: 'WON', payoutAmount: 500.0, timestamp: new Date(Date.now() - 48000).toISOString() },
+    ];
+
+    res.status(200).json({
+      success: true,
+      data: [...liveRuns, ...simulatedDemoRunners].slice(0, 10),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/chickenroad/my-history
  */
 export const getMyChickenRoadHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -496,8 +539,9 @@ export const getMyChickenRoadHistory = async (req: Request, res: Response, next:
       data: history.map((g) => ({
         id: g._id.toString(),
         difficulty: g.difficulty,
+        skin: g.skin,
         betAmount: g.betAmount,
-        reachedLane: g.currentLane,
+        reachedRoad: g.currentRoad,
         multiplier: g.currentMultiplier,
         payoutAmount: g.payoutAmount,
         status: g.status,

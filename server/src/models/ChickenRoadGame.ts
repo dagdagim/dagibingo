@@ -1,19 +1,27 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { ChickenRoadDifficulty, ChickenRoadGameStatus } from '../shared';
+import {
+  ChickenRoadDifficulty,
+  ChickenRoadGameStatus,
+  ChickenSkinType,
+  ChickenStageTheme,
+} from '../shared';
 
 export interface IChickenRoadGame extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   username: string;
   difficulty: ChickenRoadDifficulty;
+  skin: ChickenSkinType;
   betAmount: number;
-  currentLane: number; // 0 to 24 (25 total lanes)
+  currentRoad: number; // 0 to 25
   currentMultiplier: number;
+  autoStopMultiplier?: number;
   status: ChickenRoadGameStatus;
   payoutAmount: number;
-  fullLaneLayout: boolean[]; // true = SAFE, false = CAR_CRASH
-  revealedLanes: {
-    laneIndex: number;
+  stageTheme: ChickenStageTheme;
+  fullRoadLayout: boolean[]; // true = SAFE, false = CAR_CRASH
+  revealedRoads: {
+    roadIndex: number;
     isSafe: boolean;
   }[];
   hash: string;
@@ -40,20 +48,28 @@ const ChickenRoadGameSchema = new Schema<IChickenRoadGame>(
       type: String,
       enum: ['EASY', 'MEDIUM', 'HARD', 'DAREDEVIL'],
       required: true,
-      default: 'EASY',
+      default: 'MEDIUM',
+    },
+    skin: {
+      type: String,
+      enum: ['CLASSIC', 'BABY', 'ROYAL', 'NINJA', 'COWBOY', 'SPACE', 'GOLDEN'],
+      default: 'CLASSIC',
     },
     betAmount: {
       type: Number,
       required: true,
       min: 0.5,
     },
-    currentLane: {
+    currentRoad: {
       type: Number,
       default: 0,
     },
     currentMultiplier: {
       type: Number,
       default: 1.0,
+    },
+    autoStopMultiplier: {
+      type: Number,
     },
     status: {
       type: String,
@@ -65,13 +81,18 @@ const ChickenRoadGameSchema = new Schema<IChickenRoadGame>(
       type: Number,
       default: 0,
     },
-    fullLaneLayout: {
+    stageTheme: {
+      type: String,
+      enum: ['COUNTRY', 'HIGHWAY', 'CITY', 'NIGHT', 'SPEEDWAY'],
+      default: 'COUNTRY',
+    },
+    fullRoadLayout: {
       type: [Boolean],
       required: true,
     },
-    revealedLanes: [
+    revealedRoads: [
       {
-        laneIndex: { type: Number, required: true },
+        roadIndex: { type: Number, required: true },
         isSafe: { type: Boolean, required: true },
       },
     ],
@@ -85,7 +106,7 @@ const ChickenRoadGameSchema = new Schema<IChickenRoadGame>(
     },
     clientSeed: {
       type: String,
-      default: 'dagi_chicken_client_seed',
+      default: 'dagi_chicken_road_seed',
     },
     nonce: {
       type: Number,

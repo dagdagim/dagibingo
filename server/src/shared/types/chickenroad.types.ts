@@ -1,12 +1,15 @@
 export type ChickenRoadDifficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'DAREDEVIL';
 export type ChickenRoadGameStatus = 'IN_PROGRESS' | 'CASHED_OUT' | 'CRASHED';
+export type ChickenSkinType = 'CLASSIC' | 'BABY' | 'ROYAL' | 'NINJA' | 'COWBOY' | 'SPACE' | 'GOLDEN';
+export type ChickenStageTheme = 'COUNTRY' | 'HIGHWAY' | 'CITY' | 'NIGHT' | 'SPEEDWAY';
 
-export interface IChickenRoadDifficultyConfig {
-  name: ChickenRoadDifficulty;
-  label: string;
-  totalLanes: number;
-  safeProbability: number;
-  multipliers: number[];
+export interface IChickenSkinConfig {
+  id: ChickenSkinType;
+  name: string;
+  emoji: string;
+  description: string;
+  color: string;
+  unlockedAtMultiplier: number;
 }
 
 export interface IChickenRoadGameDTO {
@@ -14,13 +17,16 @@ export interface IChickenRoadGameDTO {
   userId: string;
   username: string;
   difficulty: ChickenRoadDifficulty;
+  skin: ChickenSkinType;
   betAmount: number;
-  currentLane: number; // 0 to totalLanes - 1
+  currentRoad: number; // 0 to 25
   currentMultiplier: number;
+  autoStopMultiplier?: number;
   status: ChickenRoadGameStatus;
   payoutAmount: number;
-  revealedLanes: {
-    laneIndex: number;
+  stageTheme: ChickenStageTheme;
+  revealedRoads: {
+    roadIndex: number;
     isSafe: boolean;
   }[];
   hash: string;
@@ -30,8 +36,10 @@ export interface IChickenRoadGameDTO {
 }
 
 export interface IChickenRoadStartRequest {
-  difficulty: ChickenRoadDifficulty;
+  difficulty?: ChickenRoadDifficulty;
+  skin?: ChickenSkinType;
   betAmount: number;
+  autoStopMultiplier?: number;
 }
 
 export interface IChickenRoadStepRequest {
@@ -45,10 +53,22 @@ export interface IChickenRoadCashoutRequest {
 export interface ChickenRoadHistoryDTO {
   id: string;
   difficulty: ChickenRoadDifficulty;
+  skin: ChickenSkinType;
   betAmount: number;
-  reachedLane: number;
+  reachedRoad: number;
   multiplier: number;
   payoutAmount: number;
   status: ChickenRoadGameStatus;
   createdAt: string;
+}
+
+export interface ChickenLiveRunDTO {
+  id: string;
+  username: string;
+  skin: ChickenSkinType;
+  currentRoad: number;
+  multiplier: number;
+  status: 'ACTIVE' | 'WON' | 'CRASHED';
+  payoutAmount: number;
+  timestamp: string;
 }
