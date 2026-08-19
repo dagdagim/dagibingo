@@ -8,6 +8,7 @@ export * from './types/payment.types';
 export * from './types/admin.types';
 export * from './types/keno.types';
 export * from './types/plinko.types';
+export * from './types/aviator.types';
 
 export * from './constants/game.constants';
 export * from './constants/payment.constants';

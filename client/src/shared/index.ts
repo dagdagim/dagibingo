@@ -9,6 +9,7 @@ export * from './types/socket.types';
 export * from './types/admin.types';
 export * from './types/keno.types';
 export * from './types/plinko.types';
+export * from './types/aviator.types';
 
 // Export Schemas
 export * from './schemas/auth.schemas';

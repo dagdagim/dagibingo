@@ -4,6 +4,7 @@ import { env } from '../config/environment';
 import { GameEngine } from '../game-engine/GameEngine';
 import { KenoEngine } from '../game-engine/KenoEngine';
 import { PlinkoEngine } from '../game-engine/PlinkoEngine';
+import { AviatorEngine } from '../game-engine/AviatorEngine';
 import { logger } from '../utils/logger';
 import { ClientToServerEvents, ServerToClientEvents } from '../shared';
 
@@ -26,6 +27,10 @@ export const setupSocketServer = (io: Server<ClientToServerEvents, ServerToClien
 
   const plinkoEngine = PlinkoEngine.getInstance();
   plinkoEngine.setSocketServer(io);
+
+  const aviatorEngine = AviatorEngine.getInstance();
+  aviatorEngine.setSocketServer(io);
+  aviatorEngine.start().catch((err) => logger.error('Failed to start Aviator engine:', err));
 
   // Authentication Middleware for Sockets
   io.use((socket: AuthenticatedSocket, next) => {
@@ -122,6 +127,20 @@ export const setupSocketServer = (io: Server<ClientToServerEvents, ServerToClien
     // Leave Plinko Arena Room
     socket.on('plinko:leave' as any, () => {
       socket.leave('room:plinko');
+    });
+
+    // Join Aviator Arena Room
+    socket.on('aviator:join' as any, async (callback: any) => {
+      socket.join('room:aviator');
+      const activeState = await aviatorEngine.getActiveState(socket.userId);
+      if (callback) {
+        callback({ success: true, ...activeState });
+      }
+    });
+
+    // Leave Aviator Arena Room
+    socket.on('aviator:leave' as any, () => {
+      socket.leave('room:aviator');
     });
 
     // Handle Player Bingo Claim
