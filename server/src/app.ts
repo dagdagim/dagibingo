@@ -23,21 +23,22 @@ const app = express();
 // Security & Middlewares
 app.use(
   helmet({
-    contentSecurityPolicy: false, // For local dev flexibility with Vite
+    contentSecurityPolicy: false, // For web client asset flexibility
+    crossOriginEmbedderPolicy: false,
   })
 );
 
+// Comprehensive CORS Configuration
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow local development ports and matching client url
-      if (!origin || origin.includes('localhost') || origin === env.CLIENT_URL) {
-        callback(null, true);
-      } else {
-        callback(null, true);
-      }
+      // Allow any requesting origin (including onrender.com and localhost) with credentials
+      callback(null, true);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['Set-Cookie'],
   })
 );
 

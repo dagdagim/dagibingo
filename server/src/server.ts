@@ -70,6 +70,15 @@ const initDefaultRooms = async (): Promise<void> => {
   }
 };
 
+// Global Crash Prevention Handlers
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('⚠️ Unhandled Promise Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('⚠️ Uncaught Exception:', error);
+});
+
 const startServer = async (): Promise<void> => {
   try {
     // 1. Connect MongoDB
@@ -83,12 +92,16 @@ const startServer = async (): Promise<void> => {
     const httpServer = http.createServer(app);
     const io = new Server(httpServer, {
       cors: {
-        origin: '*',
-        methods: ['GET', 'POST'],
+        origin: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        credentials: true,
       },
+      transports: ['websocket', 'polling'],
+      pingTimeout: 30000,
+      pingInterval: 10000,
     });
 
-    // 4. Setup Socket Events & Game Engine
+    // 4. Setup Socket Events & Game Engines
     setupSocketServer(io);
 
     // 5. Start listening
@@ -96,7 +109,7 @@ const startServer = async (): Promise<void> => {
       logger.info('====================================================');
       logger.info(`🚀 BINGO ARENA Server running on http://${env.HOST}:${env.PORT}`);
       logger.info(`🎮 Active Mode: [${env.GAME_MODE}] (Sandbox Virtual Credits)`);
-      logger.info(`🔒 Security: JWT Auth + Rate Limiting + Role RBAC Active`);
+      logger.info(`🔒 Security: JWT Auth + Rate Limiting + Universal CORS Active`);
       logger.info('====================================================');
     });
 
