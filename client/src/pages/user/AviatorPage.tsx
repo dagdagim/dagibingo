@@ -666,21 +666,28 @@ export const AviatorPage: React.FC = () => {
                           type="button"
                           disabled={p.isProcessing}
                           onClick={() => placeBet(panelIdx as 0 | 1)}
-                          className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer font-display"
+                          className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 active:scale-[0.98] text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display"
                         >
-                          <Play className="w-4 h-4 fill-slate-950" />
+                          <Play className="w-5 h-5 fill-slate-950" />
                           <span>BET {p.betAmount} ETB</span>
                         </button>
                       ) : (
-                        <button
-                          type="button"
-                          disabled={p.isProcessing}
-                          onClick={() => cancelBet(panelIdx as 0 | 1)}
-                          className="w-full py-3.5 bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white font-black text-base uppercase tracking-wider rounded-2xl shadow-lg shadow-rose-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display"
-                        >
-                          <X className="w-4 h-4" />
-                          <span>CANCEL ({p.betAmount} ETB)</span>
-                        </button>
+                        <div className="flex gap-2">
+                          <div className="flex-1 py-3.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-2xl flex items-center justify-center gap-2 text-sm font-black uppercase shadow-inner">
+                            <span className="animate-pulse">✈️</span>
+                            <span>BET PLACED (READY TO CASH OUT)</span>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={p.isProcessing}
+                            onClick={() => cancelBet(panelIdx as 0 | 1)}
+                            className="px-4 py-3.5 bg-rose-600/80 hover:bg-rose-500 active:scale-[0.98] text-white font-black text-xs uppercase rounded-2xl transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            title="Cancel Bet"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>CANCEL</span>
+                          </button>
+                        </div>
                       )
                     )}
 
@@ -688,42 +695,71 @@ export const AviatorPage: React.FC = () => {
                       isPanelActive ? (
                         <motion.button
                           type="button"
+                          disabled={p.isProcessing}
                           animate={{ scale: [1, 1.02, 1] }}
-                          transition={{ repeat: Infinity, duration: 0.6 }}
+                          transition={{ repeat: Infinity, duration: 0.5 }}
                           onClick={() => cashout(panelIdx as 0 | 1)}
-                          className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/30 transition-all flex flex-col items-center justify-center cursor-pointer font-display"
+                          className="w-full py-4 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-400 active:scale-[0.97] text-slate-950 font-black rounded-2xl shadow-2xl shadow-amber-500/40 transition-all flex flex-col items-center justify-center cursor-pointer border-2 border-amber-300"
                         >
-                          <span>CASH OUT</span>
-                          <span className="text-xs font-mono font-black">{potentialWin.toLocaleString()} ETB</span>
+                          <div className="flex items-center gap-2 text-lg sm:text-xl uppercase tracking-wider font-display font-black">
+                            <Sparkles className="w-5 h-5 fill-slate-950" />
+                            <span>CASH OUT</span>
+                          </div>
+                          <span className="text-sm font-mono font-black text-slate-900 bg-amber-300/60 px-3 py-0.5 rounded-full mt-0.5">
+                            {potentialWin.toFixed(2)} ETB ({currentMultiplier.toFixed(2)}×)
+                          </span>
                         </motion.button>
                       ) : isPanelCashedOut ? (
-                        <div className="w-full py-3.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-black text-center rounded-2xl flex items-center justify-center gap-2">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>WON +{p.activeBet?.payoutAmount?.toLocaleString()} ETB</span>
+                        <div className="w-full py-4 bg-emerald-500/20 border-2 border-emerald-500/50 text-emerald-400 font-black text-center rounded-2xl flex flex-col items-center justify-center shadow-lg shadow-emerald-500/10">
+                          <div className="flex items-center gap-1.5 text-base uppercase font-display">
+                            <CheckCircle2 className="w-5 h-5" />
+                            <span>CASHED OUT!</span>
+                          </div>
+                          <span className="text-xs font-mono font-bold text-emerald-300">
+                            +{p.activeBet?.payoutAmount?.toFixed(2) || potentialWin.toFixed(2)} ETB ({p.activeBet?.cashedOutMultiplier || currentMultiplier}×)
+                          </span>
                         </div>
                       ) : p.queuedForNextRound ? (
                         <button
                           type="button"
                           onClick={() => cancelBet(panelIdx as 0 | 1)}
-                          className="w-full py-3.5 bg-arena-surface border border-rose-500/40 text-rose-400 font-black text-sm uppercase rounded-2xl cursor-pointer"
+                          className="w-full py-3.5 bg-arena-surface border border-rose-500/40 text-rose-400 font-black text-sm uppercase rounded-2xl cursor-pointer hover:bg-rose-500/10 transition-colors flex items-center justify-center gap-2"
                         >
-                          QUEUED (CANCEL)
+                          <X className="w-4 h-4" />
+                          <span>QUEUED FOR NEXT ROUND (CANCEL)</span>
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => placeBet(panelIdx as 0 | 1)}
-                          className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-indigo-600 text-white font-black text-sm uppercase rounded-2xl shadow-md cursor-pointer"
+                          className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-400 hover:to-indigo-500 text-white font-black text-sm uppercase rounded-2xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
                         >
-                          BET FOR NEXT ROUND
+                          <Play className="w-4 h-4 fill-white" />
+                          <span>BET FOR NEXT ROUND ({p.betAmount} ETB)</span>
                         </button>
                       )
                     )}
 
                     {flightStatus === 'CRASHED' && (
-                      <div className="w-full py-3.5 bg-arena-surface border border-arena-border text-arena-subtle font-black text-center rounded-2xl text-sm uppercase">
-                        WAITING FOR NEXT FLIGHT...
-                      </div>
+                      isPanelCashedOut ? (
+                        <div className="w-full py-3.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-black text-center rounded-2xl flex items-center justify-center gap-2">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>WON +{p.activeBet?.payoutAmount?.toFixed(2)} ETB</span>
+                        </div>
+                      ) : p.queuedForNextRound ? (
+                        <div className="w-full py-3.5 bg-arena-surface border border-emerald-500/40 text-emerald-400 font-black text-center rounded-2xl text-sm uppercase">
+                          QUEUED FOR TAKEOFF...
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => placeBet(panelIdx as 0 | 1)}
+                          className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm uppercase rounded-2xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-2 font-display"
+                        >
+                          <Play className="w-4 h-4 fill-slate-950" />
+                          <span>BET FOR NEXT ROUND ({p.betAmount} ETB)</span>
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
