@@ -33,7 +33,7 @@ import { HorseRacePage } from './pages/user/HorseRacePage';
 import { GreyhoundPage } from './pages/user/GreyhoundPage';
 import { TowersPage } from './pages/user/TowersPage';
 import { LimboPage } from './pages/user/LimboPage';
-import { ChickenPage } from './pages/user/ChickenPage';
+import { ChickenRoadPage } from './pages/user/ChickenRoadPage';
 
 // Admin Pages
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
@@ -86,7 +86,7 @@ export const App: React.FC = () => {
 
               {/* Lobby & Game (Accessible to all, enhanced when logged in) */}
               <Route path="/lobby" element={<LobbyPage />} />
-              <Route path="/chicken" element={<ChickenPage />} />
+              <Route path="/chickenroad" element={<ChickenRoadPage />} />
               <Route path="/towers" element={<TowersPage />} />
               <Route path="/limbo" element={<LimboPage />} />
               <Route path="/greyhound" element={<GreyhoundPage />} />

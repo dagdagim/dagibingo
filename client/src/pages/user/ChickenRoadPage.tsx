@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import { useWalletStore } from '../../stores/walletStore';
-import { useChickenStore, CHICKEN_DIFFICULTY_DATA } from '../../stores/chickenStore';
-import { ChickenDifficulty } from '../../shared';
-import { ChickenTrackCanvas } from '../../components/chicken/ChickenTrackCanvas';
+import { useChickenRoadStore, CHICKEN_ROAD_DIFFICULTY_DATA } from '../../stores/chickenRoadStore';
+import { ChickenRoadCanvas } from '../../components/chickenroad/ChickenRoadCanvas';
+import { ChickenRoadDifficulty } from '../../shared';
 import {
   Volume2,
   VolumeX,
@@ -16,14 +16,15 @@ import {
   AlertCircle,
   X,
   Flame,
-  ArrowRight,
-  Trophy,
+  ArrowUp,
   Coins,
   Footprints,
+  Car,
+  AlertTriangle,
 } from 'lucide-react';
 
 /* -------------------------------------------------------------------------- */
-/* Web Audio Synthesizer for Chicken Run                                       */
+/* Web Audio Synthesizer for Chicken Road                                     */
 /* -------------------------------------------------------------------------- */
 class ChickenAudioEngine {
   private ctx: AudioContext | null = null;
@@ -43,80 +44,94 @@ class ChickenAudioEngine {
     }
   }
 
-  public playCluckHop(step = 0) {
+  public playHopSound(laneIndex = 0) {
     try {
       if (!this.hasInteracted) return;
       this.init();
       if (!this.ctx) return;
 
-      const baseFreq = 400 + step * 35;
+      const baseFreq = 400 + laneIndex * 25;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
 
-      osc.type = 'triangle';
+      osc.type = 'sine';
       osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.6, this.ctx.currentTime + 0.12);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.8, this.ctx.currentTime + 0.12);
 
-      gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.16);
+      gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start();
-      osc.stop(this.ctx.currentTime + 0.16);
+      osc.stop(this.ctx.currentTime + 0.15);
     } catch {
       // Ignore
     }
   }
 
-  public playRoastSound() {
+  public playCrashSound() {
     try {
       if (!this.hasInteracted) return;
       this.init();
       if (!this.ctx) return;
 
-      // Roasting sizzle & low crash
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+      // 1. Tire Screech (Sawtooth)
+      const osc1 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(800, this.ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.35);
 
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(140, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.35);
+      gain1.gain.setValueAtTime(0.15, this.ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
 
-      gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+      osc1.connect(gain1);
+      gain1.connect(this.ctx.destination);
+      osc1.start();
+      osc1.stop(this.ctx.currentTime + 0.4);
 
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start();
-      osc.stop(this.ctx.currentTime + 0.4);
+      // 2. Heavy Impact Thud
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(140, this.ctx.currentTime);
+      osc2.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.3);
+
+      gain2.gain.setValueAtTime(0.2, this.ctx.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+
+      osc2.connect(gain2);
+      gain2.connect(this.ctx.destination);
+      osc2.start();
+      osc2.stop(this.ctx.currentTime + 0.35);
     } catch {
       // Ignore
     }
   }
 
-  public playCashoutFanfare() {
+  public playCashoutSound() {
     try {
       if (!this.hasInteracted) return;
       this.init();
       if (!this.ctx) return;
 
-      const notes = [587.33, 739.99, 880.0, 1174.66]; // D Major Arpeggio
+      const notes = [587.33, 739.99, 880.0, 1174.66]; // D Major Fanfare
       notes.forEach((freq, idx) => {
         const osc = this.ctx!.createOscillator();
         const gain = this.ctx!.createGain();
 
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, this.ctx!.currentTime + idx * 0.08);
+        osc.frequency.setValueAtTime(freq, this.ctx!.currentTime + idx * 0.07);
 
-        gain.gain.setValueAtTime(0.14, this.ctx!.currentTime + idx * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + idx * 0.08 + 0.4);
+        gain.gain.setValueAtTime(0.12, this.ctx!.currentTime + idx * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + idx * 0.07 + 0.4);
 
         osc.connect(gain);
         gain.connect(this.ctx!.destination);
 
-        osc.start(this.ctx!.currentTime + idx * 0.08);
-        osc.stop(this.ctx!.currentTime + idx * 0.08 + 0.4);
+        osc.start(this.ctx!.currentTime + idx * 0.07);
+        osc.stop(this.ctx!.currentTime + idx * 0.07 + 0.4);
       });
     } catch {
       // Ignore
@@ -126,7 +141,7 @@ class ChickenAudioEngine {
 
 const chickenAudio = new ChickenAudioEngine();
 
-export const ChickenPage: React.FC = () => {
+export const ChickenRoadPage: React.FC = () => {
   const { token } = useAuthStore();
   const { balance } = useWalletStore();
   const {
@@ -136,7 +151,6 @@ export const ChickenPage: React.FC = () => {
     isLoading,
     isStepping,
     isCashingOut,
-    lastOutcome,
     history,
     soundEnabled,
     error,
@@ -149,7 +163,7 @@ export const ChickenPage: React.FC = () => {
     startGame,
     stepForward,
     cashout,
-  } = useChickenStore();
+  } = useChickenRoadStore();
 
   const [isFairModalOpen, setIsFairModalOpen] = useState(false);
 
@@ -166,34 +180,18 @@ export const ChickenPage: React.FC = () => {
     }
   }, [token]);
 
-  // Spacebar quick step hotkey
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && (e.target as HTMLElement).tagName !== 'INPUT' && !isStepping && !isLoading) {
-        e.preventDefault();
-        if (game?.status === 'IN_PROGRESS') {
-          handleStepClick();
-        } else {
-          startGame();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [game, isStepping, isLoading, betAmount, difficulty]);
-
-  const handleStepClick = async () => {
+  const handleHopStep = async () => {
     if (!game || game.status !== 'IN_PROGRESS' || isStepping) return;
-    const prevStep = game.currentStep;
+    const currentLane = game.currentLane;
     const outcome = await stepForward();
 
     if (soundEnabled) {
-      if (outcome === 'HAZARD') {
-        chickenAudio.playRoastSound();
-      } else if (outcome === 'GOLDEN_EGG_WIN') {
-        chickenAudio.playCashoutFanfare();
+      if (outcome === 'CRASHED') {
+        chickenAudio.playCrashSound();
       } else if (outcome === 'SAFE') {
-        chickenAudio.playCluckHop(prevStep);
+        chickenAudio.playHopSound(currentLane);
+      } else if (outcome === 'FULL_CROSS_WIN') {
+        chickenAudio.playCashoutSound();
       }
     }
   };
@@ -201,16 +199,18 @@ export const ChickenPage: React.FC = () => {
   const handleCashoutClick = async () => {
     await cashout();
     if (soundEnabled) {
-      chickenAudio.playCashoutFanfare();
+      chickenAudio.playCashoutSound();
     }
   };
 
-  const config = CHICKEN_DIFFICULTY_DATA[difficulty];
+  const config = CHICKEN_ROAD_DIFFICULTY_DATA[difficulty];
   const isInProgress = game?.status === 'IN_PROGRESS';
-  const currentStep = game?.currentStep || 0;
   const currentMultiplier = game?.currentMultiplier || 1.0;
-  const nextMultiplier = config.multipliers[currentStep] || currentMultiplier;
   const currentPotentialPayout = Math.floor(betAmount * currentMultiplier * 100) / 100;
+  const nextLaneMultiplier =
+    isInProgress && game.currentLane < config.totalLanes
+      ? config.multipliers[game.currentLane]
+      : config.multipliers[0];
 
   return (
     <div className="min-h-screen bg-arena-bg text-arena-text px-4 sm:px-6 lg:px-8 py-8 font-sans selection:bg-amber-500 selection:text-slate-950">
@@ -218,7 +218,7 @@ export const ChickenPage: React.FC = () => {
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-4 rounded-3xl border border-arena-border">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 p-0.5 shadow-lg shadow-amber-500/20">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-600 p-0.5 shadow-lg shadow-amber-500/20">
               <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-2xl">
                 🐔
               </div>
@@ -226,14 +226,14 @@ export const ChickenPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black font-display tracking-wide text-arena-text">
-                  DAGI <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-orange-500">CHICKEN RUN</span>
+                  DAGI <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500">CHICKEN ROAD</span>
                 </h1>
                 <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-full text-[10px] font-black tracking-wider uppercase font-mono">
                   97% RTP • PROVABLY FAIR
                 </span>
               </div>
               <span className="text-xs text-arena-muted font-bold">
-                Cross the dangerous highway lanes, dodge roasting barbecues, and grab the Golden Egg!
+                Guide the chicken across high-speed traffic lanes, dodge vehicles, and cash out your multiplier!
               </span>
             </div>
           </div>
@@ -284,79 +284,47 @@ export const ChickenPage: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* 60FPS HIGHWAY TRACK VISUALIZER */}
-        <ChickenTrackCanvas
-          game={game}
-          totalLanes={config.totalLanes}
-          multipliers={config.multipliers}
-          isStepping={isStepping}
-        />
-
-        {/* LANE PROGRESSION STRIP */}
-        <div className="glass-panel rounded-2xl p-3 border border-arena-border overflow-x-auto scrollbar-none flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-arena-muted font-display flex-shrink-0 mr-1">
-            LANES:
-          </span>
-          {config.multipliers.map((mult, idx) => {
-            const isPassed = isInProgress && currentStep > idx;
-            const isCurrent = isInProgress && currentStep === idx;
-            const isTarget = isInProgress && currentStep === idx;
-
-            return (
-              <div
-                key={idx}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black font-mono flex-shrink-0 border flex items-center gap-1.5 transition-all ${
-                  isCurrent
-                    ? 'bg-amber-500/25 border-amber-400 text-amber-300 shadow-md ring-2 ring-amber-400/50 scale-105'
-                    : isPassed
-                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                    : 'bg-arena-surface border-arena-border text-arena-muted'
-                }`}
-              >
-                <span className="text-[10px] opacity-70">#{idx + 1}</span>
-                <span>{mult.toFixed(2)}×</span>
-                {idx === config.totalLanes - 1 && <span>🏆</span>}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* MAIN GAME CONTROLS & DASHBOARD */}
+        {/* MAIN GAME INTERFACE */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* LEFT: DIFFICULTY & STAKE SETTINGS */}
-          <div className="lg:col-span-5 space-y-4">
+          {/* LEFT: CONTROLS & STAKE PANEL */}
+          <div className="lg:col-span-4 space-y-4">
             <div className="glass-panel-elevated rounded-3xl p-5 border border-arena-border shadow-2xl space-y-5">
               <span className="text-xs font-black uppercase tracking-wider text-arena-muted font-display block border-b border-arena-border pb-2">
-                Road Difficulty & Risk
+                Highway Crossing Settings
               </span>
 
               {/* Difficulty Selection */}
-              <div className="grid grid-cols-2 gap-2">
-                {(Object.keys(CHICKEN_DIFFICULTY_DATA) as ChickenDifficulty[]).map((dKey) => {
-                  const d = CHICKEN_DIFFICULTY_DATA[dKey];
-                  const isSelected = difficulty === dKey;
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-arena-muted font-display">
+                  Traffic Intensity
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {(Object.keys(CHICKEN_ROAD_DIFFICULTY_DATA) as ChickenRoadDifficulty[]).map((dKey) => {
+                    const d = CHICKEN_ROAD_DIFFICULTY_DATA[dKey];
+                    const isSelected = difficulty === dKey;
 
-                  return (
-                    <button
-                      key={dKey}
-                      type="button"
-                      disabled={isInProgress}
-                      onClick={() => setDifficulty(dKey)}
-                      className={`p-3 rounded-2xl text-left border transition-all cursor-pointer disabled:opacity-50 ${
-                        isSelected
-                          ? 'bg-amber-500/20 border-amber-400 shadow-md ring-1 ring-amber-400/50'
-                          : 'bg-arena-surface hover:bg-arena-highlight border-arena-border'
-                      }`}
-                    >
-                      <span className="text-xs font-black text-arena-text block font-display">
-                        {d.name}
-                      </span>
-                      <span className="text-[10px] text-arena-muted font-mono block">
-                        {d.totalLanes} Lanes • Max {d.multipliers[d.multipliers.length - 1]}×
-                      </span>
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={dKey}
+                        type="button"
+                        disabled={isInProgress}
+                        onClick={() => setDifficulty(dKey)}
+                        className={`p-2.5 rounded-2xl text-left border transition-all cursor-pointer disabled:opacity-50 ${
+                          isSelected
+                            ? 'bg-amber-500/20 border-amber-400 shadow-md ring-1 ring-amber-400/50'
+                            : 'bg-arena-surface hover:bg-arena-highlight border-arena-border'
+                        }`}
+                      >
+                        <span className="text-xs font-black text-arena-text block font-display">
+                          {d.name}
+                        </span>
+                        <span className="text-[10px] text-arena-muted font-mono block">
+                          {Math.round(d.safeProbability * 100)}% Safe / {d.totalLanes} Lanes
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Stake Amount */}
@@ -385,7 +353,7 @@ export const ChickenPage: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Presets */}
+                {/* Stake Presets */}
                 <div className="grid grid-cols-4 gap-1.5">
                   {[10, 25, 50, 100].map((chip) => (
                     <button
@@ -427,107 +395,106 @@ export const ChickenPage: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* ACTION BUTTONS: START / HOP / CASHOUT */}
+              {!isInProgress ? (
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={startGame}
+                  className="w-full py-4 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:brightness-110 active:scale-[0.98] text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display disabled:opacity-50"
+                >
+                  <Zap className="w-5 h-5 fill-slate-950" />
+                  <span>START CROSSING ({betAmount} ETB)</span>
+                </button>
+              ) : (
+                <div className="space-y-2.5">
+                  {/* HOP NEXT LANE BUTTON */}
+                  <button
+                    type="button"
+                    disabled={isStepping}
+                    onClick={handleHopStep}
+                    className="w-full py-4 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:brightness-110 active:scale-[0.98] text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display disabled:opacity-50 animate-pulse"
+                  >
+                    <Footprints className="w-5 h-5" />
+                    <span>HOP TO LANE {game.currentLane + 1} ({nextLaneMultiplier}×)</span>
+                  </button>
+
+                  {/* CASHOUT BUTTON */}
+                  <button
+                    type="button"
+                    disabled={isCashingOut || game.currentLane === 0}
+                    onClick={handleCashoutClick}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 hover:brightness-110 active:scale-[0.98] text-slate-950 font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display disabled:opacity-50"
+                  >
+                    <Coins className="w-4 h-4 fill-slate-950" />
+                    <span>CASHOUT {currentPotentialPayout.toFixed(2)} ETB ({currentMultiplier}×)</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* RIGHT: INTERACTIVE STEP & CASHOUT CONTROLS */}
-          <div className="lg:col-span-7 glass-panel-elevated rounded-3xl p-6 sm:p-8 border border-arena-border shadow-2xl flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-arena-border pb-3">
-                <span className="text-xs font-black uppercase tracking-wider text-arena-muted font-display">
-                  RUN PROGRESS
-                </span>
-                <span className="text-xs font-mono font-bold text-emerald-400">
-                  LANE {currentStep} OF {config.totalLanes}
+          {/* RIGHT: 60FPS REALISTIC CANVAS SIMULATION */}
+          <div className="lg:col-span-8 space-y-3">
+            {/* Status Bar */}
+            <div className="flex items-center justify-between glass-panel p-3 rounded-2xl border border-arena-border">
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className="text-arena-muted uppercase font-bold">LANE:</span>
+                <span className="text-amber-400 font-black">
+                  {isInProgress ? `${game.currentLane} / ${config.totalLanes}` : `0 / ${config.totalLanes}`}
                 </span>
               </div>
 
-              {/* Large Current Multiplier Display */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-arena-surface rounded-2xl border border-arena-border space-y-1 text-center">
-                  <span className="text-[11px] font-bold text-arena-muted uppercase font-mono block">
-                    Current Multiplier
-                  </span>
-                  <span className="text-3xl sm:text-4xl font-black font-mono text-amber-400">
-                    {currentMultiplier.toFixed(2)}×
-                  </span>
-                </div>
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className="text-arena-muted uppercase font-bold">MULTIPLIER:</span>
+                <span className="text-emerald-400 font-black text-sm">{currentMultiplier}×</span>
+              </div>
 
-                <div className="p-4 bg-arena-surface rounded-2xl border border-arena-border space-y-1 text-center">
-                  <span className="text-[11px] font-bold text-arena-muted uppercase font-mono block">
-                    Next Lane Target
-                  </span>
-                  <span className="text-3xl sm:text-4xl font-black font-mono text-emerald-400">
-                    {nextMultiplier.toFixed(2)}×
-                  </span>
-                </div>
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className="text-arena-muted uppercase font-bold">POTENTIAL:</span>
+                <span className="text-amber-300 font-black text-sm">
+                  {currentPotentialPayout.toFixed(2)} ETB
+                </span>
               </div>
             </div>
 
-            {/* Main Action Buttons */}
-            {!isInProgress ? (
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={startGame}
-                className="w-full py-4 bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-[0.98] text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display disabled:opacity-50"
-              >
-                <Footprints className="w-5 h-5 fill-slate-950" />
-                <span>START CHICKEN RUN ({betAmount} ETB)</span>
-              </button>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  disabled={isStepping}
-                  onClick={handleStepClick}
-                  className="w-full py-4 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 active:scale-[0.98] text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display disabled:opacity-50 animate-pulse"
-                >
-                  <Footprints className="w-5 h-5 fill-slate-950" />
-                  <span>STEP FORWARD ({nextMultiplier.toFixed(2)}×)</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={isCashingOut || currentStep === 0}
-                  onClick={handleCashoutClick}
-                  className="w-full py-4 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 hover:from-emerald-300 hover:to-teal-300 active:scale-[0.98] text-slate-950 font-black text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display disabled:opacity-50"
-                >
-                  <Coins className="w-5 h-5 fill-slate-950" />
-                  <span>CASHOUT {currentPotentialPayout.toFixed(2)} ETB</span>
-                </button>
-              </div>
-            )}
+            {/* Canvas Visualizer */}
+            <ChickenRoadCanvas
+              game={game}
+              difficulty={difficulty}
+              isStepping={isStepping}
+            />
           </div>
         </div>
 
-        {/* RUN HISTORY */}
+        {/* BET HISTORY */}
         <div className="glass-panel rounded-3xl p-6 border border-arena-border space-y-4">
           <div className="flex items-center justify-between border-b border-arena-border pb-3">
             <div className="flex items-center gap-2">
               <History className="w-5 h-5 text-amber-400" />
               <h2 className="text-base font-black uppercase font-display tracking-wider text-arena-text">
-                My Chicken Run History
+                My Chicken Road History
               </h2>
             </div>
             <span className="text-xs font-mono text-arena-muted">
-              {history.length} runs recorded
+              {history.length} games recorded
             </span>
           </div>
 
           {history.length === 0 ? (
             <div className="text-center py-8 text-arena-muted text-sm font-bold">
-              No Chicken runs recorded yet. Pick your difficulty and cross the highway!
+              No Chicken Road runs played yet. Pick your difficulty and start crossing!
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-arena-border text-arena-muted font-mono uppercase">
-                    <th className="pb-3 font-bold">Run ID</th>
+                    <th className="pb-3 font-bold">Game ID</th>
                     <th className="pb-3 font-bold">Difficulty</th>
                     <th className="pb-3 font-bold">Stake</th>
-                    <th className="pb-3 font-bold">Lanes Crossed</th>
+                    <th className="pb-3 font-bold">Lane Reached</th>
                     <th className="pb-3 font-bold">Multiplier</th>
                     <th className="pb-3 font-bold">Status</th>
                     <th className="pb-3 font-bold text-right">Payout</th>
@@ -539,7 +506,7 @@ export const ChickenPage: React.FC = () => {
                       <td className="py-3 text-arena-muted font-mono">#{h.id.substring(h.id.length - 6)}</td>
                       <td className="py-3 font-bold">{h.difficulty}</td>
                       <td className="py-3">{h.betAmount.toFixed(2)} ETB</td>
-                      <td className="py-3 font-bold text-amber-400">Lane {h.reachedStep}</td>
+                      <td className="py-3 font-bold text-amber-400">Lane {h.reachedLane}</td>
                       <td className="py-3">{h.multiplier.toFixed(2)}×</td>
                       <td className="py-3">
                         <span
@@ -549,7 +516,7 @@ export const ChickenPage: React.FC = () => {
                               : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                           }`}
                         >
-                          {h.status === 'CASHED_OUT' ? 'SAFE CASHOUT' : 'ROASTED'}
+                          {h.status}
                         </span>
                       </td>
                       <td className={`py-3 text-right font-black ${h.payoutAmount > 0 ? 'text-emerald-400' : 'text-arena-muted'}`}>
@@ -578,7 +545,7 @@ export const ChickenPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-emerald-400" />
                   <h3 className="text-lg font-black font-display text-arena-text">
-                    Chicken Run Provably Fair Verification
+                    Chicken Road Provably Fair Verification
                   </h3>
                 </div>
                 <button
@@ -592,7 +559,7 @@ export const ChickenPage: React.FC = () => {
 
               <div className="space-y-3 text-xs">
                 <p className="text-arena-muted leading-relaxed">
-                  Every lane outcome (Safe Corn vs Roasting Hazard) is predetermined prior to lane 1 step using cryptographic SHA-256 seed hashing.
+                  Every 25-lane hazard layout is predetermined prior to Lane 1 crossing using cryptographic SHA-256 seed hashing.
                 </p>
 
                 {game ? (
@@ -608,13 +575,13 @@ export const ChickenPage: React.FC = () => {
                     <div>
                       <span className="text-[10px] font-bold text-arena-muted uppercase block">Server Seed (Unhashed):</span>
                       <span className="text-amber-300 break-all">
-                        {game.serverSeed || '*** HIDDEN UNTIL CASHOUT / BUST ***'}
+                        {game.serverSeed || '*** HIDDEN UNTIL CASHOUT / CRASH ***'}
                       </span>
                     </div>
                   </div>
                 ) : (
                   <div className="p-4 bg-arena-surface rounded-2xl text-center text-arena-muted font-bold">
-                    Start a game to generate a provably fair seed hash.
+                    Start a crossing run to generate a provably fair seed hash.
                   </div>
                 )}
               </div>

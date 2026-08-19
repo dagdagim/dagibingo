@@ -82,7 +82,7 @@ export const MobileNav: React.FC = () => {
             {/* Instant Games Grid */}
             <div className="grid grid-cols-2 gap-2.5">
               <Link
-                to="/chicken"
+                to="/chickenroad"
                 onClick={() => setIsMoreOpen(false)}
                 className="p-3 bg-arena-surface rounded-2xl border border-arena-border flex items-center gap-2.5 hover:border-amber-400 transition-colors"
               >
@@ -90,8 +90,8 @@ export const MobileNav: React.FC = () => {
                   <span className="text-base">🐔</span>
                 </div>
                 <div>
-                  <span className="text-xs font-black text-arena-text block">Chicken Run</span>
-                  <span className="text-[9px] text-arena-muted">Highway Cross</span>
+                  <span className="text-xs font-black text-arena-text block">Chicken Road</span>
+                  <span className="text-[9px] text-arena-muted">Traffic Hop</span>
                 </div>
               </Link>
 

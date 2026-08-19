@@ -1,21 +1,20 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { ChickenDifficulty, ChickenGameStatus, ChickenLaneOutcome } from '../shared';
+import { ChickenRoadDifficulty, ChickenRoadGameStatus } from '../shared';
 
-export interface IChickenGame extends Document {
+export interface IChickenRoadGame extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   username: string;
-  difficulty: ChickenDifficulty;
+  difficulty: ChickenRoadDifficulty;
   betAmount: number;
-  currentStep: number; // 0 (start) to totalLanes
+  currentLane: number; // 0 to 24 (25 total lanes)
   currentMultiplier: number;
-  status: ChickenGameStatus;
+  status: ChickenRoadGameStatus;
   payoutAmount: number;
-  laneOutcomes: ChickenLaneOutcome[]; // Predetermined full lane outcomes (e.g. ['SAFE', 'SAFE', 'HAZARD', ...])
-  stepHistory: {
-    step: number;
-    outcome: ChickenLaneOutcome;
-    multiplier: number;
+  fullLaneLayout: boolean[]; // true = SAFE, false = CAR_CRASH
+  revealedLanes: {
+    laneIndex: number;
+    isSafe: boolean;
   }[];
   hash: string;
   serverSeed: string;
@@ -25,7 +24,7 @@ export interface IChickenGame extends Document {
   updatedAt: Date;
 }
 
-const ChickenGameSchema = new Schema<IChickenGame>(
+const ChickenRoadGameSchema = new Schema<IChickenRoadGame>(
   {
     userId: {
       type: Schema.Types.ObjectId,
@@ -41,14 +40,14 @@ const ChickenGameSchema = new Schema<IChickenGame>(
       type: String,
       enum: ['EASY', 'MEDIUM', 'HARD', 'DAREDEVIL'],
       required: true,
-      default: 'MEDIUM',
+      default: 'EASY',
     },
     betAmount: {
       type: Number,
       required: true,
       min: 0.5,
     },
-    currentStep: {
+    currentLane: {
       type: Number,
       default: 0,
     },
@@ -58,7 +57,7 @@ const ChickenGameSchema = new Schema<IChickenGame>(
     },
     status: {
       type: String,
-      enum: ['IN_PROGRESS', 'CASHED_OUT', 'BUSTED'],
+      enum: ['IN_PROGRESS', 'CASHED_OUT', 'CRASHED'],
       default: 'IN_PROGRESS',
       index: true,
     },
@@ -66,15 +65,14 @@ const ChickenGameSchema = new Schema<IChickenGame>(
       type: Number,
       default: 0,
     },
-    laneOutcomes: {
-      type: [String],
+    fullLaneLayout: {
+      type: [Boolean],
       required: true,
     },
-    stepHistory: [
+    revealedLanes: [
       {
-        step: { type: Number, required: true },
-        outcome: { type: String, required: true },
-        multiplier: { type: Number, required: true },
+        laneIndex: { type: Number, required: true },
+        isSafe: { type: Boolean, required: true },
       },
     ],
     hash: {
@@ -99,7 +97,7 @@ const ChickenGameSchema = new Schema<IChickenGame>(
   }
 );
 
-ChickenGameSchema.index({ userId: 1, status: 1 });
-ChickenGameSchema.index({ createdAt: -1 });
+ChickenRoadGameSchema.index({ userId: 1, status: 1 });
+ChickenRoadGameSchema.index({ createdAt: -1 });
 
-export const ChickenGame = mongoose.model<IChickenGame>('ChickenGame', ChickenGameSchema);
+export const ChickenRoadGame = mongoose.model<IChickenRoadGame>('ChickenRoadGame', ChickenRoadGameSchema);

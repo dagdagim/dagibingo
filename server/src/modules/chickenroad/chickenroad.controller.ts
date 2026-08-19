@@ -1,95 +1,100 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
-import { ChickenGame, IChickenGame } from '../../models/ChickenGame';
+import { ChickenRoadGame, IChickenRoadGame } from '../../models/ChickenRoadGame';
 import { Wallet } from '../../models/Wallet';
 import { WalletTransaction } from '../../models/WalletTransaction';
 import { User } from '../../models/User';
 import {
-  ChickenDifficulty,
-  ChickenLaneOutcome,
-  IChickenGameDTO,
-  IChickenDifficultyConfig,
+  ChickenRoadDifficulty,
+  IChickenRoadGameDTO,
+  IChickenRoadDifficultyConfig,
 } from '../../shared';
 
-export const CHICKEN_CONFIG: Record<ChickenDifficulty, IChickenDifficultyConfig> = {
+export const CHICKEN_ROAD_CONFIG: Record<ChickenRoadDifficulty, IChickenRoadDifficultyConfig> = {
   EASY: {
     name: 'EASY',
-    label: 'Country Trail (24 Lanes • Low Risk)',
-    totalLanes: 24,
-    safeChance: 0.958,
+    label: 'Country Road (95% Safe/Lane)',
+    totalLanes: 25,
+    safeProbability: 0.95,
     multipliers: [
-      1.01, 1.05, 1.1, 1.15, 1.2, 1.25, 1.31, 1.37, 1.43, 1.5, 1.57, 1.65, 1.74, 1.83, 1.94, 2.05,
-      2.18, 2.32, 2.49, 2.68, 2.92, 3.22, 3.65, 4.45,
+      1.02, 1.07, 1.13, 1.19, 1.25, 1.32, 1.39, 1.46, 1.54, 1.62,
+      1.71, 1.80, 1.90, 2.00, 2.11, 2.22, 2.34, 2.47, 2.60, 2.74,
+      2.89, 3.05, 3.22, 3.40, 3.59,
     ],
   },
   MEDIUM: {
     name: 'MEDIUM',
-    label: 'Highway Sprint (18 Lanes • Medium Risk)',
-    totalLanes: 18,
-    safeChance: 0.833,
+    label: 'City Avenue (85% Safe/Lane)',
+    totalLanes: 25,
+    safeProbability: 0.85,
     multipliers: [
-      1.16, 1.39, 1.67, 2.01, 2.41, 2.89, 3.47, 4.16, 5.0, 6.0, 7.2, 8.64, 10.37, 12.44, 14.93,
-      17.92, 21.5, 25.8,
+      1.14, 1.34, 1.58, 1.86, 2.19, 2.57, 3.03, 3.56, 4.19, 4.93,
+      5.80, 6.82, 8.03, 9.45, 11.12, 13.08, 15.39, 18.11, 21.31, 25.07,
+      29.49, 34.69, 40.81, 48.01, 56.48,
     ],
   },
   HARD: {
     name: 'HARD',
-    label: 'Expressway Madness (12 Lanes • High Risk)',
-    totalLanes: 12,
-    safeChance: 0.667,
-    multipliers: [1.45, 2.18, 3.27, 4.91, 7.36, 11.04, 16.56, 24.84, 37.26, 55.89, 83.84, 125.75],
+    label: 'Interstate Highway (70% Safe/Lane)',
+    totalLanes: 25,
+    safeProbability: 0.7,
+    multipliers: [
+      1.38, 1.98, 2.82, 4.04, 5.77, 8.24, 11.77, 16.82, 24.03, 34.33,
+      49.04, 70.06, 100.08, 142.98, 204.25, 291.79, 416.84, 595.49, 850.70, 1215.28,
+      1736.12, 2480.17, 3543.10, 5061.57, 7230.82,
+    ],
   },
   DAREDEVIL: {
     name: 'DAREDEVIL',
-    label: 'Barbecue Inferno (10 Lanes • Extreme Risk)',
-    totalLanes: 10,
-    safeChance: 0.5,
-    multipliers: [1.94, 3.88, 7.76, 15.52, 31.04, 62.08, 124.16, 248.32, 496.64, 993.28],
+    label: 'Speedway Rush (50% Safe/Lane)',
+    totalLanes: 20,
+    safeProbability: 0.5,
+    multipliers: [
+      1.94, 3.88, 7.76, 15.52, 31.04, 62.08, 124.16, 248.32, 496.64, 993.28,
+      1986.56, 3973.12, 7946.24, 15892.48, 31784.96, 63569.92, 127139.84, 254279.68, 508559.36, 1017118.72,
+    ],
   },
 };
 
 /**
- * Generate predetermined lane outcomes via cryptographic hashing
+ * Generate 25-lane hazard layout based on cryptographic seed
  */
-function generateChickenLanes(difficulty: ChickenDifficulty, seed: string): ChickenLaneOutcome[] {
-  const config = CHICKEN_CONFIG[difficulty];
-  const outcomes: ChickenLaneOutcome[] = [];
+function generateChickenLaneLayout(difficulty: ChickenRoadDifficulty, seed: string): boolean[] {
+  const config = CHICKEN_ROAD_CONFIG[difficulty];
+  const layout: boolean[] = [];
 
   let hash = crypto.createHash('sha256').update(seed).digest('hex');
 
-  for (let i = 0; i < config.totalLanes; i++) {
-    const byteIdx = (i * 4) % (hash.length - 4);
+  for (let l = 0; l < config.totalLanes; l++) {
+    const byteIdx = (l * 4) % (hash.length - 4);
     const intVal = parseInt(hash.substring(byteIdx, byteIdx + 4), 16);
-    const uniform = intVal / 0xffff; // in [0, 1)
+    const randFloat = intVal / 0xffff; // uniform in [0, 1)
 
-    const isSafe = uniform < config.safeChance;
-    outcomes.push(isSafe ? 'SAFE' : 'HAZARD');
+    // isSafe if randFloat <= safeProbability
+    const isSafe = randFloat <= config.safeProbability;
+    layout.push(isSafe);
 
-    if (i % 6 === 5) {
+    if (l % 8 === 0) {
       hash = crypto.createHash('sha256').update(hash).digest('hex');
     }
   }
 
-  return outcomes;
+  return layout;
 }
 
-function formatChickenDTO(game: IChickenGame): IChickenGameDTO {
-  const config = CHICKEN_CONFIG[game.difficulty];
-
+function formatChickenRoadDTO(game: IChickenRoadGame): IChickenRoadGameDTO {
   return {
     id: game._id.toString(),
     userId: game.userId.toString(),
     username: game.username,
     difficulty: game.difficulty,
     betAmount: game.betAmount,
-    currentStep: game.currentStep,
+    currentLane: game.currentLane,
     currentMultiplier: game.currentMultiplier,
     status: game.status,
     payoutAmount: game.payoutAmount,
-    stepHistory: game.stepHistory,
-    totalLanes: config.totalLanes,
-    multipliers: config.multipliers,
+    revealedLanes: game.revealedLanes,
     hash: game.hash,
     serverSeed: game.status !== 'IN_PROGRESS' ? game.serverSeed : undefined,
     createdAt: game.createdAt.toISOString(),
@@ -98,9 +103,9 @@ function formatChickenDTO(game: IChickenGame): IChickenGameDTO {
 }
 
 /**
- * POST /api/chicken/start
+ * POST /api/chickenroad/start
  */
-export const startChickenGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const startChickenRoadGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = (req as any).user?.userId;
     if (!userId) {
@@ -108,10 +113,10 @@ export const startChickenGame = async (req: Request, res: Response, next: NextFu
       return;
     }
 
-    const { difficulty = 'MEDIUM', betAmount } = req.body;
+    const { difficulty = 'EASY', betAmount } = req.body;
     const parsedBet = Number(betAmount);
 
-    if (!CHICKEN_CONFIG[difficulty as ChickenDifficulty]) {
+    if (!CHICKEN_ROAD_CONFIG[difficulty as ChickenRoadDifficulty]) {
       res.status(400).json({ success: false, message: 'Invalid difficulty. Choose EASY, MEDIUM, HARD, or DAREDEVIL.' });
       return;
     }
@@ -122,7 +127,7 @@ export const startChickenGame = async (req: Request, res: Response, next: NextFu
     }
 
     // Check active game
-    const existing = await ChickenGame.findOne({
+    const existing = await ChickenRoadGame.findOne({
       userId: new mongoose.Types.ObjectId(userId),
       status: 'IN_PROGRESS',
     });
@@ -130,8 +135,8 @@ export const startChickenGame = async (req: Request, res: Response, next: NextFu
     if (existing) {
       res.status(400).json({
         success: false,
-        message: 'You already have an active Chicken Run in progress.',
-        game: formatChickenDTO(existing),
+        message: 'You already have an active Chicken Road run in progress.',
+        game: formatChickenRoadDTO(existing),
       });
       return;
     }
@@ -151,19 +156,19 @@ export const startChickenGame = async (req: Request, res: Response, next: NextFu
 
     const serverSeed = crypto.randomBytes(16).toString('hex');
     const hash = crypto.createHash('sha256').update(serverSeed).digest('hex');
-    const laneOutcomes = generateChickenLanes(difficulty as ChickenDifficulty, serverSeed);
+    const fullLaneLayout = generateChickenLaneLayout(difficulty as ChickenRoadDifficulty, serverSeed);
 
-    const game = await ChickenGame.create({
+    const game = await ChickenRoadGame.create({
       userId: new mongoose.Types.ObjectId(userId),
-      username: user?.username || 'RoadCrosser',
-      difficulty: difficulty as ChickenDifficulty,
+      username: user?.username || 'Clucker',
+      difficulty: difficulty as ChickenRoadDifficulty,
       betAmount: parsedBet,
-      currentStep: 0,
+      currentLane: 0,
       currentMultiplier: 1.0,
       status: 'IN_PROGRESS',
       payoutAmount: 0,
-      laneOutcomes,
-      stepHistory: [],
+      fullLaneLayout,
+      revealedLanes: [],
       hash,
       serverSeed,
     });
@@ -177,16 +182,16 @@ export const startChickenGame = async (req: Request, res: Response, next: NextFu
       balanceAfter: userWallet.availableBalance,
       currency: 'ETB',
       status: 'COMPLETED',
-      description: `Chicken Run Entry (${difficulty} ${parsedBet} ETB)`,
+      description: `Chicken Road Entry (${difficulty} ${parsedBet} ETB)`,
       referenceId: game._id.toString(),
       metadata: {
-        gameType: 'CHICKEN_RUN',
+        gameType: 'CHICKEN_ROAD',
         difficulty,
         gameId: game._id.toString(),
       },
     });
 
-    // Credit house admin
+    // Credit house admin for stake
     const adminUser = await User.findOne({ role: 'ADMIN' });
     if (adminUser) {
       const adminWallet = await Wallet.findOne({ userId: adminUser._id });
@@ -204,7 +209,7 @@ export const startChickenGame = async (req: Request, res: Response, next: NextFu
           balanceAfter: adminWallet.availableBalance,
           currency: 'ETB',
           status: 'COMPLETED',
-          description: `House Stake from ${user?.username} (Chicken Run #${game._id})`,
+          description: `House Stake from ${user?.username} (Chicken Road #${game._id})`,
           referenceId: game._id.toString(),
         });
       }
@@ -212,7 +217,7 @@ export const startChickenGame = async (req: Request, res: Response, next: NextFu
 
     res.status(201).json({
       success: true,
-      game: formatChickenDTO(game),
+      game: formatChickenRoadDTO(game),
       newBalance: userWallet.availableBalance,
     });
   } catch (error) {
@@ -221,9 +226,9 @@ export const startChickenGame = async (req: Request, res: Response, next: NextFu
 };
 
 /**
- * POST /api/chicken/step
+ * POST /api/chickenroad/step
  */
-export const stepChickenGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const stepChickenRoadGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = (req as any).user?.userId;
     if (!userId) {
@@ -233,58 +238,52 @@ export const stepChickenGame = async (req: Request, res: Response, next: NextFun
 
     const { gameId } = req.body;
 
-    const game = await ChickenGame.findOne({
+    const game = await ChickenRoadGame.findOne({
       _id: new mongoose.Types.ObjectId(gameId),
       userId: new mongoose.Types.ObjectId(userId),
       status: 'IN_PROGRESS',
     });
 
     if (!game) {
-      res.status(404).json({ success: false, message: 'Active Chicken Run game not found.' });
+      res.status(404).json({ success: false, message: 'Active crossing run not found.' });
       return;
     }
 
-    const config = CHICKEN_CONFIG[game.difficulty];
-    const targetStep = game.currentStep; // 0-indexed
+    const config = CHICKEN_ROAD_CONFIG[game.difficulty];
+    const targetLane = game.currentLane;
 
-    if (targetStep >= config.totalLanes) {
-      res.status(400).json({ success: false, message: 'Already reached the Golden Egg Barn!' });
+    if (targetLane >= config.totalLanes) {
+      res.status(400).json({ success: false, message: 'You have already crossed the entire highway!' });
       return;
     }
 
-    const outcome = game.laneOutcomes[targetStep];
+    const isLaneSafe = game.fullLaneLayout[targetLane];
 
-    if (outcome === 'HAZARD') {
-      // ROASTED CHICKEN!
-      game.status = 'BUSTED';
+    game.revealedLanes.push({
+      laneIndex: targetLane,
+      isSafe: isLaneSafe,
+    });
+
+    if (!isLaneSafe) {
+      // CAR CRASH!
+      game.status = 'CRASHED';
       game.payoutAmount = 0;
-      game.stepHistory.push({
-        step: targetStep + 1,
-        outcome: 'HAZARD',
-        multiplier: 0,
-      });
       await game.save();
 
       res.status(200).json({
         success: true,
-        game: formatChickenDTO(game),
-        outcome: 'HAZARD',
+        game: formatChickenRoadDTO(game),
+        outcome: 'CRASHED',
       });
       return;
     }
 
-    // SAFE STEP!
-    const newMultiplier = config.multipliers[targetStep];
-    game.currentStep += 1;
+    // SAFE HOP!
+    const newMultiplier = config.multipliers[targetLane];
     game.currentMultiplier = newMultiplier;
-    game.stepHistory.push({
-      step: targetStep + 1,
-      outcome: 'SAFE',
-      multiplier: newMultiplier,
-    });
 
-    if (game.currentStep === config.totalLanes) {
-      // REACHED THE GOLDEN EGG BARN! Auto Cashout
+    if (targetLane === config.totalLanes - 1) {
+      // FULL HIGHWAY CROSSED! Auto-cashout
       const totalPayout = Math.floor(game.betAmount * newMultiplier * 100) / 100;
       game.status = 'CASHED_OUT';
       game.payoutAmount = totalPayout;
@@ -306,7 +305,7 @@ export const stepChickenGame = async (req: Request, res: Response, next: NextFun
           balanceAfter: userWallet.availableBalance,
           currency: 'ETB',
           status: 'COMPLETED',
-          description: `Chicken Run Golden Egg Win (${game.difficulty} ${newMultiplier}x)`,
+          description: `Full Highway Cross Win (${game.difficulty} ${newMultiplier}x)`,
           referenceId: game._id.toString(),
         });
 
@@ -328,7 +327,7 @@ export const stepChickenGame = async (req: Request, res: Response, next: NextFun
               balanceAfter: adminWallet.availableBalance,
               currency: 'ETB',
               status: 'COMPLETED',
-              description: `House Chicken Run Payout to ${game.username}`,
+              description: `House Chicken Road Payout to ${game.username}`,
               referenceId: game._id.toString(),
             });
           }
@@ -336,18 +335,19 @@ export const stepChickenGame = async (req: Request, res: Response, next: NextFun
 
         res.status(200).json({
           success: true,
-          game: formatChickenDTO(game),
-          outcome: 'GOLDEN_EGG_WIN',
+          game: formatChickenRoadDTO(game),
+          outcome: 'FULL_CROSS_WIN',
           newBalance: userWallet.availableBalance,
         });
         return;
       }
     } else {
+      game.currentLane += 1;
       await game.save();
 
       res.status(200).json({
         success: true,
-        game: formatChickenDTO(game),
+        game: formatChickenRoadDTO(game),
         outcome: 'SAFE',
       });
     }
@@ -357,9 +357,9 @@ export const stepChickenGame = async (req: Request, res: Response, next: NextFun
 };
 
 /**
- * POST /api/chicken/cashout
+ * POST /api/chickenroad/cashout
  */
-export const cashoutChickenGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const cashoutChickenRoadGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = (req as any).user?.userId;
     if (!userId) {
@@ -369,19 +369,19 @@ export const cashoutChickenGame = async (req: Request, res: Response, next: Next
 
     const { gameId } = req.body;
 
-    const game = await ChickenGame.findOne({
+    const game = await ChickenRoadGame.findOne({
       _id: new mongoose.Types.ObjectId(gameId),
       userId: new mongoose.Types.ObjectId(userId),
       status: 'IN_PROGRESS',
     });
 
     if (!game) {
-      res.status(404).json({ success: false, message: 'Active Chicken Run game not found.' });
+      res.status(404).json({ success: false, message: 'Active game not found.' });
       return;
     }
 
-    if (game.currentStep === 0) {
-      res.status(400).json({ success: false, message: 'Cross at least one lane before cashing out.' });
+    if (game.currentMultiplier <= 1.0) {
+      res.status(400).json({ success: false, message: 'You must cross at least one lane before cashing out.' });
       return;
     }
 
@@ -408,7 +408,7 @@ export const cashoutChickenGame = async (req: Request, res: Response, next: Next
         balanceAfter: userWallet.availableBalance,
         currency: 'ETB',
         status: 'COMPLETED',
-        description: `Chicken Run Cashout (${game.difficulty} ${game.currentMultiplier}x, Step ${game.currentStep})`,
+        description: `Chicken Road Cashout (${game.difficulty} ${game.currentMultiplier}x, Lane #${game.currentLane})`,
         referenceId: game._id.toString(),
       });
 
@@ -430,7 +430,7 @@ export const cashoutChickenGame = async (req: Request, res: Response, next: Next
             balanceAfter: adminWallet.availableBalance,
             currency: 'ETB',
             status: 'COMPLETED',
-            description: `House Chicken Run Payout to ${game.username}`,
+            description: `House Chicken Road Payout to ${game.username}`,
             referenceId: game._id.toString(),
           });
         }
@@ -439,7 +439,7 @@ export const cashoutChickenGame = async (req: Request, res: Response, next: Next
 
     res.status(200).json({
       success: true,
-      game: formatChickenDTO(game),
+      game: formatChickenRoadDTO(game),
       newBalance,
     });
   } catch (error) {
@@ -448,9 +448,9 @@ export const cashoutChickenGame = async (req: Request, res: Response, next: Next
 };
 
 /**
- * GET /api/chicken/active
+ * GET /api/chickenroad/active
  */
-export const getActiveChickenGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getActiveChickenRoadGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = (req as any).user?.userId;
     if (!userId) {
@@ -458,14 +458,14 @@ export const getActiveChickenGame = async (req: Request, res: Response, next: Ne
       return;
     }
 
-    const game = await ChickenGame.findOne({
+    const game = await ChickenRoadGame.findOne({
       userId: new mongoose.Types.ObjectId(userId),
       status: 'IN_PROGRESS',
     });
 
     res.status(200).json({
       success: true,
-      game: game ? formatChickenDTO(game) : null,
+      game: game ? formatChickenRoadDTO(game) : null,
     });
   } catch (error) {
     next(error);
@@ -473,9 +473,9 @@ export const getActiveChickenGame = async (req: Request, res: Response, next: Ne
 };
 
 /**
- * GET /api/chicken/my-history
+ * GET /api/chickenroad/my-history
  */
-export const getMyChickenHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getMyChickenRoadHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = (req as any).user?.userId;
     if (!userId) {
@@ -484,9 +484,9 @@ export const getMyChickenHistory = async (req: Request, res: Response, next: Nex
     }
 
     const limit = Number(req.query.limit) || 20;
-    const history = await ChickenGame.find({
+    const history = await ChickenRoadGame.find({
       userId: new mongoose.Types.ObjectId(userId),
-      status: { $in: ['CASHED_OUT', 'BUSTED'] },
+      status: { $in: ['CASHED_OUT', 'CRASHED'] },
     })
       .sort({ createdAt: -1 })
       .limit(Math.min(limit, 100));
@@ -497,7 +497,7 @@ export const getMyChickenHistory = async (req: Request, res: Response, next: Nex
         id: g._id.toString(),
         difficulty: g.difficulty,
         betAmount: g.betAmount,
-        reachedStep: g.currentStep,
+        reachedLane: g.currentLane,
         multiplier: g.currentMultiplier,
         payoutAmount: g.payoutAmount,
         status: g.status,
