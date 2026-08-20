@@ -1058,86 +1058,298 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
         }
         ctx.restore();
       } else {
+        // -------------------------------------------------------------
+        // ULTRA-ATTRACTIVE & GORGEOUS 2.5D CHICKEN CHARACTER
+        // -------------------------------------------------------------
         ctx.save();
         ctx.translate(c.x, drawY);
 
-        // Shadow below chicken (scales with jump height)
-        const shadowScale = Math.max(0.4, 1 - c.hopHeight / 50);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        // Dynamic Squash & Stretch Physics on Hop
+        let scaleX = 1;
+        let scaleY = 1;
+        if (c.hopProgress > 0 && c.hopProgress < 1) {
+          const jumpArc = Math.sin(c.hopProgress * Math.PI);
+          scaleY = 1 + jumpArc * 0.22;
+          scaleX = 1 - jumpArc * 0.12;
+        }
+        ctx.scale(scaleX, scaleY);
+
+        // Ambient Contact Shadow on Ground (Scales with jump height)
+        const shadowScale = Math.max(0.3, 1 - c.hopHeight / 45);
+        const shadowAlpha = Math.max(0.15, 0.45 - (c.hopHeight / 50) * 0.3);
+        ctx.fillStyle = `rgba(0, 0, 0, ${shadowAlpha})`;
         ctx.beginPath();
-        ctx.ellipse(0, c.hopHeight + 12, 18 * shadowScale, 9 * shadowScale, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, c.hopHeight + 16, 20 * shadowScale, 9 * shadowScale, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Realistic Animated 2.5D Chicken
-        const breathe = Math.sin(time * 0.006) * 1.5;
-        const wingFlap = c.hopHeight > 0 ? Math.sin(time * 0.04) * 8 : 0;
+        // Idle Breathing & Flap Oscillations
+        const breathe = Math.sin(time * 0.005) * 1.5;
+        const wingFlap = c.hopHeight > 0 ? Math.sin(time * 0.04) * 10 : Math.sin(time * 0.005) * 2;
+        const tailWag = Math.sin(time * 0.008) * 4;
 
-        // Plump Body
-        ctx.fillStyle = '#f8fafc';
+        // 1. FEATHERY TAIL PLUMES (Back layer)
+        ctx.save();
+        ctx.translate(-14, 2 + breathe);
+        ctx.rotate(-0.2 + tailWag * 0.03);
+        
+        // Plume 1 (Top)
+        const tailGrad1 = ctx.createLinearGradient(-12, -10, 0, 0);
+        tailGrad1.addColorStop(0, '#f59e0b');
+        tailGrad1.addColorStop(0.5, '#fbbf24');
+        tailGrad1.addColorStop(1, '#ffffff');
+        ctx.fillStyle = tailGrad1;
         ctx.beginPath();
-        ctx.ellipse(0, breathe, 16, 19, 0, 0, Math.PI * 2);
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(-16, -14, -10, -4);
+        ctx.quadraticCurveTo(-4, 2, 0, 4);
         ctx.fill();
+
+        // Plume 2 (Middle)
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.moveTo(0, 2);
+        ctx.quadraticCurveTo(-20, -4, -12, 4);
+        ctx.quadraticCurveTo(-4, 6, 0, 6);
+        ctx.fill();
+
+        // Plume 3 (Bottom)
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(0, 4);
+        ctx.quadraticCurveTo(-16, 6, -8, 10);
+        ctx.quadraticCurveTo(-2, 8, 0, 8);
+        ctx.fill();
+        ctx.restore();
+
+        // 2. ORANGE CHICKEN LEGS & FEET
+        const feetTuck = c.hopHeight > 0 ? 5 : 0;
+        ctx.strokeStyle = '#ea580c';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Left Leg & Claws
+        ctx.beginPath();
+        ctx.moveTo(-6, 12 + breathe);
+        ctx.lineTo(-6, 22 - feetTuck);
+        ctx.lineTo(-12, 23 - feetTuck);
+        ctx.moveTo(-6, 22 - feetTuck);
+        ctx.lineTo(-6, 25 - feetTuck);
+        ctx.moveTo(-6, 22 - feetTuck);
+        ctx.lineTo(0, 23 - feetTuck);
+        ctx.stroke();
+
+        // Right Leg & Claws
+        ctx.beginPath();
+        ctx.moveTo(6, 12 + breathe);
+        ctx.lineTo(6, 22 - feetTuck);
+        ctx.lineTo(0, 23 - feetTuck);
+        ctx.moveTo(6, 22 - feetTuck);
+        ctx.lineTo(6, 25 - feetTuck);
+        ctx.moveTo(6, 22 - feetTuck);
+        ctx.lineTo(12, 23 - feetTuck);
+        ctx.stroke();
+
+        // 3. PLUMP FLUFFY BODY (3D Pearlescent Gradient)
+        const bodyGrad = ctx.createRadialGradient(2, -2 + breathe, 4, 0, 4 + breathe, 22);
+        bodyGrad.addColorStop(0, '#ffffff');
+        bodyGrad.addColorStop(0.65, '#f8fafc');
+        bodyGrad.addColorStop(1, '#cbd5e1');
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, 2 + breathe, 18, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Soft Outer Feather Edge
         ctx.strokeStyle = '#e2e8f0';
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Golden Wing
-        ctx.fillStyle = '#fef08a';
+        // Soft Belly Down Feathers
+        ctx.fillStyle = 'rgba(254, 240, 138, 0.35)';
         ctx.beginPath();
-        ctx.ellipse(-4, breathe - wingFlap, 11, 14, 0.3, 0, Math.PI * 2);
+        ctx.ellipse(4, 6 + breathe, 12, 11, 0.2, 0, Math.PI * 2);
         ctx.fill();
 
-        // Head
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(6, -14 + breathe, 10, 0, Math.PI * 2);
-        ctx.fill();
+        // 4. GOLDEN SILK WING WITH FEATHER ARCS
+        ctx.save();
+        ctx.translate(-2, 2 + breathe);
+        ctx.rotate(-wingFlap * 0.04);
 
-        // Red Comb
-        ctx.fillStyle = '#ef4444';
-        ctx.beginPath();
-        ctx.arc(6, -24 + breathe, 4, 0, Math.PI * 2);
-        ctx.arc(10, -23 + breathe, 4, 0, Math.PI * 2);
-        ctx.arc(2, -22 + breathe, 3.5, 0, Math.PI * 2);
-        ctx.fill();
+        const wingGrad = ctx.createLinearGradient(-10, -12, 10, 12);
+        wingGrad.addColorStop(0, '#fef08a');
+        wingGrad.addColorStop(0.5, '#fde047');
+        wingGrad.addColorStop(1, '#f59e0b');
+        ctx.fillStyle = wingGrad;
 
-        // Red Wattle
-        ctx.fillStyle = '#dc2626';
         ctx.beginPath();
-        ctx.ellipse(14, -10 + breathe, 3, 5, 0, 0, Math.PI * 2);
+        ctx.ellipse(-3, 0, 13, 16, 0.35, 0, Math.PI * 2);
         ctx.fill();
-
-        // Golden Beak
-        ctx.fillStyle = '#f59e0b';
-        ctx.beginPath();
-        ctx.moveTo(14, -16 + breathe);
-        ctx.lineTo(23, -13 + breathe);
-        ctx.lineTo(14, -10 + breathe);
-        ctx.closePath();
-        ctx.fill();
-
-        // Eye
-        ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.arc(10, -16 + breathe, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Legs
-        ctx.strokeStyle = '#f97316';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(-5, 14);
-        ctx.lineTo(-5, 22);
-        ctx.lineTo(-1, 22);
-        ctx.moveTo(5, 14);
-        ctx.lineTo(5, 22);
-        ctx.lineTo(9, 22);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Winner Shades 🕶️
+        // Detailed Feather Quill Scallops
+        ctx.strokeStyle = 'rgba(217, 119, 6, 0.4)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(-2, -2, 7, 0.2, Math.PI * 0.9);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(-4, 4, 8, 0.2, Math.PI * 0.9);
+        ctx.stroke();
+        ctx.restore();
+
+        // 5. CUTE HEAD & NECK
+        const headGrad = ctx.createRadialGradient(8, -14 + breathe, 2, 6, -14 + breathe, 13);
+        headGrad.addColorStop(0, '#ffffff');
+        headGrad.addColorStop(0.7, '#f8fafc');
+        headGrad.addColorStop(1, '#e2e8f0');
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.arc(6, -14 + breathe, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // 6. CROWN COMB (Glossy Ruby-Red Lobes with Specular Highlight)
+        const combBop = Math.sin(time * 0.008) * 1.5;
+        const combGrad = ctx.createLinearGradient(4, -30 + breathe, 12, -18 + breathe);
+        combGrad.addColorStop(0, '#f87171');
+        combGrad.addColorStop(0.5, '#ef4444');
+        combGrad.addColorStop(1, '#b91c1c');
+        ctx.fillStyle = combGrad;
+
+        // 3 Crown Lobes
+        ctx.beginPath();
+        ctx.arc(4, -26 + breathe + combBop, 5.2, 0, Math.PI * 2);
+        ctx.arc(9, -27 + breathe + combBop, 5.5, 0, Math.PI * 2);
+        ctx.arc(14, -24 + breathe + combBop, 4.8, 0, Math.PI * 2);
+        ctx.arc(0, -22 + breathe + combBop, 4.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Comb Specular Glint
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.beginPath();
+        ctx.arc(8, -29 + breathe + combBop, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 7. RED DROPLET WATTLE UNDER BEAK
+        const wattleGrad = ctx.createLinearGradient(14, -8 + breathe, 18, 0 + breathe);
+        wattleGrad.addColorStop(0, '#ef4444');
+        wattleGrad.addColorStop(1, '#b91c1c');
+        ctx.fillStyle = wattleGrad;
+        ctx.beginPath();
+        ctx.ellipse(15, -6 + breathe, 3.8, 6.5, 0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 8. POLISHED GOLDEN BEAK
+        const beakGrad = ctx.createLinearGradient(14, -18 + breathe, 26, -11 + breathe);
+        beakGrad.addColorStop(0, '#fbbf24');
+        beakGrad.addColorStop(0.5, '#f59e0b');
+        beakGrad.addColorStop(1, '#d97706');
+        ctx.fillStyle = beakGrad;
+
+        ctx.beginPath();
+        ctx.moveTo(14, -17 + breathe);
+        ctx.lineTo(26, -12 + breathe);
+        ctx.lineTo(14, -8 + breathe);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#b45309';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Cute Mouth Line
+        ctx.strokeStyle = '#92400e';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(15, -12.5 + breathe);
+        ctx.lineTo(23, -12 + breathe);
+        ctx.stroke();
+
+        // 9. ROSY BLUSH CHEEKS
+        ctx.fillStyle = 'rgba(244, 114, 182, 0.55)';
+        ctx.beginPath();
+        ctx.ellipse(9, -10 + breathe, 4.5, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 10. BIG EXPRESSIVE ANIME / CARTOON EYE
+        // Eye White Outer
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(10, -16 + breathe, 4.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // Blue/Purple Iris
+        const irisGrad = ctx.createRadialGradient(10.5, -16 + breathe, 1, 10.5, -16 + breathe, 3.5);
+        irisGrad.addColorStop(0, '#38bdf8');
+        irisGrad.addColorStop(0.7, '#0284c7');
+        irisGrad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = irisGrad;
+        ctx.beginPath();
+        ctx.arc(10.5, -16 + breathe, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Dark Pupil
+        ctx.fillStyle = '#020617';
+        ctx.beginPath();
+        ctx.arc(11, -16 + breathe, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sparkly Catchlight (Double Glint)
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(9.8, -17.2 + breathe, 1.4, 0, Math.PI * 2);
+        ctx.arc(12, -15.2 + breathe, 0.7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 11. GOLDEN AMULET / COLLAR NECKLACE
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(5, -4 + breathe, 8.5, 0.2, Math.PI * 0.85);
+        ctx.stroke();
+
+        // Sparkling Gold Star Pendant
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(6, 4 + breathe, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Specular Sparkle on Pendant
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(5.2, 3.2 + breathe, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 12. VIP WINNER AVIATOR SUNGLASSES (when winning)
         if (chickenState.current === 'winner') {
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(4, -18 + breathe, 12, 5);
+          // Cool Gold-Framed Aviator Shades
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+          ctx.beginPath();
+          ctx.roundRect(4, -20 + breathe, 15, 8, 3);
+          ctx.fill();
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Cool Blue Specular Reflection Strip across Shades
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.6)';
+          ctx.beginPath();
+          ctx.moveTo(6, -19 + breathe);
+          ctx.lineTo(10, -19 + breathe);
+          ctx.lineTo(8, -13 + breathe);
+          ctx.lineTo(4, -13 + breathe);
+          ctx.closePath();
+          ctx.fill();
         }
 
         ctx.restore();
