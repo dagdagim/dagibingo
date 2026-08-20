@@ -963,7 +963,7 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
 
         ctx.restore();
 
-        // Impact Shockwave Ring & "💥 CRASH!" comic burst
+        // Impact Shockwave Ring & Funny Comic "💥 BONK!" Burst
         if (ca.shockwaveAlpha > 0) {
           ctx.save();
           ctx.strokeStyle = `rgba(239, 68, 68, ${ca.shockwaveAlpha})`;
@@ -972,18 +972,46 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
           ctx.arc(ca.chickenX, ca.chickenY, ca.shockwaveRadius, 0, Math.PI * 2);
           ctx.stroke();
 
-          ctx.strokeStyle = `rgba(251, 191, 36, ${ca.shockwaveAlpha * 0.8})`;
+          ctx.strokeStyle = `rgba(251, 191, 36, ${ca.shockwaveAlpha * 0.9})`;
           ctx.lineWidth = 3;
           ctx.beginPath();
           ctx.arc(ca.chickenX, ca.chickenY, ca.shockwaveRadius * 0.7, 0, Math.PI * 2);
           ctx.stroke();
 
-          // Comic "💥 CRASH!" badge pop
-          if (ca.shockwaveRadius < 85) {
-            ctx.fillStyle = `rgba(239, 68, 68, ${ca.shockwaveAlpha})`;
-            ctx.font = 'black 30px system-ui';
+          // Comic "💥 SQUISH!" Pop Badge
+          if (ca.shockwaveRadius < 90) {
+            ctx.save();
+            ctx.translate(ca.chickenX, ca.chickenY - 48);
+            const badgeScale = Math.min(1.2, ca.shockwaveRadius / 30);
+            ctx.scale(badgeScale, badgeScale);
+
+            // Comic Starburst Burst
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            const spikes = 12;
+            const outerR = 48;
+            const innerR = 24;
+            for (let i = 0; i < spikes * 2; i++) {
+              const r = i % 2 === 0 ? outerR : innerR;
+              const angle = (i * Math.PI) / spikes;
+              const sx = Math.cos(angle) * r;
+              const sy = Math.sin(angle) * r;
+              if (i === 0) ctx.moveTo(sx, sy);
+              else ctx.lineTo(sx, sy);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Bold Comic Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 18px system-ui, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('💥 CRASH!', ca.chickenX, ca.chickenY - 45);
+            ctx.textBaseline = 'middle';
+            ctx.fillText('💥 BONK!', 0, 0);
+            ctx.restore();
           }
           ctx.restore();
         }
@@ -1015,46 +1043,203 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
 
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.rotate(crot);
 
         if (ca.active && ca.hasCollided && ca.chickenY < chickenPos.current.targetY) {
-          // Mid-air tumbling chicken in flight
+          // ---------------------------------------------------------
+          // A. FUNNY MID-AIR TUMBLING CHICKEN IN FLIGHT
+          // ---------------------------------------------------------
+          ctx.rotate(crot);
+
+          // Tumbling Body
           ctx.fillStyle = '#f8fafc';
           ctx.beginPath();
-          ctx.ellipse(0, 0, 16, 19, 0, 0, Math.PI * 2);
+          ctx.ellipse(0, 0, 18, 21, 0, 0, Math.PI * 2);
           ctx.fill();
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
 
-          // Flapping disoriented wings
-          ctx.fillStyle = '#fef08a';
+          // Flapping Disheveled Wings in Air
+          const flap = Math.sin(time * 0.05) * 12;
+          ctx.fillStyle = '#fde047';
           ctx.beginPath();
-          ctx.ellipse(-14, 0, 8, 14, 0.5, 0, Math.PI * 2);
-          ctx.ellipse(14, 0, 8, 14, -0.5, 0, Math.PI * 2);
+          ctx.ellipse(-16, flap * 0.5, 9, 15, 0.6, 0, Math.PI * 2);
+          ctx.ellipse(16, -flap * 0.5, 9, 15, -0.6, 0, Math.PI * 2);
           ctx.fill();
 
-          // Head with X eyes
+          // Head with Funny Dizzy Spiral Eyes 🌀 🌀
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(0, -16, 10, 0, Math.PI * 2);
+          ctx.arc(0, -18, 12, 0, Math.PI * 2);
           ctx.fill();
 
+          // Ruby Comb Flopped Back
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.arc(-4, -28, 5, 0, Math.PI * 2);
+          ctx.arc(2, -30, 5, 0, Math.PI * 2);
+          ctx.arc(8, -27, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Funny Panic Eyes (X Eyes)
           ctx.fillStyle = '#0f172a';
-          ctx.font = 'bold 12px sans-serif';
+          ctx.font = 'bold 13px system-ui';
           ctx.textAlign = 'center';
-          ctx.fillText('❌', 0, -12);
-        } else {
-          // Flattened Chicken Splat on Road
+          ctx.textBaseline = 'middle';
+          ctx.fillText('❌', -4, -18);
+          ctx.fillText('❌', 5, -18);
+
+          // Open Screaming Beak with Wattle
           ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
-          ctx.ellipse(0, 5, 28, 13, 0, 0, Math.PI * 2);
+          ctx.moveTo(8, -16);
+          ctx.lineTo(20, -13);
+          ctx.lineTo(8, -9);
+          ctx.closePath();
           ctx.fill();
 
-          // Dizzy Rotating Stars 💫
-          const starAngle = time * 0.005;
-          ctx.fillStyle = '#fbbf24';
-          ctx.font = '22px system-ui';
+          ctx.fillStyle = '#dc2626';
+          ctx.beginPath();
+          ctx.ellipse(10, -7, 3, 5, 0.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Flying Panic Sweat Droplet 💦
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(14, -26, 3, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // ---------------------------------------------------------
+          // B. HILARIOUS & ADORABLE PANCAKE SQUISHED CHICKEN ON ROAD
+          // ---------------------------------------------------------
+
+          // Asphalt Splat Shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+          ctx.beginPath();
+          ctx.ellipse(0, 10, 34, 15, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Flattened Squished Body (Pancake Shape)
+          const splatGrad = ctx.createLinearGradient(-30, 0, 30, 10);
+          splatGrad.addColorStop(0, '#ffffff');
+          splatGrad.addColorStop(0.5, '#f8fafc');
+          splatGrad.addColorStop(1, '#fde047');
+          ctx.fillStyle = splatGrad;
+          ctx.beginPath();
+          ctx.ellipse(0, 4, 30, 13, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Flopped Golden Wing to the side
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.ellipse(-20, 5, 10, 6, -0.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Squished Head
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(12, 1, 10, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Cute Dazed Crossed Eyes ( x _ x )
+          ctx.fillStyle = '#0f172a';
+          ctx.font = 'bold 11px system-ui';
           ctx.textAlign = 'center';
-          ctx.fillText('💫', Math.cos(starAngle) * 16, -18 + Math.sin(starAngle) * 4);
-          ctx.fillText('⭐', Math.cos(starAngle + Math.PI) * 16, -18 + Math.sin(starAngle + Math.PI) * 4);
+          ctx.textBaseline = 'middle';
+          ctx.fillText('x', 9, 0);
+          ctx.fillText('x', 16, 0);
+
+          // Little Beak pointing out
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.moveTo(19, 0);
+          ctx.lineTo(26, 2);
+          ctx.lineTo(19, 4);
+          ctx.closePath();
+          ctx.fill();
+
+          // Funny White Medical Bandage with Red Cross 🩹 on Comb
+          ctx.save();
+          ctx.translate(6, -8);
+          ctx.rotate(-0.3);
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.roundRect(-8, -4, 16, 8, 2);
+          ctx.fill();
+          ctx.strokeStyle = '#cbd5e1';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Red Cross on Bandage ➕
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(-1.5, -3, 3, 6);
+          ctx.fillRect(-3, -1.5, 6, 3);
+          ctx.restore();
+
+          // Cute Floating Cartoon Spirit Ghost Chicken 👻 Ascending to Heaven!
+          const ghostCycle = (time * 0.04) % 90;
+          const ghostY = -25 - ghostCycle;
+          const ghostAlpha = Math.max(0, 1 - ghostCycle / 90);
+
+          if (ghostAlpha > 0.05) {
+            ctx.save();
+            ctx.translate(0, ghostY);
+            ctx.globalAlpha = ghostAlpha;
+
+            // Golden Halo ✨
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(0, -16, 8, 3, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Ghostly White Chicken Body
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 10, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tiny Cute Angel Wings
+            ctx.fillStyle = 'rgba(254, 240, 138, 0.9)';
+            ctx.beginPath();
+            ctx.ellipse(-10, -2, 5, 8, 0.4, 0, Math.PI * 2);
+            ctx.ellipse(10, -2, 5, 8, -0.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cute Sleeping Face ^_^
+            ctx.fillStyle = '#64748b';
+            ctx.font = 'bold 8px system-ui';
+            ctx.textAlign = 'center';
+            ctx.fillText('^ _ ^', 0, 2);
+            ctx.restore();
+          }
+
+          // Orbiting 3D Golden Dizzy Stars 💫 ⭐ ✨
+          const starAngle = time * 0.005;
+          const starRadiusX = 24;
+          const starRadiusY = 8;
+          const starZ = Math.sin(starAngle);
+
+          // Star 1
+          const s1x = Math.cos(starAngle) * starRadiusX;
+          const s1y = -14 + Math.sin(starAngle) * starRadiusY;
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = '18px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText('💫', s1x, s1y);
+
+          // Star 2
+          const s2x = Math.cos(starAngle + (Math.PI * 2) / 3) * starRadiusX;
+          const s2y = -14 + Math.sin(starAngle + (Math.PI * 2) / 3) * starRadiusY;
+          ctx.fillText('⭐', s2x, s2y);
+
+          // Star 3
+          const s3x = Math.cos(starAngle + (Math.PI * 4) / 3) * starRadiusX;
+          const s3y = -14 + Math.sin(starAngle + (Math.PI * 4) / 3) * starRadiusY;
+          ctx.fillText('✨', s3x, s3y);
         }
         ctx.restore();
       } else {

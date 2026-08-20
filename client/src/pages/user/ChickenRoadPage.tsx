@@ -158,16 +158,32 @@ class ChickenRoadAudioEngine {
       const osc2 = this.ctx.createOscillator();
       const gain2 = this.ctx.createGain();
       osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(120, this.ctx.currentTime + 0.1);
-      osc2.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.6);
+      osc2.frequency.setValueAtTime(120, this.ctx.currentTime + 0.08);
+      osc2.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.5);
 
-      gain2.gain.setValueAtTime(0.3, this.ctx.currentTime + 0.1);
-      gain2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.6);
+      gain2.gain.setValueAtTime(0.28, this.ctx.currentTime + 0.08);
+      gain2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
 
       osc2.connect(gain2);
       gain2.connect(this.ctx.destination);
-      osc2.start(this.ctx.currentTime + 0.1);
-      osc2.stop(this.ctx.currentTime + 0.6);
+      osc2.start(this.ctx.currentTime + 0.08);
+      osc2.stop(this.ctx.currentTime + 0.5);
+
+      // Comical Cartoon Rubber Squeak / Squish
+      const squeakOsc = this.ctx.createOscillator();
+      const squeakGain = this.ctx.createGain();
+      squeakOsc.type = 'sine';
+      squeakOsc.frequency.setValueAtTime(700, this.ctx.currentTime + 0.1);
+      squeakOsc.frequency.exponentialRampToValueAtTime(1400, this.ctx.currentTime + 0.2);
+      squeakOsc.frequency.exponentialRampToValueAtTime(250, this.ctx.currentTime + 0.38);
+
+      squeakGain.gain.setValueAtTime(0.18, this.ctx.currentTime + 0.1);
+      squeakGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+
+      squeakOsc.connect(squeakGain);
+      squeakGain.connect(this.ctx.destination);
+      squeakOsc.start(this.ctx.currentTime + 0.1);
+      squeakOsc.stop(this.ctx.currentTime + 0.4);
     } catch {}
   }
 
