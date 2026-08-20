@@ -22,9 +22,9 @@ export const MobileNav: React.FC = () => {
 
   const mainLinks = [
     { label: 'Lobby', path: '/lobby', icon: <Gamepad2 className="w-5 h-5" /> },
-    { label: 'Hounds', path: '/greyhound', icon: <span className="text-xl">🐕</span> },
-    { label: 'Derby', path: '/horserace', icon: <span className="text-xl">🐎</span> },
-    { label: 'Mines', path: '/mines', icon: <Bomb className="w-5 h-5 text-emerald-400" /> },
+    { label: 'Chicken', path: '/chickenroad', icon: <span className="text-xl">🐔</span> },
+    { label: 'Towers', path: '/towers', icon: <span className="text-xl">🏰</span> },
+    { label: 'Limbo', path: '/limbo', icon: <span className="text-xl">🚀</span> },
     { label: 'Wallet', path: isAuthenticated ? '/wallet' : '/login', icon: <Wallet className="w-5 h-5 text-emerald-400" /> },
   ];
 

@@ -217,13 +217,13 @@ export const Navbar: React.FC = () => {
                   type="button"
                   onClick={() => setIsGamesDropdownOpen(!isGamesDropdownOpen)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider font-display transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    ['/towers', '/limbo', '/greyhound', '/horserace', '/mines', '/aviator', '/keno', '/plinko'].includes(location.pathname)
+                    ['/towers', '/limbo', '/greyhound', '/horserace', '/mines', '/aviator', '/keno', '/plinko', '/chickenroad'].includes(location.pathname)
                       ? 'bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/30'
                       : 'text-arena-muted hover:text-arena-text hover:bg-arena-surface'
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5 text-amber-400" />
-                  <span>All Games (8)</span>
+                  <span>All Games (9)</span>
                   <ChevronDown
                     className={`w-3.5 h-3.5 transition-transform duration-200 ${
                       isGamesDropdownOpen ? 'rotate-180 text-amber-400' : 'text-arena-muted'
@@ -238,7 +238,7 @@ export const Navbar: React.FC = () => {
                       <span className="text-[10px] font-black uppercase tracking-widest text-arena-muted font-display">
                         OFFICIAL PROVABLY FAIR CATALOG
                       </span>
-                      <span className="text-[10px] font-mono text-emerald-400 font-bold">8 LIVE GAMES</span>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold">9 LIVE GAMES</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
