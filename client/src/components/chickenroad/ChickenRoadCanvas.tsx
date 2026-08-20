@@ -230,35 +230,42 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
     const width = canvas.width / (window.devicePixelRatio || 1);
 
     const currentRow = game ? game.currentRow : 0;
-    const isFinished = game && game.status !== 'IN_PROGRESS';
     const isCrushed = game?.status === 'CRUSHED';
     const isWon = game?.status === 'CASHED_OUT';
-    const lastRow = game && game.rows.length > 0 ? game.rows[game.rows.length - 1] : null;
+    const isCompletedAllLanes = isWon && currentRow === 10;
+
+    const laneWidth = width * 0.85;
+    const startX = (width - laneWidth) / 2;
+    const colWidth = laneWidth / tilesPerRow;
 
     // Calculate Y world position
     let targetY = TOTAL_WORLD_HEIGHT - SIDEWALK_HEIGHT / 2;
     let targetX = width / 2;
 
-    if (isCrushed && lastRow) {
-      // The chicken moves forward 1 step into the crashed lane!
-      const crashLaneIndex = lastRow.rowIndex;
+    if (isCrushed) {
+      // The chicken moves forward only 1 step into the next lane where the crash occurs!
+      const crashLaneIndex = currentRow; // 0 to 9
       targetY = TOTAL_WORLD_HEIGHT - (SIDEWALK_HEIGHT + (crashLaneIndex + 0.5) * LANE_HEIGHT);
       
-      const laneWidth = width * 0.85;
-      const startX = (width - laneWidth) / 2;
-      const colWidth = laneWidth / tilesPerRow;
-      const colIdx = lastRow.selectedTileIndex ?? 0;
+      const crushedRow = game?.rows.find((r) => r.rowIndex === crashLaneIndex);
+      const colIdx = crushedRow?.selectedTileIndex ?? 0;
       targetX = startX + (colIdx + 0.5) * colWidth;
-    } else if (currentRow > 0 && currentRow <= TOTAL_LANES) {
-      targetY = TOTAL_WORLD_HEIGHT - (SIDEWALK_HEIGHT + (currentRow - 0.5) * LANE_HEIGHT);
-      if (lastRow && lastRow.selectedTileIndex !== undefined) {
-        const laneWidth = width * 0.85;
-        const startX = (width - laneWidth) / 2;
-        const colWidth = laneWidth / tilesPerRow;
-        targetX = startX + (lastRow.selectedTileIndex + 0.5) * colWidth;
-      }
-    } else if (currentRow > TOTAL_LANES || isWon) {
+    } else if (isCompletedAllLanes) {
+      // Completed all 10 lanes -> reached the top finishing line
       targetY = FINISH_HEIGHT / 2;
+      targetX = width / 2;
+    } else if (currentRow > 0 && currentRow <= TOTAL_LANES) {
+      // On an active safe lane
+      const activeLane = currentRow - 1;
+      targetY = TOTAL_WORLD_HEIGHT - (SIDEWALK_HEIGHT + (activeLane + 0.5) * LANE_HEIGHT);
+      
+      const activeRow = game?.rows.find((r) => r.rowIndex === activeLane);
+      const colIdx = activeRow?.selectedTileIndex ?? Math.floor(tilesPerRow / 2);
+      targetX = startX + (colIdx + 0.5) * colWidth;
+    } else {
+      // At starting bottom sidewalk
+      targetY = TOTAL_WORLD_HEIGHT - SIDEWALK_HEIGHT / 2;
+      targetX = width / 2;
     }
 
     if (chickenPos.current.x === 0 && chickenPos.current.y === 0) {
@@ -269,7 +276,7 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
     } else {
       chickenPos.current.targetX = targetX;
       chickenPos.current.targetY = targetY;
-      chickenPos.current.hopProgress = 0; // Trigger hop animation
+      chickenPos.current.hopProgress = 0; // Trigger hop animation forward 1 step!
     }
 
     if (currentRow === 0 && !isCrushed) {
@@ -278,12 +285,12 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       });
     }
 
-    if (isCrushed && lastRow) {
+    if (isCrushed) {
       chickenState.current = 'crushed';
       // Trigger dramatic car crush animation with a hop delay so chicken lands on next line first!
       crashAnim.current = {
         active: true,
-        delay: 0.16, // Hop forward 1 step into the lane first
+        delay: 0.16, // Hop forward 1 step into the next lane first
         hasCollided: false,
         carX: -160, // Car zooms from the left
         carY: targetY,
@@ -309,7 +316,7 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       crashAnim.current.active = false;
     }
 
-    // Set camera target
+    // Set camera target centered on chicken's actual lane
     targetCameraY.current = Math.max(0, Math.min(TOTAL_WORLD_HEIGHT - 600, targetY - 350));
   }, [game, tilesPerRow, TOTAL_LANES, TOTAL_WORLD_HEIGHT]);
 
