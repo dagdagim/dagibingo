@@ -238,34 +238,24 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
     const startX = (width - laneWidth) / 2;
     const colWidth = laneWidth / tilesPerRow;
 
-    // Calculate Y world position
+    // Chicken is always centered in the middle of the road
+    const targetX = width / 2;
     let targetY = TOTAL_WORLD_HEIGHT - SIDEWALK_HEIGHT / 2;
-    let targetX = width / 2;
 
     if (isCrushed) {
       // The chicken moves forward only 1 step into the next lane where the crash occurs!
       const crashLaneIndex = currentRow; // 0 to 9
       targetY = TOTAL_WORLD_HEIGHT - (SIDEWALK_HEIGHT + (crashLaneIndex + 0.5) * LANE_HEIGHT);
-      
-      const crushedRow = game?.rows.find((r) => r.rowIndex === crashLaneIndex);
-      const colIdx = crushedRow?.selectedTileIndex ?? 0;
-      targetX = startX + (colIdx + 0.5) * colWidth;
     } else if (isCompletedAllLanes) {
       // Completed all 10 lanes -> reached the top finishing line
       targetY = FINISH_HEIGHT / 2;
-      targetX = width / 2;
     } else if (currentRow > 0 && currentRow <= TOTAL_LANES) {
       // On an active safe lane
       const activeLane = currentRow - 1;
       targetY = TOTAL_WORLD_HEIGHT - (SIDEWALK_HEIGHT + (activeLane + 0.5) * LANE_HEIGHT);
-      
-      const activeRow = game?.rows.find((r) => r.rowIndex === activeLane);
-      const colIdx = activeRow?.selectedTileIndex ?? Math.floor(tilesPerRow / 2);
-      targetX = startX + (colIdx + 0.5) * colWidth;
     } else {
       // At starting bottom sidewalk
       targetY = TOTAL_WORLD_HEIGHT - SIDEWALK_HEIGHT / 2;
-      targetX = width / 2;
     }
 
     if (chickenPos.current.x === 0 && chickenPos.current.y === 0) {
@@ -585,37 +575,31 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
           ctx.restore();
         }
 
-        // Active Lane Target Indicators (Interactive Tiles)
-        const laneInnerWidth = roadWidth * 0.75;
-        const laneStartX = roadX + (roadWidth - laneInnerWidth) / 2;
-        const colWidth = laneInnerWidth / tilesPerRow;
+        // Active Lane Target Indicator (Centered in the middle of the road)
+        if (isCurrentLane && !isStepping) {
+          const tileW = Math.min(260, roadWidth * 0.55);
+          const tileX = (viewWidth - tileW) / 2;
+          const tileY = laneY + 14;
+          const tileH = LANE_HEIGHT - 28;
+          const isHovered = hoverTile.current?.row === lane;
 
-        for (let col = 0; col < tilesPerRow; col++) {
-          const tileX = laneStartX + col * colWidth;
-          const tileY = laneY + 15;
-          const tileW = colWidth - 12;
-          const tileH = LANE_HEIGHT - 30;
+          ctx.save();
+          ctx.fillStyle = isHovered ? 'rgba(99, 102, 241, 0.35)' : 'rgba(99, 102, 241, 0.18)';
+          ctx.strokeStyle = isHovered ? '#818cf8' : 'rgba(129, 140, 248, 0.5)';
+          ctx.lineWidth = isHovered ? 3 : 2;
+          ctx.beginPath();
+          ctx.roundRect(tileX, tileY, tileW, tileH, 16);
+          ctx.fill();
+          ctx.stroke();
 
-          const isHovered = hoverTile.current?.row === lane && hoverTile.current?.col === col;
-
-          if (isCurrentLane && !isStepping) {
-            ctx.save();
-            ctx.fillStyle = isHovered ? 'rgba(99, 102, 241, 0.35)' : 'rgba(99, 102, 241, 0.15)';
-            ctx.strokeStyle = isHovered ? '#818cf8' : 'rgba(129, 140, 248, 0.4)';
-            ctx.lineWidth = isHovered ? 3 : 2;
-            ctx.beginPath();
-            ctx.roundRect(tileX + 6, tileY, tileW, tileH, 12);
-            ctx.fill();
-            ctx.stroke();
-
-            // Pulsing target arrow
-            const bounce = Math.sin(time * 0.008 + col) * 4;
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 20px system-ui';
-            ctx.textAlign = 'center';
-            ctx.fillText('⬆️', tileX + 6 + tileW / 2, tileY + tileH / 2 + bounce);
-            ctx.restore();
-          }
+          // Pulsing target arrow & cross text
+          const bounce = Math.sin(time * 0.008) * 4;
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 15px system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`⬆️ CROSS TO ${multVal.toFixed(2)}×`, viewWidth / 2, tileY + tileH / 2 + bounce);
+          ctx.restore();
         }
       }
 
@@ -1053,18 +1037,7 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
 
     // Check if clicked in current lane
     if (clickY >= laneY && clickY <= laneY + LANE_HEIGHT) {
-      const roadWidth = rect.width * 0.94;
-      const roadX = (rect.width - roadWidth) / 2;
-      const laneInnerWidth = roadWidth * 0.75;
-      const laneStartX = roadX + (roadWidth - laneInnerWidth) / 2;
-      const colWidth = laneInnerWidth / tilesPerRow;
-
-      const colIndex = Math.floor((clickX - laneStartX) / colWidth);
-      if (colIndex >= 0 && colIndex < tilesPerRow) {
-        onStep(colIndex);
-      } else {
-        onStep(0);
-      }
+      onStep(0);
     }
   };
 
@@ -1074,26 +1047,16 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       return;
     }
     const rect = canvasRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top + cameraY.current;
 
     const currentRow = game.currentRow;
     const laneY = TOTAL_WORLD_HEIGHT - SIDEWALK_HEIGHT - (currentRow + 1) * LANE_HEIGHT;
 
     if (mouseY >= laneY && mouseY <= laneY + LANE_HEIGHT) {
-      const roadWidth = rect.width * 0.94;
-      const roadX = (rect.width - roadWidth) / 2;
-      const laneInnerWidth = roadWidth * 0.75;
-      const laneStartX = roadX + (roadWidth - laneInnerWidth) / 2;
-      const colWidth = laneInnerWidth / tilesPerRow;
-
-      const col = Math.floor((mouseX - laneStartX) / colWidth);
-      if (col >= 0 && col < tilesPerRow) {
-        hoverTile.current = { row: currentRow, col };
-        return;
-      }
+      hoverTile.current = { row: currentRow, col: 0 };
+    } else {
+      hoverTile.current = null;
     }
-    hoverTile.current = null;
   };
 
   return (
