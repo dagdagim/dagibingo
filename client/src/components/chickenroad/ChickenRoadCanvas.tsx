@@ -26,7 +26,8 @@ interface Particle {
   decay: number;
   rotation: number;
   vRot: number;
-  type?: 'feather' | 'smoke' | 'spark' | 'coin' | 'confetti';
+  type?: 'feather' | 'smoke' | 'spark' | 'coin' | 'big-coin' | 'confetti';
+  text?: string;
 }
 
 interface CarEntity {
@@ -202,6 +203,44 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
     }
   };
 
+  // Spawn One Big Glowing Golden Coin on Successful Jump
+  const spawnBigCoinReward = (x: number, y: number, multText?: string) => {
+    // 1. One Big Golden Master Coin popping up
+    particles.current.push({
+      x,
+      y: y - 20,
+      vx: 0,
+      vy: -3.8, // Floats upward
+      color: '#fbbf24',
+      size: 32, // Large prominent coin
+      alpha: 1,
+      decay: 0.011, // Stays visible during jump celebration
+      rotation: 0,
+      vRot: 0.14, // Smooth 3D spin
+      type: 'big-coin',
+      text: multText,
+    });
+
+    // 2. Sparkling Gold Star Sparks around the Big Coin
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2 + Math.random() * 0.4;
+      const speed = 2.5 + Math.random() * 3.5;
+      particles.current.push({
+        x,
+        y: y - 20,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1.5,
+        color: i % 2 === 0 ? '#fef08a' : '#fbbf24',
+        size: 4 + Math.random() * 4,
+        alpha: 1,
+        decay: 0.02 + Math.random() * 0.015,
+        rotation: 0,
+        vRot: 0,
+        type: 'spark',
+      });
+    }
+  };
+
   // Spawn Golden Coins Dropped on Jump
   const spawnJumpCoins = (x: number, y: number) => {
     // Golden Coins
@@ -310,7 +349,12 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       chickenPos.current.hopProgress = 0; // Trigger hop animation forward 1 step!
 
       if (isNewJump) {
-        spawnJumpCoins(chickenPos.current.x, chickenPos.current.y);
+        if (!isCrushed && currentRow > 0) {
+          const mult = multipliers[currentRow - 1] || (1 + (currentRow - 1) * 0.5);
+          spawnBigCoinReward(targetX, targetY, `+${mult.toFixed(2)}×`);
+        } else {
+          spawnJumpCoins(chickenPos.current.x, chickenPos.current.y);
+        }
       }
     }
 
@@ -1037,6 +1081,87 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
           ctx.beginPath();
           ctx.ellipse(0, 0, p.size, p.size / 3, 0, 0, Math.PI * 2);
           ctx.fill();
+        } else if (p.type === 'big-coin') {
+          // 3D Spinning Master Golden Coin
+          const spinScale = Math.cos(p.rotation);
+          ctx.scale(Math.max(0.18, Math.abs(spinScale)), 1);
+
+          // Radial Golden Aura / Glow
+          const aura = ctx.createRadialGradient(0, 0, p.size * 0.3, 0, 0, p.size * 1.6);
+          aura.addColorStop(0, 'rgba(251, 191, 36, 0.45)');
+          aura.addColorStop(1, 'rgba(251, 191, 36, 0)');
+          ctx.fillStyle = aura;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * 1.6, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Coin Drop Shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+          ctx.beginPath();
+          ctx.arc(3, 4, p.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Outer Gold Rim with Gradient
+          const outerGrad = ctx.createLinearGradient(-p.size, -p.size, p.size, p.size);
+          outerGrad.addColorStop(0, '#f59e0b');
+          outerGrad.addColorStop(0.5, '#fef08a');
+          outerGrad.addColorStop(1, '#b45309');
+          ctx.fillStyle = outerGrad;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Inner Beveled Golden Face
+          const innerGrad = ctx.createRadialGradient(0, -p.size * 0.3, 2, 0, 0, p.size * 0.85);
+          innerGrad.addColorStop(0, '#fef08a');
+          innerGrad.addColorStop(0.5, '#fbbf24');
+          innerGrad.addColorStop(1, '#d97706');
+          ctx.fillStyle = innerGrad;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * 0.82, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Inner Bezel Ring
+          ctx.strokeStyle = '#fef08a';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * 0.68, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Embossed Golden Dollar / Star Symbol
+          ctx.fillStyle = '#78350f';
+          ctx.font = `900 ${Math.round(p.size * 0.95)}px system-ui, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('$', 0, 1);
+
+          // Specular Glint Reflection
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.beginPath();
+          ctx.arc(-p.size * 0.35, -p.size * 0.35, p.size * 0.25, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Multiplier / Reward Badge above the Coin
+          if (p.text) {
+            ctx.restore(); // Restore scale for sharp text
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.globalAlpha = p.alpha;
+
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath();
+            ctx.roundRect(-36, -p.size - 22, 72, 22, 6);
+            ctx.fill();
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(p.text, 0, -p.size - 11);
+          }
         } else if (p.type === 'coin') {
           // 3D Spinning Golden Coin
           const spinScale = Math.cos(p.rotation);
