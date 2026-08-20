@@ -202,6 +202,46 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
     }
   };
 
+  // Spawn Golden Coins Dropped on Jump
+  const spawnJumpCoins = (x: number, y: number) => {
+    // Golden Coins
+    for (let i = 0; i < 4; i++) {
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.8;
+      const speed = 2.5 + Math.random() * 3.5;
+      particles.current.push({
+        x: x + (Math.random() - 0.5) * 16,
+        y: y + (Math.random() - 0.5) * 8,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        color: '#fbbf24',
+        size: 7 + Math.random() * 3,
+        alpha: 1,
+        decay: 0.012 + Math.random() * 0.008,
+        rotation: Math.random() * Math.PI * 2,
+        vRot: (Math.random() - 0.5) * 0.35,
+        type: 'coin',
+      });
+    }
+    // Sparkling Golden Spark Particles
+    for (let i = 0; i < 8; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.5 + Math.random() * 3;
+      particles.current.push({
+        x: x + (Math.random() - 0.5) * 12,
+        y: y + (Math.random() - 0.5) * 12,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1,
+        color: '#fef08a',
+        size: 3 + Math.random() * 3,
+        alpha: 1,
+        decay: 0.025 + Math.random() * 0.02,
+        rotation: 0,
+        vRot: 0,
+        type: 'spark',
+      });
+    }
+  };
+
   // Spawn Victory Confetti & Coins
   const spawnCelebration = (x: number, y: number) => {
     for (let i = 0; i < 70; i++) {
@@ -264,9 +304,14 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
       chickenPos.current.targetX = targetX;
       chickenPos.current.targetY = targetY;
     } else {
+      const isNewJump = chickenPos.current.targetY !== targetY;
       chickenPos.current.targetX = targetX;
       chickenPos.current.targetY = targetY;
       chickenPos.current.hopProgress = 0; // Trigger hop animation forward 1 step!
+
+      if (isNewJump) {
+        spawnJumpCoins(chickenPos.current.x, chickenPos.current.y);
+      }
     }
 
     if (currentRow === 0 && !isCrushed) {
@@ -993,12 +1038,32 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
           ctx.ellipse(0, 0, p.size, p.size / 3, 0, 0, Math.PI * 2);
           ctx.fill();
         } else if (p.type === 'coin') {
-          ctx.fillStyle = '#fbbf24';
+          // 3D Spinning Golden Coin
+          const spinScale = Math.cos(p.rotation);
+          ctx.scale(spinScale, 1);
+
+          // Coin outer rim & glow
+          ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
           ctx.arc(0, 0, p.size, 0, Math.PI * 2);
           ctx.fill();
-          ctx.strokeStyle = '#d97706';
-          ctx.stroke();
+
+          // Golden face
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * 0.82, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Specular Glint
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+          ctx.beginPath();
+          ctx.arc(-p.size * 0.3, -p.size * 0.3, p.size * 0.28, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.type === 'spark') {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+          ctx.fill();
         } else if (p.type === 'smoke') {
           ctx.fillStyle = p.color;
           ctx.beginPath();

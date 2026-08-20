@@ -65,6 +65,22 @@ class ChickenRoadAudioEngine {
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + 0.15);
+
+      // Golden coin drop chime
+      const coinOsc = this.ctx.createOscillator();
+      const coinGain = this.ctx.createGain();
+      coinOsc.type = 'triangle';
+      const coinFreq = 987.77 + laneIndex * 60;
+      coinOsc.frequency.setValueAtTime(coinFreq, this.ctx.currentTime + 0.04);
+      coinOsc.frequency.setValueAtTime(coinFreq * 1.5, this.ctx.currentTime + 0.1);
+
+      coinGain.gain.setValueAtTime(0.1, this.ctx.currentTime + 0.04);
+      coinGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
+
+      coinOsc.connect(coinGain);
+      coinGain.connect(this.ctx.destination);
+      coinOsc.start(this.ctx.currentTime + 0.04);
+      coinOsc.stop(this.ctx.currentTime + 0.22);
     } catch {}
   }
 
