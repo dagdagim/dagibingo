@@ -664,6 +664,94 @@ export const ChickenRoadCanvas: React.FC<ChickenRoadCanvasProps> = ({
           ctx.restore();
         }
 
+        // ---------------------------------------------------------
+        // BIG GOLDEN COIN RESTING ON THE ROAD (Passed Lane Collectible)
+        // ---------------------------------------------------------
+        if (isPassedLane) {
+          const coinX = viewWidth / 2;
+          const coinY = laneY + LANE_HEIGHT / 2;
+          const coinR = 24;
+          const gleam = Math.sin(time * 0.004 + lane * 1.2);
+
+          ctx.save();
+          // Asphalt Contact Shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+          ctx.beginPath();
+          ctx.ellipse(coinX, coinY + coinR * 0.5, coinR * 1.1, coinR * 0.35, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Subtle Golden Floor Glow
+          const floorGlow = ctx.createRadialGradient(coinX, coinY, coinR * 0.2, coinX, coinY, coinR * 1.8);
+          floorGlow.addColorStop(0, 'rgba(251, 191, 36, 0.25)');
+          floorGlow.addColorStop(1, 'rgba(251, 191, 36, 0)');
+          ctx.fillStyle = floorGlow;
+          ctx.beginPath();
+          ctx.arc(coinX, coinY, coinR * 1.8, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Outer Gold Rim with Metallic Gradient
+          const outerGrad = ctx.createLinearGradient(coinX - coinR, coinY - coinR, coinX + coinR, coinY + coinR);
+          outerGrad.addColorStop(0, '#f59e0b');
+          outerGrad.addColorStop(0.5, '#fef08a');
+          outerGrad.addColorStop(1, '#b45309');
+          ctx.fillStyle = outerGrad;
+          ctx.beginPath();
+          ctx.arc(coinX, coinY, coinR, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Inner Polished Golden Face
+          const innerGrad = ctx.createRadialGradient(coinX, coinY - coinR * 0.3, 2, coinX, coinY, coinR * 0.85);
+          innerGrad.addColorStop(0, '#fef08a');
+          innerGrad.addColorStop(0.5, '#fbbf24');
+          innerGrad.addColorStop(1, '#d97706');
+          ctx.fillStyle = innerGrad;
+          ctx.beginPath();
+          ctx.arc(coinX, coinY, coinR * 0.84, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Inner Bezel Groove
+          ctx.strokeStyle = '#fef08a';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(coinX, coinY, coinR * 0.7, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Embossed Dollar / Star Symbol
+          ctx.fillStyle = '#78350f';
+          ctx.font = `900 ${Math.round(coinR * 0.95)}px system-ui, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('$', coinX, coinY + 1);
+
+          // Specular Glint Reflection
+          if (gleam > 0) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + gleam * 0.45})`;
+            ctx.beginPath();
+            ctx.arc(coinX - coinR * 0.35, coinY - coinR * 0.35, coinR * 0.26, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Floating Multiplier Tag above Coin
+          const tagW = 56;
+          const tagH = 18;
+          const tagY = coinY - coinR - 12;
+          ctx.fillStyle = '#10b981';
+          ctx.beginPath();
+          ctx.roundRect(coinX - tagW / 2, tagY, tagW, tagH, 5);
+          ctx.fill();
+          ctx.strokeStyle = '#34d399';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 11px system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${multVal.toFixed(2)}×`, coinX, tagY + tagH / 2);
+
+          ctx.restore();
+        }
+
         // Active Lane Target Indicator (Centered in the middle of the road)
         if (isCurrentLane && !isStepping) {
           const tileW = Math.min(260, roadWidth * 0.55);
